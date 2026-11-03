@@ -49,7 +49,8 @@ export async function POST(req: Request) {
     method: "POST",
     headers: {
       apikey: key,
-      Authorization: `Bearer ${key}`,
+      // 舊版 service_role 金鑰（JWT，eyJ 開頭）才需要放 Authorization；新版 sb_secret_ 金鑰只放 apikey
+      ...(key.startsWith("eyJ") ? { Authorization: `Bearer ${key}` } : {}),
       "Content-Type": "application/json",
       Prefer: "return=minimal",
     },
