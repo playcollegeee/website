@@ -3,6 +3,7 @@ import "./globals.css";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import FloatingCta from "@/components/FloatingCta";
 import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -23,10 +24,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-Hant-TW">
       <body>
+        <a href="#main" className="skip">跳到主要內容</a>
         <AnnouncementBar />
         <Header />
-        <main>{children}</main>
+        <main id="main">{children}</main>
         <Footer />
+        <FloatingCta />
       </body>
     </html>
   );

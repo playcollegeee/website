@@ -5,7 +5,15 @@ import { levels, majors, site } from "@/lib/content";
 
 type Status = { kind: "idle" } | { kind: "sending" } | { kind: "ok" } | { kind: "err"; message: string };
 
-export default function TrialForm({ defaultType = "trial" }: { defaultType?: string }) {
+export default function TrialForm({
+  defaultType = "trial",
+  defaultLevel = "",
+  defaultMajors = [],
+}: {
+  defaultType?: string;
+  defaultLevel?: string;
+  defaultMajors?: string[];
+}) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -71,7 +79,7 @@ export default function TrialForm({ defaultType = "trial" }: { defaultType?: str
         </div>
         <div className="field">
           <label htmlFor="childLevel">孩子目前的年級</label>
-          <select id="childLevel" name="childLevel" defaultValue="">
+          <select id="childLevel" name="childLevel" defaultValue={defaultLevel}>
             <option value="">請選擇</option>
             {levels.map((l) => (
               <option key={l.slug} value={l.slug}>
@@ -85,7 +93,7 @@ export default function TrialForm({ defaultType = "trial" }: { defaultType?: str
         <legend style={{ fontWeight: 700, marginBottom: 6 }}>有興趣的主修（可複選）</legend>
         {majors.map((m) => (
           <label key={m.slug} style={{ fontWeight: 400, display: "inline-flex", gap: 6, marginRight: 16 }}>
-            <input type="checkbox" name="interests" value={m.slug} style={{ width: "auto" }} />
+            <input type="checkbox" name="interests" value={m.slug} defaultChecked={defaultMajors.includes(m.slug)} style={{ width: "auto" }} />
             {m.short}
           </label>
         ))}

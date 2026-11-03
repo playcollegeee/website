@@ -9,9 +9,11 @@ export const metadata: Metadata = {
 
 const allowed = ["trial", "workshop", "school", "other"];
 
-export default async function ContactPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
-  const { type } = await searchParams;
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ type?: string; level?: string; major?: string }> }) {
+  const { type, level, major } = await searchParams;
   const defaultType = type && allowed.includes(type) ? type : "trial";
+  const defaultLevel = level && /^[a-z]{4,12}$/.test(level) ? level : "";
+  const defaultMajors = major && ["lego", "3d", "art"].includes(major) ? [major] : [];
   return (
     <section>
       <div className="container grid cols-2" style={{ alignItems: "start" }}>
@@ -24,6 +26,11 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             <p>
               Email：<a href={`mailto:${site.email}`}>{site.email}</a>
             </p>
+            <p>
+              <a href={site.facebook} target="_blank" rel="noopener noreferrer">Facebook 粉絲專頁</a>
+              {"・"}
+              <a href={site.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
+            </p>
             {site.line && (
               <p>
                 LINE 官方帳號：<a href={site.line}>加入好友</a>
@@ -32,7 +39,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </div>
         </div>
         <div className="card">
-          <TrialForm defaultType={defaultType} />
+          <TrialForm defaultType={defaultType} defaultLevel={defaultLevel} defaultMajors={defaultMajors} />
         </div>
       </div>
     </section>

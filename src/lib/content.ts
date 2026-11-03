@@ -7,10 +7,9 @@ export const site = {
   tagline: "先探索、再發現、逐步深入，讓興趣成為孩子持續學習的動力。",
   city: "台中",
   email: "playcollegeee@gmail.com",
-  // TODO: 換成正式的 LINE 官方帳號、FB、IG 連結
-  line: "",
-  facebook: "",
-  instagram: "",
+  line: "", // TODO: LINE 官方帳號連結
+  facebook: "https://www.facebook.com/profile.php?id=61578868228214",
+  instagram: "https://www.instagram.com/play_collegeee/",
 };
 
 export type Level = {
@@ -108,26 +107,28 @@ export const programs: Program[] = [
     audience: "3–6 歲幼兒（親子）",
     summary: "從繪本故事出發，親子一起用積木完成主題作品，再進入有趣的任務挑戰。每月一個新主題。",
     tags: ["親子", "每月主題", "約 60–70 分鐘"],
-    image: "/images/croc.webp",
+    image: "/images/story-ship.webp",
   },
   {
     name: "樂高動滋動",
     audience: "幼兒至國小低年級",
     summary: "用樂高做出會動的作品，在玩的過程裡認識齒輪、槓桿與力的方向。",
     tags: ["動力機械", "主題課程"],
-    image: "/images/f1.webp",
+    image: "/images/lego-car.webp",
   },
   {
     name: "3D 造物體驗工作坊",
     audience: "國小三年級以上",
     summary: "半日工作坊，從設計到列印，帶走一件自己設計的作品，例如冰箱貼、機關公仔。",
     tags: ["半日體驗", "帶回作品"],
+    image: "/images/print-proud.webp",
   },
   {
     name: "3D 列印寒暑假營隊",
     audience: "國小三年級以上",
     summary: "連續多天的主題專題，例如「我的微縮城市計畫」「桌遊嘉年華」「飆速遙控計畫」，最後舉辦成果發表。",
     tags: ["寒暑假", "專題", "成果發表"],
+    image: "/images/boardgame.webp",
   },
 ];
 
@@ -163,31 +164,56 @@ export const featured = {
     { label: "課程時間", value: "60–70 分鐘" },
     { label: "形式", value: "親子同行" },
   ],
-  image: "/images/croc.webp",
+  image: "/images/story-ship.webp",
   href: "/contact?type=trial",
 };
 
 // 成果與活動紀錄（之後可連到部落格文章）
 export const highlights = [
-  { date: "2026・夏", title: "3D 列印夏令營：桌遊嘉年華", text: "孩子自己設計規則、建模、列印配件，完成一套能玩的桌遊。", color: "red" },
-  { date: "2026・6 月", title: "飆速遙控計畫", text: "三天工作坊從設計車殼到組裝遙控車，最後挑戰駕照關卡並舉辦成果發表。", color: "green" },
-  { date: "2026・冬", title: "我的微縮城市計畫", text: "每個孩子設計一棟建築，最後拼成一座 3D 列印的微縮城市。", color: "blue" },
+  { date: "2026・夏", title: "3D 列印夏令營：桌遊嘉年華", text: "孩子自己設計規則、建模、列印配件，完成一套能玩的桌遊。", color: "red", image: "/images/build-focus.webp" },
+  { date: "2026・6 月", title: "飆速遙控計畫", text: "三天工作坊從設計車殼到組裝遙控車，最後挑戰駕照關卡並舉辦成果發表。", color: "green", image: "/images/rc-car.webp" },
+  { date: "2026・冬", title: "我的微縮城市計畫", text: "每個孩子設計一棟建築，最後拼成一座 3D 列印的微縮城市。", color: "blue", image: "/images/city-modeling.webp" },
 ] as const;
-
-// 合作過的單位（公開前請確認對方同意列名）
-export const partners = [
-  "新竹托育資源中心",
-  "新竹東區親子館",
-  "新竹夢想館",
-  "彰化育兒親子館",
-  "樹合苑",
-  "新學苑補習班",
-  "樟湖小學",
-];
 
 // 數據：只放查得到依據的數字，更新時一起改
 export const stats = [
   { value: "70+", label: "自行研發的積木與機器人教案" },
-  { value: String(partners.length), label: "合作過的學校與機構" },
+  { value: "5", label: "成長階段，從幼兒園到國高中" },
   { value: "3", label: "開課城市：台中・新竹・彰化" },
+];
+
+// 興趣任務入口：家長不必先懂課程名稱，從孩子喜歡什麼開始找
+export const interestQuests = [
+  { emoji: "⚙️", title: "喜歡拆裝、讓東西動起來", text: "齒輪、機關、會跑的車", href: "/courses#lego", color: "red" },
+  { emoji: "🤖", title: "想讓機器人聽話", text: "感測器、馬達、寫程式", href: "/courses#lego", color: "blue" },
+  { emoji: "🖨️", title: "腦中有點子想做出來", text: "3D 建模、列印自己的玩具", href: "/courses#3d", color: "green" },
+  { emoji: "🎨", title: "愛畫畫、愛做造型", text: "色彩、構圖、立體創作", href: "/courses#art", color: "yellow" },
+  { emoji: "📖", title: "年紀還小，想先玩玩看", text: "親子積木故事屋", href: "/workshops", color: "yellow" },
+] as const;
+
+// 找課小測驗
+export const quiz = {
+  grades: [
+    { label: "幼兒園", level: "wanbao" },
+    { label: "國小一、二年級", level: "wantong" },
+    { label: "國小三～五年級", level: "wanle" },
+    { label: "國小六年級～國二", level: "wanchuang" },
+    { label: "國三以上", level: "wanjia" },
+  ],
+  likes: [
+    { label: "組裝會動的東西", major: "lego" },
+    { label: "設計自己的玩具或作品", major: "3d" },
+    { label: "畫畫、做造型", major: "art" },
+    { label: "還不確定，都想試試", major: "" },
+  ],
+} as const;
+
+// 作品與活動照片牆
+export const gallery = [
+  { src: "/images/story-ship.webp", alt: "積木故事屋：小小釣手", w: 1100, h: 825 },
+  { src: "/images/lego-car.webp", alt: "樂高動滋動：完成自己的風帆車", w: 825, h: 1100 },
+  { src: "/images/print-proud.webp", alt: "3D 造物：拿著自己列印的作品", w: 825, h: 1100 },
+  { src: "/images/halloween.webp", alt: "萬聖節積木派對", w: 1100, h: 825 },
+  { src: "/images/rc-car.webp", alt: "飆速遙控計畫：駕照關卡", w: 825, h: 1100 },
+  { src: "/images/city-modeling.webp", alt: "微縮城市計畫：3D 建模中", w: 1100, h: 825 },
 ];

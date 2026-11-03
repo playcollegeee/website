@@ -1,14 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import AvatarPreview from "@/components/AvatarPreview";
-import { featured, highlights, levels, majors, partners, site, stats, valueProps } from "@/lib/content";
+import CourseQuiz from "@/components/CourseQuiz";
+import { featured, gallery, highlights, interestQuests, levels, site, stats, valueProps } from "@/lib/content";
 
-const gallery = [
-  { src: "/images/croc.webp", alt: "幼兒積木作品：大嘴鱷魚", w: 640, h: 404 },
-  { src: "/images/walker.webp", alt: "SPIKE 程式作品：走路機器人", w: 472, h: 640 },
-  { src: "/images/f1.webp", alt: "幼兒積木作品：F1 賽車", w: 640, h: 473 },
-  { src: "/images/catapult.webp", alt: "SPIKE 動力作品：投石器", w: 640, h: 478 },
-];
+const ribbonWords = ["先探索", "再發現", "逐步深入", "LEGO 機器人", "3D 造物", "美術創作", "動手做", "玩出興趣"];
+
+function Ribbon({ tone }: { tone: "yellow" | "blue" }) {
+  return (
+    <div className="ribbon-wrap" aria-hidden="true">
+      <div className={`ribbon ribbon-${tone}`}>
+        <div className="ribbon-track">
+          {[...ribbonWords, ...ribbonWords].map((w, i) => (
+            <span key={i}>★ {w}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
@@ -56,6 +66,41 @@ export default function HomePage() {
         </div>
       </section>
 
+      <Ribbon tone="yellow" />
+
+      {/* 任務入口：從孩子的興趣出發 */}
+      <section>
+        <div className="container">
+          <div className="section-head">
+            <p className="eyebrow">選擇你的任務</p>
+            <h2>孩子喜歡什麼？從這裡出發</h2>
+            <p className="lead">不用先搞懂課程名稱，從孩子平常最愛做的事開始找。</p>
+          </div>
+          <div className="quests">
+            {interestQuests.map((q) => (
+              <Link key={q.title} href={q.href} className={`quest q-${q.color}`}>
+                <span className="quest-emoji" aria-hidden="true">
+                  {q.emoji}
+                </span>
+                <strong>{q.title}</strong>
+                <span>{q.text}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 找課小測驗 */}
+      <section className="bg-blue" id="quiz">
+        <div className="container">
+          <div className="section-head">
+            <p className="eyebrow">30 秒找課</p>
+            <h2>回答兩題，找到最適合的班級</h2>
+          </div>
+          <CourseQuiz />
+        </div>
+      </section>
+
       {/* 3. 為什麼選玩學院 */}
       <section>
         <div className="container">
@@ -84,7 +129,7 @@ export default function HomePage() {
       <section className="bg-yellow">
         <div className="container featured">
           <div className="featured-img">
-            <Image src={featured.image} alt={`${featured.name}作品範例`} width={640} height={404} />
+            <Image src={featured.image} alt={`${featured.name}上課情形`} width={1100} height={825} sizes="(max-width: 860px) 100vw, 540px" />
           </div>
           <div>
             <p className="eyebrow">第一次來？從這裡開始</p>
@@ -106,26 +151,6 @@ export default function HomePage() {
                 其他活動
               </Link>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. 三大主修 */}
-      <section>
-        <div className="container">
-          <div className="section-head">
-            <p className="eyebrow">三大主修</p>
-            <h2>選一個主修，持續往深處走</h2>
-            <p className="lead">一期一選，每期結束可以續讀，也可以換一個主修試試看。</p>
-          </div>
-          <div className="grid cols-3">
-            {majors.map((m) => (
-              <Link key={m.slug} href={`/courses#${m.slug}`} className={`card bar-${m.color}`} style={{ textDecoration: "none" }}>
-                <h3>{m.name}</h3>
-                <p>{m.intro}</p>
-                <span className="tag">{m.from}</span>
-              </Link>
-            ))}
           </div>
         </div>
       </section>
@@ -159,7 +184,10 @@ export default function HomePage() {
           </div>
           <div className="grid cols-3">
             {highlights.map((h) => (
-              <article key={h.title} className={`card bar-${h.color}`}>
+              <article key={h.title} className={`card photo-card bar-${h.color}`}>
+                <div className="photo">
+                  <Image src={h.image} alt={h.title} width={825} height={1100} sizes="(max-width: 860px) 100vw, 360px" />
+                </div>
                 <span className="tag">{h.date}</span>
                 <h3>{h.title}</h3>
                 <p>{h.text}</p>
@@ -173,13 +201,13 @@ export default function HomePage() {
       <section className="bg-yellow">
         <div className="container">
           <div className="section-head">
-            <p className="eyebrow">作品牆</p>
+            <p className="eyebrow">教室現場</p>
             <h2>每一個作品，都是孩子自己動手完成的</h2>
           </div>
-          <div className="mosaic">
+          <div className="photo-wall">
             {gallery.map((g) => (
-              <figure key={g.src} className="mosaic-item">
-                <Image src={g.src} alt={g.alt} width={g.w} height={g.h} />
+              <figure key={g.src} className="photo-item">
+                <Image src={g.src} alt={g.alt} width={g.w} height={g.h} sizes="(max-width: 860px) 50vw, 380px" />
                 <figcaption>{g.alt}</figcaption>
               </figure>
             ))}
@@ -217,23 +245,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 10. 合作單位 */}
-      <section className="partners">
-        <div className="container">
-          <p className="eyebrow" style={{ textAlign: "center" }}>
-            合作過的學校與機構
-          </p>
-          <div className="marquee" aria-label="合作單位">
-            <div className="marquee-track">
-              {[...partners, ...partners].map((p, i) => (
-                <span key={`${p}-${i}`} className="partner" aria-hidden={i >= partners.length ? true : undefined}>
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <Ribbon tone="blue" />
 
       {/* 11. 雙軌行動呼籲 */}
       <section>

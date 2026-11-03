@@ -28,6 +28,7 @@ body {
   font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
 }
 
 img { max-width: 100%; height: auto; display: block; }
@@ -229,3 +230,78 @@ h3 { font-size: 20px; }
 .cta-card p { color: var(--ink-soft); }
 .cta-parent { background: var(--yellow-soft); }
 .cta-school { background: var(--blue-soft); }
+
+/* ---------- 跳到主要內容（鍵盤使用者） ---------- */
+.skip { position: absolute; left: -9999px; top: 0; background: var(--ink); color: #fff; padding: 8px 14px; z-index: 50; }
+.skip:focus { left: 12px; top: 12px; }
+
+/* ---------- 星形色帶 ---------- */
+.ribbon-wrap { overflow: hidden; padding: 14px 0; }
+.ribbon { overflow: hidden; padding: 12px 0; font-weight: 800; letter-spacing: 0.04em; }
+.ribbon-yellow { background: var(--yellow); color: var(--ink); transform: rotate(-1deg); margin: 18px -12px 0; }
+.ribbon-blue { background: var(--blue); color: #fff; transform: rotate(1deg); margin: 0 -12px; }
+.ribbon-track { display: flex; gap: 28px; width: max-content; animation: marquee 40s linear infinite; white-space: nowrap; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .ribbon-track { animation: none; } }
+
+/* ---------- 任務入口 ---------- */
+.quests { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.quest {
+  display: flex; flex-direction: column; gap: 4px; text-decoration: none; padding: 20px 16px; border-radius: var(--radius);
+  background: #fff; border: 2px solid var(--ink); box-shadow: 0 5px 0 var(--ink); transition: transform 0.12s, box-shadow 0.12s;
+}
+.quest:hover { transform: translateY(-3px); box-shadow: 0 8px 0 var(--ink); }
+.quest-emoji { font-size: 34px; line-height: 1; margin-bottom: 8px; }
+.quest strong { font-size: 17px; line-height: 1.4; }
+.quest span:last-child { color: var(--ink-soft); font-size: 14px; }
+.q-red { background: var(--red-soft); }
+.q-blue { background: var(--blue-soft); }
+.q-green { background: var(--green-soft); }
+.q-yellow { background: var(--yellow-soft); }
+@media (max-width: 960px) { .quests { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---------- 找課測驗 ---------- */
+.quiz { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: stretch; }
+.quiz-step, .quiz-result { background: #fff; border: 2px solid var(--line); border-radius: var(--radius); padding: 22px; transition: opacity 0.2s; }
+.quiz-result { border: 2px solid var(--ink); box-shadow: 0 5px 0 var(--ink); }
+.quiz-q { font-weight: 800; font-size: 18px; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
+.quiz-n { width: 30px; height: 30px; border-radius: 9px; background: var(--yellow); display: grid; place-items: center; font-size: 15px; }
+.quiz-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-weight: 700; font-size: 15px; padding: 8px 14px; border-radius: 999px; border: 2px solid var(--line);
+  background: var(--paper); cursor: pointer;
+}
+.chip:hover:not(:disabled) { border-color: var(--ink); }
+.chip.on { background: var(--yellow); border-color: var(--ink); }
+.chip:disabled { cursor: not-allowed; }
+.quiz-result h3 { font-size: 24px; }
+.quiz-result p { color: var(--ink-soft); }
+@media (max-width: 960px) { .quiz { grid-template-columns: 1fr; } }
+
+/* ---------- 照片卡片與教室現場 ---------- */
+.photo-card .photo { margin: -8px -8px 14px; border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 3; }
+.photo-card .photo img, .card .card-img img { width: 100%; height: 100%; object-fit: cover; }
+.card .card-img { overflow: hidden; aspect-ratio: 4 / 3; }
+.featured-img { padding: 0; overflow: hidden; }
+.photo-wall { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.photo-item { margin: 0; position: relative; border-radius: var(--radius); overflow: hidden; aspect-ratio: 4 / 3; border: 3px solid #fff; box-shadow: var(--shadow); }
+.photo-item:nth-child(3n + 2) { transform: rotate(-1.2deg); }
+.photo-item:nth-child(3n) { transform: rotate(1deg); }
+.photo-item img { width: 100%; height: 100%; object-fit: cover; }
+.photo-item figcaption {
+  position: absolute; left: 10px; bottom: 10px; background: rgba(255, 255, 255, 0.92); padding: 4px 10px; border-radius: 999px;
+  font-size: 13px; font-weight: 700;
+}
+@media (max-width: 860px) { .photo-wall { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- 浮動預約按鈕 ---------- */
+.fab {
+  position: fixed; right: 18px; bottom: 18px; z-index: 30; text-decoration: none; font-weight: 800;
+  background: var(--red); color: #fff; padding: 12px 20px; border-radius: 999px; border: 2px solid var(--ink);
+  box-shadow: 0 4px 0 var(--ink);
+}
+.fab:hover { transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); }
+
+/* ---------- 頁尾社群 ---------- */
+.social { display: flex; gap: 14px; }
+.social a { font-weight: 700; }
