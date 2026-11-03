@@ -167,3 +167,65 @@ h3 { font-size: 20px; }
 .footer img { height: 36px; width: auto; }
 .blocks { display: flex; gap: 6px; }
 .blocks span { width: 18px; height: 10px; border-radius: 3px; }
+
+/* ---------- 頂部公告列 ---------- */
+.announce { background: var(--ink); color: #fff; font-size: 14px; }
+.announce-inner { display: flex; justify-content: center; gap: 16px; padding: 8px 0; flex-wrap: wrap; text-align: center; }
+.announce a { color: var(--yellow); font-weight: 700; text-decoration: none; }
+
+/* ---------- 數據帶 ---------- */
+.stats-band { padding: 0; margin-top: -24px; }
+.stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); background: #fff; border: 2px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.stat { padding: 24px; text-align: center; }
+.stat + .stat { border-left: 2px solid var(--line); }
+.stat-value { font-size: 40px; font-weight: 800; line-height: 1.1; color: var(--red); }
+.stat:nth-child(2) .stat-value { color: var(--green); }
+.stat:nth-child(3) .stat-value { color: var(--blue); }
+.stat-label { color: var(--ink-soft); font-size: 15px; margin-top: 6px; }
+@media (max-width: 700px) { .stats { grid-template-columns: 1fr; } .stat + .stat { border-left: 0; border-top: 2px solid var(--line); } }
+
+/* ---------- 價值主張 ---------- */
+.value { padding: 8px 4px; }
+.value p { color: var(--ink-soft); margin: 0; }
+.value-num {
+  width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; font-size: 22px;
+  margin-bottom: 14px; color: var(--ink);
+}
+.n-yellow { background: var(--yellow); }
+.n-green { background: var(--green); }
+.n-blue { background: var(--blue); color: #fff; }
+.n-red { background: var(--red); color: #fff; }
+
+/* ---------- 主打課程 ---------- */
+.featured { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+.featured-img { background: #fff; border-radius: var(--radius); padding: 24px; border: 2px solid var(--line); box-shadow: var(--shadow); }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0 0; }
+.facts div { background: #fff; border-radius: 14px; padding: 12px; border: 2px solid var(--line); }
+.facts dt { font-size: 13px; color: var(--ink-soft); }
+.facts dd { margin: 2px 0 0; font-weight: 800; font-size: 18px; }
+@media (max-width: 860px) { .featured { grid-template-columns: 1fr; } }
+
+/* ---------- 作品牆 ---------- */
+.mosaic { display: grid; grid-template-columns: 1.4fr 1fr 1fr; grid-template-rows: auto auto; gap: 16px; }
+.mosaic-item { margin: 0; background: #fff; border: 2px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; justify-content: center; }
+.mosaic-item:nth-child(1) { grid-row: span 2; }
+.mosaic-item:nth-child(2) { grid-row: span 2; }
+.mosaic-item figcaption { font-size: 13px; color: var(--ink-soft); margin-top: 8px; text-align: center; }
+@media (max-width: 860px) { .mosaic { grid-template-columns: 1fr 1fr; } .mosaic-item:nth-child(1), .mosaic-item:nth-child(2) { grid-row: auto; } }
+
+/* ---------- 合作單位跑馬燈 ---------- */
+.partners { padding: 40px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+.marquee-track { display: flex; gap: 12px; width: max-content; animation: marquee 30s linear infinite; }
+.partner { white-space: nowrap; padding: 10px 18px; border-radius: 999px; background: #fff; border: 2px solid var(--line); font-weight: 700; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; flex-wrap: wrap; width: auto; } }
+
+/* ---------- 雙軌行動呼籲 ---------- */
+.cta-card { border-radius: var(--radius); padding: 32px; border: 2px solid var(--ink); box-shadow: 0 6px 0 var(--ink); }
+.cta-card p { color: var(--ink-soft); }
+.cta-parent { background: var(--yellow-soft); }
+.cta-school { background: var(--blue-soft); }

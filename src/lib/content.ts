@@ -137,3 +137,57 @@ export const schoolServices = [
   { title: "親子館與機構活動", text: "托育資源中心、親子館的積木故事屋與主題活動，已在新竹、彰化等地合作。" },
   { title: "客製化專案", text: "競賽培訓、成果發表、3D 列印客製獎品等專案合作。" },
 ];
+
+// ---------- 首頁加強區塊（參考常見教育品牌網站的版面手法，內容皆為玩學院真實資料） ----------
+
+// 頂部公告列：有新活動時改這裡；text 留空就不顯示
+export const announcement = {
+  text: "積木故事屋每月新主題開放報名・歡迎預約試聽",
+  href: "/contact",
+  cta: "立即預約",
+};
+
+// 為什麼選玩學院（三欄價值主張）
+export const valueProps = [
+  { title: "先探索", text: "LEGO、3D 造物、美術與多元選修，孩子不必一開始就決定方向。", color: "yellow" },
+  { title: "再深入", text: "五個成長階段、清楚的進階路徑，找到興趣後可以一路往上學。", color: "green" },
+  { title: "看得見成長", text: "每一期都有作品與學習紀錄，未來還有專屬角色記錄孩子的每一步。", color: "blue" },
+] as const;
+
+// 主打課程卡
+export const featured = {
+  name: "積木故事屋",
+  summary: "從繪本故事出發，親子一起動手拼出主題作品，再進入任務挑戰。第一次來玩學院，最推薦從這裡開始。",
+  facts: [
+    { label: "適合年齡", value: "3–6 歲" },
+    { label: "課程時間", value: "60–70 分鐘" },
+    { label: "形式", value: "親子同行" },
+  ],
+  image: "/images/croc.webp",
+  href: "/contact?type=trial",
+};
+
+// 成果與活動紀錄（之後可連到部落格文章）
+export const highlights = [
+  { date: "2026・夏", title: "3D 列印夏令營：桌遊嘉年華", text: "孩子自己設計規則、建模、列印配件，完成一套能玩的桌遊。", color: "red" },
+  { date: "2026・6 月", title: "飆速遙控計畫", text: "三天工作坊從設計車殼到組裝遙控車，最後挑戰駕照關卡並舉辦成果發表。", color: "green" },
+  { date: "2026・冬", title: "我的微縮城市計畫", text: "每個孩子設計一棟建築，最後拼成一座 3D 列印的微縮城市。", color: "blue" },
+] as const;
+
+// 合作過的單位（公開前請確認對方同意列名）
+export const partners = [
+  "新竹托育資源中心",
+  "新竹東區親子館",
+  "新竹夢想館",
+  "彰化育兒親子館",
+  "樹合苑",
+  "新學苑補習班",
+  "樟湖小學",
+];
+
+// 數據：只放查得到依據的數字，更新時一起改
+export const stats = [
+  { value: "70+", label: "自行研發的積木與機器人教案" },
+  { value: String(partners.length), label: "合作過的學校與機構" },
+  { value: "3", label: "開課城市：台中・新竹・彰化" },
+];
