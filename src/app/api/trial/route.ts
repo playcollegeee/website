@@ -39,8 +39,8 @@ export async function POST(req: Request) {
   if (!LEVELS.has(childLevel)) return NextResponse.json({ error: "年級選項不正確" }, { status: 400 });
   if (body.consent !== true) return NextResponse.json({ error: "請勾選同意個資使用說明" }, { status: 400 });
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL?.trim().replace(/\/+$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !key) {
     return NextResponse.json({ error: "線上表單尚在設定中" }, { status: 503 });
   }
@@ -68,7 +68,9 @@ export async function POST(req: Request) {
   });
 
   if (!res.ok) {
-    console.error("leads insert failed", res.status, await res.text());
+    // 只記錄金鑰的格式與長度，不記錄金鑰本身
+    const kind = key.startsWith("sb_secret_") ? "sb_secret" : key.startsWith("sb_publishable_") ? "sb_publishable" : key.startsWith("eyJ") ? "jwt" : "unknown";
+    console.error("leads insert failed", res.status, await res.text(), { keyKind: kind, keyLength: key.length, hasMask: key.includes("•") });
     return NextResponse.json({ error: "系統忙碌中，請稍後再試" }, { status: 502 });
   }
   return NextResponse.json({ ok: true });
