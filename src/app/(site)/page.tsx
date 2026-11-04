@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import AvatarPreview from "@/components/AvatarPreview";
+import AvatarCreator from "@/components/AvatarCreator";
 import BrickPlayground from "@/components/BrickPlayground";
 import CourseQuiz from "@/components/CourseQuiz";
 import StackingLevels from "@/components/StackingLevels";
@@ -204,33 +204,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 9. 角色養成 */}
-      <section className="bg-blue">
-        <div className="container avatar-wrap">
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <AvatarPreview />
-          </div>
-          <div>
-            <p className="eyebrow">即將推出・玩學院角色養成</p>
-            <h2>每上一堂課，角色就解鎖一件裝備</h2>
+      {/* 9. 角色試玩 */}
+      <section className="bg-blue" id="avatar">
+        <div className="container">
+          <div className="section-head">
+            <p className="eyebrow">角色試玩・玩學院角色養成</p>
+            <h2>捏一個你的角色，上課就能解鎖裝備</h2>
             <p className="lead">
-              每位學生都有一個專屬的積木角色。上課刷卡簽到，就能累積經驗值、解鎖裝備與技能；完成一個系列，還會獲得專屬稱號。
+              每位學生都有一個專屬的積木角色。上課刷卡簽到就會累積經驗值、解鎖裝備；完成一個系列，還會拿到專屬稱號與技能。先來試玩看看！
             </p>
-            <ul className="loot">
-              <li>
-                <span className="dot" style={{ background: "var(--red)" }} />
-                LEGO 主修：機關工程師路線
-              </li>
-              <li>
-                <span className="dot" style={{ background: "var(--green)" }} />
-                3D 造物主修：造物工匠路線
-              </li>
-              <li>
-                <span className="dot" style={{ background: "var(--blue)" }} />
-                美術主修：色彩魔法師路線
-              </li>
-            </ul>
           </div>
+          <AvatarCreator />
         </div>
       </section>
 

@@ -177,7 +177,7 @@ export const highlights = [
 
 // 數據：只放查得到依據的數字，更新時一起改
 export const stats = [
-  { value: "1500+", label: "位孩子在玩學院動手玩出興趣" },
+  { value: "1500+", label: "位孩子參加過我們的課程與活動" },
   { value: "5", label: "成長階段，從幼兒園到國高中" },
   { value: "3", label: "開課城市：台中・新竹・彰化" },
 ];

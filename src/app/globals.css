@@ -654,3 +654,55 @@ button[data-pending]::after { content: " …"; }
 .adm-dl dt { color: var(--ink-soft); font-size: 14px; }
 .adm-dl dd { margin: 0; }
 .adm-nav .badge { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--red); color: #fff; font-size: 12px; text-align: center; }
+
+/* ---------- 首頁：角色試玩 ---------- */
+.ac { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 28px; align-items: start; }
+.ac-stage {
+  position: sticky; top: 90px; background: var(--ac-soft); border: 3px solid var(--ink); border-radius: 24px;
+  padding: 20px; box-shadow: 0 6px 0 var(--ink); transition: background 0.3s;
+}
+.ac-svg { width: 100%; max-width: 360px; display: block; margin: 0 auto; }
+.ac-toast { min-height: 34px; text-align: center; font-weight: 800; margin-top: 8px; }
+.ac-toast span { display: inline-block; background: var(--yellow); border: 2px solid var(--ink); border-radius: 999px; padding: 4px 14px; }
+.ac-panel { background: #fff; border: 2px solid var(--line); border-radius: 24px; padding: 22px; box-shadow: var(--shadow); }
+.ac-field { border: 0; padding: 0; margin: 0 0 20px; }
+.ac-field legend { font-weight: 800; font-size: 18px; margin-bottom: 10px; }
+.ac-tracks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ac-track {
+  text-align: left; border: 2px solid var(--line); border-top: 6px solid var(--c); border-radius: 14px; background: #fff;
+  padding: 10px 12px; cursor: pointer; font: inherit; display: grid; gap: 2px;
+}
+.ac-track small { color: var(--ink-soft); font-size: 12px; }
+.ac-track.on { border-color: var(--ink); border-top-color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+.ac-name { display: flex; gap: 10px; align-items: center; font-weight: 700; margin-bottom: 10px; }
+.ac-name input { flex: 1; max-width: 220px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 10px; font: inherit; }
+.ac-name input:focus { outline: none; border-color: var(--ac); }
+.ac-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ac-row > span { font-weight: 700; width: 3em; }
+.ac-swatch { width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--line); cursor: pointer; }
+.ac-swatch.on { border-color: var(--ink); box-shadow: 0 0 0 3px #fff inset; }
+.ac-chip { border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+.ac-chip.on { border-color: var(--ink); background: var(--yellow-soft); }
+.ac-lessons { display: flex; gap: 10px; align-items: center; }
+.ac-lessons input[type="range"] { flex: 1; accent-color: var(--ac); }
+.ac-lessons .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ac-xp { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; margin: 12px 0 8px; }
+.ac-bar { flex: 1 1 100%; height: 12px; background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.ac-bar span { display: block; height: 100%; background: var(--ac); transition: width 0.3s; }
+.ac-gear { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.ac-gear li { border: 2px dashed var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; color: var(--ink-soft); }
+.ac-gear li small { float: right; }
+.ac-gear li.got { border-style: solid; border-color: var(--ac); color: var(--ink); font-weight: 700; background: var(--ac-soft); }
+.ac-gear li:last-child { grid-column: 1 / -1; }
+.ac-pop { animation: ac-pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both; transform-box: fill-box; transform-origin: center; }
+@keyframes ac-pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ac-pop { animation: none; } .ac-bar span, .ac-stage { transition: none; } }
+.ac-quick { display: none; }
+@media (max-width: 860px) {
+  .ac { grid-template-columns: 1fr; }
+  .ac-stage { position: static; padding: 14px; }
+  .ac-svg { max-width: 220px; }
+  .ac-quick { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+  .ac-quick .btn:disabled { opacity: 0.6; }
+}
+@media (max-width: 520px) { .ac-tracks { grid-template-columns: 1fr; } .ac-gear { grid-template-columns: 1fr; } }
