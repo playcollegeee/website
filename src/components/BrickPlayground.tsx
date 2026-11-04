@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { burstConfetti } from "@/lib/confetti";
 
 // 首頁的「積木雨」：積木會掉下來、像真的樂高一樣卡在凸點格線上，可以拖曳重新堆疊。
 // 不依賴外部套件：自己寫的簡單重力＋碰撞（只處理水平對齊的長方形，剛好符合積木堆疊）。
@@ -30,6 +31,7 @@ function shade(hex: string, amt: number) {
 export default function BrickPlayground() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const apiRef = useRef<{ rain: () => void; clear: () => void } | null>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -58,8 +60,6 @@ export default function BrickPlayground() {
       ox = (W - cols * STUD) / 2;
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
-      canvas.style.width = `${W}px`;
-      canvas.style.height = `${H}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       bricks.forEach((b) => (b.x = snapX(b.x, b.w)));
     };
@@ -224,6 +224,20 @@ export default function BrickPlayground() {
     canvas.addEventListener("pointercancel", onUp);
 
     const count = W < 420 ? 16 : 26;
+    apiRef.current = {
+      rain: () => {
+        lastLetter = 0;
+        if (reduceMotion) {
+          rain(count, 0);
+          settle();
+        } else rain(count, 90);
+      },
+      clear: () => {
+        bricks = [];
+        lastLetter = 0;
+        draw();
+      },
+    };
     if (reduceMotion) {
       rain(count, 0);
       settle();
@@ -233,6 +247,7 @@ export default function BrickPlayground() {
     }
 
     return () => {
+      apiRef.current = null;
       cancelAnimationFrame(raf);
       ro.disconnect();
       io.disconnect();
@@ -244,11 +259,29 @@ export default function BrickPlayground() {
   }, []);
 
   return (
-    <div ref={wrapRef} className="brick-playground">
-      <canvas ref={canvasRef} role="img" aria-label="可以點擊放下、拖曳堆疊的積木遊樂區" style={{ touchAction: "pan-y" }} />
-      <p className="brick-hint" aria-hidden="true">
-        點一下放積木・拖曳重新堆疊
-      </p>
+    <div className="brick-wrap">
+      <div ref={wrapRef} className="brick-playground">
+        <canvas ref={canvasRef} role="img" aria-label="可以點擊放下、拖曳堆疊的積木遊樂區" style={{ touchAction: "pan-y" }} />
+        <p className="brick-hint" aria-hidden="true">
+          點一下放積木・拖曳重新堆疊
+        </p>
+      </div>
+      <div className="brick-controls">
+        <button
+          type="button"
+          className="btn btn-sm primary"
+          onClick={(e) => {
+            apiRef.current?.rain();
+            const r = e.currentTarget.getBoundingClientRect();
+            burstConfetti(r.left + r.width / 2, r.top, 40);
+          }}
+        >
+          下一場積木雨
+        </button>
+        <button type="button" className="btn btn-sm" onClick={() => apiRef.current?.clear()}>
+          清空
+        </button>
+      </div>
     </div>
   );
 }

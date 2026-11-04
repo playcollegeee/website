@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { burstConfetti } from "@/lib/confetti";
 import { levels, majors, site } from "@/lib/content";
 
 type Status = { kind: "idle" } | { kind: "sending" } | { kind: "ok" } | { kind: "err"; message: string };
@@ -40,15 +41,17 @@ export default function TrialForm({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "送出失敗");
+      const r = formEl.getBoundingClientRect();
       formEl.reset();
       setStatus({ kind: "ok" });
+      burstConfetti(r.left + r.width / 2, Math.min(window.innerHeight * 0.7, r.top + 120), 120);
     } catch (err) {
       setStatus({ kind: "err", message: err instanceof Error ? err.message : "送出失敗" });
     }
   }
 
   if (status.kind === "ok") {
-    return <div className="notice ok">收到了，謝謝！我們會在 1–2 個工作天內與你聯絡。</div>;
+    return <div className="notice ok pop-in">收到了，謝謝！我們會在 1–2 個工作天內與你聯絡。</div>;
   }
 
   return (

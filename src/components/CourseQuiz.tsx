@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { burstConfetti } from "@/lib/confetti";
 import { levels, majors, quiz } from "@/lib/content";
 
 // 兩題小測驗：年級 + 喜歡做什麼 → 推薦班級與主修，直接帶到試聽表單
@@ -14,6 +15,12 @@ export default function CourseQuiz() {
   const tooYoungFor3d = major === "3d" && (level === "wanbao" || level === "wantong");
   const mj = majors.find((m) => m.slug === (tooYoungFor3d ? "lego" : major));
   const done = level !== null && major !== null;
+  const resultRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!done || !resultRef.current) return;
+    const r = resultRef.current.getBoundingClientRect();
+    burstConfetti(r.left + r.width / 2, r.top + 40, 70);
+  }, [done, level, major]);
 
   const params = new URLSearchParams({ type: "trial" });
   if (level) params.set("level", level);
@@ -60,7 +67,7 @@ export default function CourseQuiz() {
         </div>
       </div>
 
-      <div className="quiz-result" aria-live="polite">
+      <div ref={resultRef} className={`quiz-result${done ? " pop-in" : ""}`} key={done ? `${level}-${major}` : "empty"} aria-live="polite">
         {done && lv ? (
           <>
             <p className="eyebrow">推薦給你的孩子</p>

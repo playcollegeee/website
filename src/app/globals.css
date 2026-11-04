@@ -311,7 +311,8 @@ h3 { font-size: 20px; }
   position: relative; height: 420px; border-radius: 28px; background: #fff; border: 2px solid var(--line);
   box-shadow: var(--shadow); overflow: hidden;
 }
-.brick-playground canvas { display: block; user-select: none; -webkit-user-select: none; }
+.brick-wrap { min-width: 0; }
+.brick-playground canvas { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-select: none; }
 .brick-hint {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%); margin: 0; pointer-events: none;
   font-size: 13px; font-weight: 700; color: var(--ink-soft); background: rgba(255, 255, 255, 0.85);
@@ -353,3 +354,21 @@ h3 { font-size: 20px; }
   .stack-path { display: none; }
 }
 @media (max-width: 520px) { .stack-row { grid-template-columns: 1fr; } }
+
+/* ---------- 小驚喜：按鈕彈跳、彈出、晃動 ---------- */
+.brick-controls { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+.btn-sm { padding: 8px 16px; font-size: 14px; box-shadow: 0 3px 0 var(--ink); }
+.btn:active { transform: translateY(4px) scale(0.97); box-shadow: 0 0 0 var(--ink); }
+.btn.primary:hover { animation: wiggle 0.45s ease-in-out; }
+.quest:hover .quest-emoji { animation: hop 0.5s ease-out; }
+.stat:hover .stat-value { animation: hop 0.5s ease-out; }
+.pop-in { animation: pop-in 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.fab { animation: fab-nudge 7s ease-in-out 3s infinite; }
+.fab:hover { animation: none; }
+@keyframes wiggle { 0%, 100% { rotate: 0deg; } 25% { rotate: -3deg; } 75% { rotate: 3deg; } }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px) scale(1.06); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.85) translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fab-nudge { 0%, 92%, 100% { transform: translateY(0); } 95% { transform: translateY(-8px); } 97% { transform: translateY(0); } 98.5% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .btn.primary:hover, .quest:hover .quest-emoji, .stat:hover .stat-value, .pop-in, .fab { animation: none; }
+}
