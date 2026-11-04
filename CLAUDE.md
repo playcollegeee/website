@@ -19,7 +19,7 @@
 | Vercel | 團隊 `playcollegeee`（Hobby），專案 `website` | 推到 `main` 自動部署；正式商業使用前要升級 Pro |
 | Supabase | 組織 `playcollegeee`，專案 `playcollegeee`（ref `vwldlojnnkttwoawlbog`，孟買，Free） | 環境變數 `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`（sb_secret_）只放在 Vercel |
 | 網域 | hosting.com 註冊 playcollegeee.com，DNS 在 hosting.com | A @ → 216.198.79.1；CNAME www → Vercel；信箱相關紀錄不要動 |
-| 舊站 | hosting.com 上被入侵的 WordPress，已開維護模式 | 使用者已同意刪除，尚待執行；主機合約到 2027/12 |
+| 舊站 | hosting.com 上被入侵的 WordPress | 2026/11/04 已刪除；主機合約到 2027/12 |
 | 對外信箱 | playcollegeee@gmail.com | FB、IG 連結在 `src/lib/content.ts` |
 
 ## 已確認的品牌與課程制度（不可自行更改）
@@ -50,9 +50,12 @@
 - 金鑰、密碼不可寫進程式或貼到網站欄位；需要時請使用者自己貼到 Vercel
 - 刪除資料、刪除網站、改 DNS 等不可逆操作，執行前一定先問使用者
 
+## 專案知識檔
+
+claude.ai 專案「玩學院系統開發」裡有「玩學院系統開發_現況總整理」。有進度、決定或帳號變動時，要同步更新那份檔案。
+
 ## 待辦（依優先順序）
 
-1. 刪除 hosting.com 上的舊 WordPress（已獲同意，需桌面版瀏覽器連線）
-2. 表單新詢問通知（Email 或 LINE）、簡單的後台詢問列表
-3. 11/18 提醒：設定 Google Search Console 並提交 sitemap
-4. 學生／家長資料庫與簽到 MVP（見開發藍圖第 2 階段）
+1. 表單新詢問通知（Email 或 LINE）、簡單的後台詢問列表
+2. 11/18 提醒：設定 Google Search Console 並提交 sitemap
+3. 學生／家長資料庫與簽到 MVP（見開發藍圖第 2 階段）
