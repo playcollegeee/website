@@ -35,6 +35,7 @@
 
 - Next.js 16（App Router）＋ TypeScript，純 CSS（`src/app/globals.css`），沒有 Tailwind
 - 特效全部自己寫、不加套件：`BrickPlayground`（首頁積木雨，凸點格線物理）、`StackingLevels`（捲動疊積木階梯）、`src/lib/confetti.ts`（彩色紙片）
+- 首頁角色試玩：`src/components/AvatarCreator.tsx`（SVG 分層角色、三條路線的裝備圖；規則為示意，純前端不存資料），之後正式角色頁與讀卡站可共用角色圖
 - 所有動畫都要尊重 `prefers-reduced-motion`
 - 頁面分組：官網各頁在 `src/app/(site)/`（有頁首頁尾）；後台 `src/app/admin/`、登入 `src/app/login/`、讀卡站 `src/app/kiosk/` 不套官網外框
 - 老師登入：每位老師一個帳號，帳密交給 Supabase Auth 驗證（`/auth/v1/token`，用 fetch 呼叫，沒有裝 supabase-js），成功後發自簽 cookie `pc_staff`（`src/lib/session.ts`，HMAC 金鑰由 service key 推導，12 小時）。`src/proxy.ts` 擋 `/admin`；每個頁面與 server action 開頭都要呼叫 `requireStaff()`（管理員限定用 `requireStaff(true)`），它會回資料庫確認老師仍在職。老師資料在 `teachers` 表，用 `email` 對應登入帳號
