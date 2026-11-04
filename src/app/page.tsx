@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import AvatarPreview from "@/components/AvatarPreview";
+import BrickPlayground from "@/components/BrickPlayground";
 import CourseQuiz from "@/components/CourseQuiz";
-import { featured, gallery, highlights, interestQuests, levels, site, stats, valueProps } from "@/lib/content";
+import StackingLevels from "@/components/StackingLevels";
+import { featured, gallery, highlights, interestQuests, site, stats, valueProps } from "@/lib/content";
 
 const ribbonWords = ["先探索", "再發現", "逐步深入", "LEGO 機器人", "3D 造物", "美術創作", "動手做", "玩出興趣"];
 
@@ -46,11 +48,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="hero-art" aria-hidden="true">
-            <div className="blob" />
-            <Image className="a" src="/images/croc.webp" alt="" width={640} height={404} priority />
-            <Image className="b" src="/images/walker.webp" alt="" width={472} height={640} priority />
-          </div>
+          <BrickPlayground />
         </div>
       </section>
 
@@ -162,16 +160,7 @@ export default function HomePage() {
             <p className="eyebrow">五階段分班</p>
             <h2>依成長階段分班，每一階段都能探索</h2>
           </div>
-          <div className="levels">
-            {levels.map((l, i) => (
-              <div key={l.slug} className={`level ${l.color}`}>
-                <div className="step">STEP {i + 1}</div>
-                <h3>{l.name}</h3>
-                <div className="grades">{l.grades}</div>
-                <p>{l.focus}</p>
-              </div>
-            ))}
-          </div>
+          <StackingLevels />
         </div>
       </section>
 

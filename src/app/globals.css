@@ -305,3 +305,51 @@ h3 { font-size: 20px; }
 /* ---------- 頁尾社群 ---------- */
 .social { display: flex; gap: 14px; }
 .social a { font-weight: 700; }
+
+/* ---------- 首頁積木遊樂區 ---------- */
+.brick-playground {
+  position: relative; height: 420px; border-radius: 28px; background: #fff; border: 2px solid var(--line);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.brick-playground canvas { display: block; user-select: none; -webkit-user-select: none; }
+.brick-hint {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); margin: 0; pointer-events: none;
+  font-size: 13px; font-weight: 700; color: var(--ink-soft); background: rgba(255, 255, 255, 0.85);
+  padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+}
+@media (max-width: 860px) { .brick-playground { height: 320px; } }
+
+/* ---------- 五階段：捲動疊積木階梯 ---------- */
+.stack { position: relative; padding-top: 24px; }
+.stack-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; align-items: end; }
+.stack-brick {
+  position: relative; border-radius: 14px; padding: 26px 16px 18px; color: var(--ink); will-change: transform;
+  box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.14);
+  opacity: calc(0.15 + var(--p, 1) * 0.85);
+}
+.stack-brick:nth-child(2) { margin-bottom: 36px; }
+.stack-brick:nth-child(3) { margin-bottom: 72px; }
+.stack-brick:nth-child(4) { margin-bottom: 108px; }
+.stack-brick:nth-child(5) { margin-bottom: 144px; }
+.stack-brick .studs { position: absolute; top: -9px; left: 14px; right: 14px; display: flex; justify-content: space-between; }
+.stack-brick .studs i { width: 22%; height: 12px; border-radius: 4px 4px 0 0; background: inherit; filter: brightness(1.08); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12); }
+.stack-brick .step { font-size: 12px; font-weight: 800; opacity: 0.75; }
+.stack-brick h3 { margin: 2px 0; font-size: 21px; }
+.stack-brick .grades { font-weight: 700; font-size: 14px; display: block; }
+.stack-brick p { font-size: 14px; margin: 8px 0 0; opacity: 0.9; }
+.b-yellow { background: var(--yellow); }
+.b-green { background: var(--green); }
+.b-red { background: var(--red); color: #fff; }
+.b-blue { background: var(--blue); color: #fff; }
+.b-yellow .studs i { background: var(--yellow); }
+.b-green .studs i { background: var(--green); }
+.b-red .studs i { background: var(--red); }
+.b-blue .studs i { background: var(--blue); }
+.stack-path { position: absolute; left: 4%; right: 4%; bottom: -18px; height: 6px; border-radius: 999px; background: rgba(0, 0, 0, 0.08); overflow: hidden; }
+.stack-path-fill { height: 100%; background: var(--ink); transform-origin: left; transform: scaleX(0); }
+@media (max-width: 960px) {
+  .stack-row { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .stack-brick:nth-child(n) { margin-top: 12px; margin-bottom: 0; }
+  .stack-path { display: none; }
+}
+@media (max-width: 520px) { .stack-row { grid-template-columns: 1fr; } }

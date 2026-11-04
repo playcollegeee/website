@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { levels, majors } from "@/lib/content";
+import StackingLevels from "@/components/StackingLevels";
+import { majors } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "課程介紹",
@@ -27,16 +28,7 @@ export default function CoursesPage() {
             <h2>五階段分班</h2>
             <p className="lead">年級是主要依據，實際難度會依孩子的先備能力調整。</p>
           </div>
-          <div className="levels">
-            {levels.map((l, i) => (
-              <div key={l.slug} className={`level ${l.color}`}>
-                <div className="step">STEP {i + 1}</div>
-                <h3>{l.name}</h3>
-                <div className="grades">{l.grades}</div>
-                <p>{l.focus}</p>
-              </div>
-            ))}
-          </div>
+          <StackingLevels />
         </div>
       </section>
 
