@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { burstConfetti } from "@/lib/confetti";
 import { levels, majors, site } from "@/lib/content";
@@ -112,7 +113,8 @@ export default function TrialForm({
       <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
         <input type="checkbox" name="consent" required style={{ width: "auto", marginTop: 6 }} />
         <span className="hint">
-          我同意{site.name}使用以上資料聯絡我、安排試聽與提供課程資訊；資料不會提供給第三方。
+          我同意{site.name}使用以上資料聯絡我、安排試聽與提供課程資訊；資料不會提供給第三方。詳見
+          <Link href="/privacy" target="_blank">隱私權政策</Link>。
         </span>
       </label>
       {status.kind === "err" && (

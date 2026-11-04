@@ -46,6 +46,9 @@ export default function Footer() {
             <span style={{ background: "var(--blue)" }} />
           </div>
           <p style={{ margin: "8px 0 0" }}>© {year} 至聖文教事業有限公司</p>
+          <p style={{ margin: 0 }}>
+            <Link href="/privacy">隱私權政策</Link>
+          </p>
         </div>
       </div>
     </footer>

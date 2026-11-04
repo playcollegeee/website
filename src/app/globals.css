@@ -372,3 +372,45 @@ h3 { font-size: 20px; }
 @media (prefers-reduced-motion: reduce) {
   .btn.primary:hover, .quest:hover .quest-emoji, .stat:hover .stat-value, .pop-in, .fab { animation: none; }
 }
+
+/* ---------- 後台：詢問列表 ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.admin { padding-top: 40px; }
+.admin-head h1 { font-size: clamp(26px, 4vw, 36px); }
+.admin-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; }
+.admin-filter a {
+  text-decoration: none; color: var(--ink); font-weight: 700; font-size: 14px; padding: 6px 14px;
+  border: 2px solid var(--line); border-radius: 999px; background: #fff;
+}
+.admin-filter a b { margin-left: 4px; color: var(--ink-soft); }
+.admin-filter a.on { border-color: var(--ink); background: var(--yellow-soft); }
+.admin-empty { color: var(--ink-soft); }
+.admin-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.admin-card { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+.admin-card-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-card-top .tag { margin: 0; }
+.tag-red { background: var(--red-soft); border-color: var(--red); }
+.tag-yellow { background: var(--yellow-soft); border-color: var(--yellow); }
+.tag-blue { background: var(--blue-soft); border-color: var(--blue); }
+.tag-green { background: var(--green-soft); border-color: var(--green); }
+.tag-gray { color: var(--ink-soft); }
+.admin-type { font-weight: 700; font-size: 14px; }
+.admin-time { margin-left: auto; font-size: 13px; color: var(--ink-soft); }
+.admin-who { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin: 10px 0 6px; }
+.admin-who strong { font-size: 18px; }
+.admin-who a { color: var(--blue); font-weight: 700; }
+.admin-meta { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; font-size: 14px; }
+.admin-meta div { display: flex; gap: 6px; }
+.admin-meta dt { color: var(--ink-soft); }
+.admin-meta dd { margin: 0; }
+.admin-msg { margin: 10px 0 0; padding: 10px 12px; background: var(--paper); border-radius: 10px; white-space: pre-wrap; font-size: 15px; }
+.admin-status { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+.admin-status select { padding: 8px 12px; border: 2px solid var(--line); border-radius: 10px; font: inherit; background: #fff; }
+
+/* ---------- 文章型頁面（隱私權政策等） ---------- */
+.prose { max-width: 760px; }
+.prose h2 { font-size: 22px; margin-top: 36px; }
+.prose p, .prose li { color: var(--ink-soft); line-height: 1.8; }
+.prose ul { padding-left: 22px; }
+.prose li { margin-bottom: 6px; }
+.prose strong { color: var(--ink); }
