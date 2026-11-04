@@ -5,6 +5,7 @@ import { sbFetch, supabaseConfig } from "@/lib/supabase";
 import { levels, majors } from "@/lib/content";
 import { LEAD_STATUSES, LEAD_TYPES } from "./labels";
 import { updateLeadStatus } from "./actions";
+import LeadStatusForm from "./LeadStatusForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "詢問" };
@@ -80,11 +81,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
         <ul className="admin-list">
           {shown.map((l) => {
-            const st = LEAD_STATUSES.find((s) => s.value === l.status);
             return (
               <li key={l.id} className="admin-card">
                 <div className="admin-card-top">
-                  <span className={`tag tag-${st?.color ?? "gray"}`}>{st?.label ?? l.status}</span>
                   <span className="admin-type">{LEAD_TYPES[l.type] ?? l.type}</span>
                   <time className="admin-time" dateTime={l.created_at}>
                     {fmt.format(new Date(l.created_at))}
@@ -106,23 +105,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   </div>
                 </dl>
                 {l.message && <p className="admin-msg">{l.message}</p>}
-                <form action={updateLeadStatus} className="admin-status">
-                  <input type="hidden" name="id" value={l.id} />
-                  <input type="hidden" name="from" value={l.status} />
-                  <label>
-                    <span className="sr-only">狀態</span>
-                    <select name="status" defaultValue={l.status}>
-                      {LEAD_STATUSES.map((s) => (
-                        <option key={s.value} value={s.value}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button type="submit" className="btn btn-sm">
-                    更新狀態
-                  </button>
-                </form>
+                <LeadStatusForm id={l.id} status={l.status} action={updateLeadStatus} />
               </li>
             );
           })}

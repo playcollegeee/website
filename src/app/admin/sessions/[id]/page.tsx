@@ -4,6 +4,7 @@ import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
 import { ATT_STATUS, LEVEL_NAME, fmtDate, fmtTime } from "@/lib/admin";
 import { setAttendance, setAttendanceNote } from "../actions";
+import RollButtons from "../RollButtons";
 
 export const metadata = { title: "點名" };
 
@@ -70,18 +71,14 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                   )}
                   {st.notes && <small className="adm-warn">⚠ {st.notes}</small>}
                 </div>
-                <div className="adm-roll-btns" role="group" aria-label={`${st.nickname} 出席狀態`}>
-                  {ATT_STATUS.map((o) => (
-                    <form key={o.value} action={setAttendance}>
-                      <input type="hidden" name="session_id" value={id} />
-                      <input type="hidden" name="student_id" value={st.id} />
-                      <input type="hidden" name="status" value={o.value} />
-                      <button type="submit" className={`adm-st adm-st-${o.color} ${a?.status === o.value ? "on" : ""}`} aria-pressed={a?.status === o.value}>
-                        {o.label}
-                      </button>
-                    </form>
-                  ))}
-                </div>
+                <RollButtons
+                  sessionId={id}
+                  studentId={st.id}
+                  nickname={st.nickname}
+                  current={a?.status ?? null}
+                  options={ATT_STATUS}
+                  action={setAttendance}
+                />
                 {a && (
                   <form action={setAttendanceNote} className="adm-roll-note">
                     <input type="hidden" name="id" value={a.id} />

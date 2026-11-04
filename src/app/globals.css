@@ -610,3 +610,21 @@ fieldset.adm-panel legend { font-weight: 800; padding: 0 6px; }
 }
 .adm .adm-levels label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; margin: 0; }
 .adm .adm-levels input { width: 18px; height: 18px; accent-color: var(--green); }
+
+/* ---------- 後台：按下去馬上有反應 ---------- */
+.adm-busy body::before {
+  content: ""; position: fixed; top: 0; left: 0; height: 3px; width: 100%; z-index: 9999;
+  background: linear-gradient(90deg, var(--yellow), var(--green), var(--blue), var(--red));
+  background-size: 200% 100%; animation: adm-bar 1s linear infinite;
+}
+button[data-pending], .adm-st[data-pending] { opacity: 0.6; cursor: progress; }
+button[data-pending]::after { content: " …"; }
+.adm-roll-btns button[data-pending]::after { content: ""; }
+.adm-loading { display: flex; gap: 8px; justify-content: center; padding: 64px 0; }
+.adm-loading-dot { width: 14px; height: 14px; border-radius: 4px; background: var(--yellow); animation: hop 0.8s ease-in-out infinite; }
+.adm-loading-dot:nth-child(2) { background: var(--green); animation-delay: 0.12s; }
+.adm-loading-dot:nth-child(3) { background: var(--blue); animation-delay: 0.24s; }
+@keyframes adm-bar { from { background-position: 0 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .adm-busy body::before, .adm-loading-dot { animation: none; }
+}

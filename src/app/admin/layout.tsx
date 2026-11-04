@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/staff";
 import { logout } from "../login/actions";
 import AdminNav from "./AdminNav";
+import PendingFeedback from "./PendingFeedback";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
       <main id="main" className="adm-main">{children}</main>
+      <PendingFeedback />
     </div>
   );
 }

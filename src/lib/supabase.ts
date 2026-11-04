@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 // 伺服器端專用：用 service key 呼叫 Supabase（資料庫 REST API 與登入 Auth API）。
 // 金鑰只存在 Vercel 環境變數，絕不送到瀏覽器。
 // 權限檢查在我們自己的程式裡做（requireStaff），所以每個呼叫前都要先確認是誰在操作。
@@ -88,12 +90,21 @@ export async function sbRpc<T>(fn: string, args: object): Promise<T> {
 }
 
 // 操作紀錄：每次寫入都留下是誰、做了什麼（失敗不影響主要動作）
+// 用 after() 排在回應送出之後才寫，老師不用多等這一趟；不在請求流程裡時就直接寫。
 export async function audit(actor: string, action: string, target: string, detail?: object) {
-  await sbFetch("audit_log", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({ actor, action, target, detail: detail ?? null }),
-  }).catch(() => undefined);
+  const write = () =>
+    sbFetch("audit_log", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ actor, action, target, detail: detail ?? null }),
+    })
+      .then(() => undefined)
+      .catch(() => undefined);
+  try {
+    after(write);
+  } catch {
+    await write();
+  }
 }
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
