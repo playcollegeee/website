@@ -1,8 +1,8 @@
-import { PHOTO_SCOPES } from "@/lib/consent";
+import { DEFAULT_PHOTO_SCOPE, PHOTO_SCOPES } from "@/lib/consent";
 
 // 後台：照片公開範圍與照護注意事項
 export default function ConsentFields({
-  photoScope = "none",
+  photoScope = DEFAULT_PHOTO_SCOPE,
   careNotes = "",
   careConsented = false,
 }: {
@@ -17,7 +17,7 @@ export default function ConsentFields({
         <select id="photo_scope" name="photo_scope" defaultValue={photoScope}>
           {PHOTO_SCOPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
         </select>
-        <small>依家長在報名表或同意書上的選擇</small>
+        <small>預設公開；家長表示不同意時改這裡</small>
       </div>
       <div className="field adm-wide">
         <label htmlFor="care_notes">照護注意事項（過敏、特殊需求）</label>

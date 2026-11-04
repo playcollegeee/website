@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { burstConfetti } from "@/lib/confetti";
 import { levels, majors } from "@/lib/content";
-import { CONSENT_NOTICE, PHOTO_SCOPES } from "@/lib/consent";
+import { CONSENT_NOTICE, DEFAULT_PHOTO_SCOPE, PHOTO_SCOPES } from "@/lib/consent";
 
 // 線上新生報名表：送出後存成「待審核」，老師確認後才建立學生資料。
 type Status = { kind: "idle" } | { kind: "sending" } | { kind: "ok" } | { kind: "err"; message: string };
@@ -173,12 +173,12 @@ export default function EnrollForm() {
         <div className="radios">
           {PHOTO_SCOPES.map((p) => (
             <label key={p.value}>
-              <input type="radio" name="photoScope" value={p.value} defaultChecked={p.value === "none"} />
+              <input type="radio" name="photoScope" value={p.value} defaultChecked={p.value === DEFAULT_PHOTO_SCOPE} />
               <span><strong>{p.label}</strong><small>{p.hint}</small></span>
             </label>
           ))}
         </div>
-        <small className="hint">之後隨時可以用 LINE 或 Email 告訴我們修改。</small>
+        <small className="hint">我們會在官網與社群分享孩子的學習成果。不同意請在上面改選，之後也可以隨時用 LINE 或 Email 告訴我們。</small>
       </fieldset>
 
       <fieldset>
