@@ -1,7 +1,12 @@
 import Link from "next/link";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export default function NotFound() {
   return (
+    <>
+    <Header />
+    <main id="main">
     <section>
       <div className="container">
         <p className="eyebrow">404</p>
@@ -14,5 +19,8 @@ export default function NotFound() {
         </div>
       </div>
     </section>
+    </main>
+    <Footer />
+    </>
   );
 }
