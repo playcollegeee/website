@@ -40,6 +40,8 @@
 - 老師登入：每位老師一個帳號，帳密交給 Supabase Auth 驗證（`/auth/v1/token`，用 fetch 呼叫，沒有裝 supabase-js），成功後發自簽 cookie `pc_staff`（`src/lib/session.ts`，HMAC 金鑰由 service key 推導，12 小時）。`src/proxy.ts` 擋 `/admin`；每個頁面與 server action 開頭都要呼叫 `requireStaff()`（管理員限定用 `requireStaff(true)`），它會回資料庫確認老師仍在職。老師資料在 `teachers` 表，用 `email` 對應登入帳號
 - 讀卡站：`/kiosk` 頁面（USB 鍵盤式讀卡機＋Android Web NFC）與 `/api/checkin`（平板用 cookie `pc_kiosk`、ESP32 用 `Authorization: Bearer 金鑰`），`devices` 表只存金鑰 SHA-256。簽到邏輯全部在資料庫函式 `checkin_by_card()`，每次刷卡寫 `card_scans`
 - 卡片建議 13.56 MHz NTAG213／215；卡號統一去冒號轉大寫（`normalizeUid` 與 SQL 規則一致）
+- 伺服器地區：`vercel.json` 的 `regions` 設為 `bom1`（孟買），必須和 Supabase 同地區，否則每次查資料都要繞地球；搬資料庫時一起改
+- 後台即時回饋：點名用 `sessions/RollButtons.tsx`、詢問狀態用 `leads/LeadStatusForm.tsx`（useOptimistic）；`admin/PendingFeedback.tsx` 讓所有表單送出時按鈕顯示處理中；`admin/loading.tsx` 換頁動畫；`audit()` 用 `after()` 在回應後寫入
 - Supabase 呼叫統一用 `src/lib/supabase.ts`（`sbGet`、`sbInsert`、`sbPatch`、`sbRpc`、`audit`）；每次寫入都呼叫 `audit()` 寫操作紀錄
 - 分享預覽圖：各路由資料夾的 `opengraph-image.jpg`（1200×630）
 - 資料庫結構在 `supabase/migrations/`：`0001_init.sql`（已執行）、`0002_students_checkin.sql`（學生多家長、同意紀錄、讀卡站、簽到函式）。新的變更一律新增 migration 檔，不要直接改線上資料表
