@@ -238,8 +238,8 @@ h3 { font-size: 20px; }
 /* ---------- 星形色帶 ---------- */
 .ribbon-wrap { overflow: hidden; padding: 14px 0; }
 .ribbon { overflow: hidden; padding: 12px 0; font-weight: 800; letter-spacing: 0.04em; }
-.ribbon-yellow { background: var(--yellow); color: var(--ink); transform: rotate(-1deg); margin: 18px -12px 0; }
-.ribbon-blue { background: var(--blue); color: #fff; transform: rotate(1deg); margin: 0 -12px; }
+.ribbon-yellow { background: var(--yellow); color: var(--ink); margin: 18px 0 0; }
+.ribbon-blue { background: var(--blue); color: #fff; margin: 0; }
 .ribbon-track { display: flex; gap: 28px; width: max-content; animation: marquee 40s linear infinite; white-space: nowrap; }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .ribbon-track { animation: none; } }
