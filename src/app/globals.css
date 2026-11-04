@@ -628,3 +628,29 @@ button[data-pending]::after { content: " …"; }
 @media (prefers-reduced-motion: reduce) {
   .adm-busy body::before, .adm-loading-dot { animation: none; }
 }
+
+/* ---------- 新生報名表 ---------- */
+.enroll { max-width: 860px; }
+.enroll-form fieldset { border: 0; padding: 0; margin: 0 0 8px; display: grid; gap: 12px; }
+.enroll-form legend { font-weight: 800; font-size: 19px; margin-bottom: 10px; padding: 0; }
+.enroll-form .field small { display: block; color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+.enroll-form .field .label { display: block; font-weight: 700; margin-bottom: 6px; }
+.enroll-majors { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.enroll-majors label, .check { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; }
+.enroll-majors input, .check input, .radios input { width: auto; margin-top: 6px; accent-color: var(--green); }
+.radios { display: grid; gap: 8px; }
+.radios label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }
+.radios label:has(input:checked) { border-color: var(--ink); background: var(--yellow-soft); }
+.radios span { display: grid; }
+.radios small { color: var(--ink-soft); font-size: 13px; }
+.notice-box { background: var(--paper); border: 2px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+.notice-box summary { cursor: pointer; font-weight: 700; }
+.notice-box dl { margin: 12px 0 0; display: grid; gap: 8px; font-size: 14px; }
+.notice-box dt { font-weight: 700; }
+.notice-box dd { margin: 0; color: var(--ink-soft); }
+.notice-box p { font-size: 14px; margin: 10px 0 0; }
+.adm-dl { display: grid; gap: 0; margin: 0; }
+.adm-dl > div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.adm-dl dt { color: var(--ink-soft); font-size: 14px; }
+.adm-dl dd { margin: 0; }
+.adm-nav .badge { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--red); color: #fff; font-size: 12px; text-align: center; }

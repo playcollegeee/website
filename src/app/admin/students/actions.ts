@@ -5,9 +5,8 @@ import { redirect } from "next/navigation";
 import { actorOf, requireStaff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbGet, sbInsert, sbPatch } from "@/lib/supabase";
 import { LEVEL_NAME, normalizeUid, optStr, str } from "@/lib/admin";
+import { CONSENT_VERSION } from "@/lib/consent";
 
-// 目前使用中的同意書版本（同意書內容改版時一起改這裡）
-const CONSENT_VERSION = "2026-11";
 
 function studentFields(fd: FormData) {
   const level = str(fd, "level", 20);
@@ -24,6 +23,23 @@ function studentFields(fd: FormData) {
     gender: optStr(fd, "gender", 10),
     school: optStr(fd, "school", 60),
     notes: optStr(fd, "notes", 1000),
+  };
+}
+
+// 照片公開範圍與照護注意事項（過敏等需家長同意才可記錄）
+type ConsentBefore = { photo_scope: string; photo_consent_at: string | null; care_consent_at: string | null };
+function consentFields(fd: FormData, before?: ConsentBefore) {
+  const now = new Date().toISOString();
+  const scopeRaw = str(fd, "photo_scope", 10);
+  const photo_scope = scopeRaw === "works" || scopeRaw === "all" ? scopeRaw : "none";
+  const care_notes = optStr(fd, "care_notes", 500);
+  if (care_notes && fd.get("care_consent") !== "on") throw new Error("記錄照護注意事項前，需要家長同意");
+  return {
+    photo_scope,
+    photo_consent: photo_scope !== "none",
+    photo_consent_at: photo_scope === "none" ? null : before && before.photo_scope === photo_scope ? before.photo_consent_at : now,
+    care_notes,
+    care_consent_at: care_notes ? before?.care_consent_at ?? now : null,
   };
 }
 
@@ -50,7 +66,7 @@ export async function createStudent(fd: FormData) {
   if (fd.get("consent") !== "on") throw new Error("需要家長簽署個資同意書才能建檔");
   const fields = studentFields(fd);
   const guardianId = await findOrCreateGuardian(fd, "g_");
-  const photo = fd.get("photo_consent") === "on";
+  const consent = consentFields(fd);
   const now = new Date().toISOString();
 
   const s = await sbInsert<{ id: string }>("students", {
@@ -59,8 +75,7 @@ export async function createStudent(fd: FormData) {
     consent_by: guardianId,
     consent_method: str(fd, "consent_method", 10) === "online" ? "online" : "paper",
     consent_version: CONSENT_VERSION,
-    photo_consent: photo,
-    photo_consent_at: photo ? now : null,
+    ...consent,
   });
   await sbInsert("student_guardians", {
     student_id: s.id,
@@ -79,17 +94,15 @@ export async function updateStudent(fd: FormData) {
   const id = str(fd, "id", 40);
   if (!isUuid(id)) throw new Error("資料不正確");
   const fields = studentFields(fd);
-  const photo = fd.get("photo_consent") === "on";
-  const before = await sbGet<{ photo_consent: boolean }[]>(`students?id=eq.${id}&select=photo_consent`);
+  const before = await sbGet<ConsentBefore[]>(`students?id=eq.${id}&select=photo_scope,photo_consent_at,care_consent_at`);
+  const consent = consentFields(fd, before[0]);
   await sbPatch(`students?id=eq.${id}`, {
     ...fields,
     active: fd.get("active") === "on",
-    photo_consent: photo,
-    ...(photo && !before[0]?.photo_consent ? { photo_consent_at: new Date().toISOString() } : {}),
-    ...(!photo ? { photo_consent_at: null } : {}),
+    ...consent,
     updated_at: new Date().toISOString(),
   });
-  await audit(actorOf(staff), "student.update", `students:${id}`, { fields: Object.keys(fields), photo });
+  await audit(actorOf(staff), "student.update", `students:${id}`, { fields: Object.keys(fields), photo_scope: consent.photo_scope, care: !!consent.care_notes });
   revalidatePath(`/admin/students/${id}`);
   redirect(`/admin/students/${id}?saved=1`);
 }

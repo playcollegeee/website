@@ -21,6 +21,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           <p className="eyebrow">預約試聽與聯絡我們</p>
           <h1>帶孩子來玩一次吧</h1>
           <p className="lead">填寫表單後，我們會依孩子的年級與興趣，推薦合適的試聽課程與時段。</p>
+          <p>已經決定要上課了？<a href="/enroll">直接線上報名 →</a></p>
           <div className="card bar-yellow" style={{ marginTop: 24 }}>
             <h3>其他聯絡方式</h3>
             <p>

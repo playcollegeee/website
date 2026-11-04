@@ -11,7 +11,7 @@ export const metadata = { title: "點名" };
 type Sess = {
   id: string; starts_at: string; ends_at: string; class_id: string;
   lessons: { id: string; seq: number; title: string; goals: string | null } | null;
-  classes: { name: string; room: string | null; enrollments: { status: string; students: { id: string; nickname: string; name: string; level: string; notes: string | null } }[] };
+  classes: { name: string; room: string | null; enrollments: { status: string; students: { id: string; nickname: string; name: string; level: string; notes: string | null; care_notes: string | null } }[] };
   attendance: { id: string; student_id: string; status: string; checked_in_at: string | null; checked_out_at: string | null; source: string; note: string | null }[];
 };
 
@@ -21,7 +21,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   if (!isUuid(id)) notFound();
   const rows = await sbGet<Sess[]>(
     `sessions?id=eq.${id}&select=id,starts_at,ends_at,class_id,lessons(id,seq,title,goals),` +
-      `classes(name,room,enrollments(status,students(id,nickname,name,level,notes))),` +
+      `classes(name,room,enrollments(status,students(id,nickname,name,level,notes,care_notes))),` +
       `attendance(id,student_id,status,checked_in_at,checked_out_at,source,note)`,
   );
   const s = rows[0];
@@ -69,7 +69,8 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                       {a.checked_out_at && `・${fmtTime(a.checked_out_at)} 下課`}
                     </small>
                   )}
-                  {st.notes && <small className="adm-warn">⚠ {st.notes}</small>}
+                  {st.care_notes && <small className="adm-warn">⚠ {st.care_notes}</small>}
+                  {st.notes && <small>📝 {st.notes}</small>}
                 </div>
                 <RollButtons
                   sessionId={id}

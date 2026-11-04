@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/staff";
 import { createStudent } from "../actions";
 import StudentFields from "../StudentFields";
 import GuardianFields from "../GuardianFields";
+import ConsentFields from "../ConsentFields";
 
 export const metadata = { title: "新增學生" };
 
@@ -33,10 +34,8 @@ export default async function NewStudentPage() {
             <label><input type="radio" name="consent_method" value="paper" defaultChecked /> 紙本</label>
             <label><input type="radio" name="consent_method" value="online" /> 線上</label>
           </div>
-          <label className="adm-check">
-            <input type="checkbox" name="photo_consent" /> 家長同意孩子的照片、作品公開在官網與社群
-          </label>
-          <p className="hint">沒有簽同意書的孩子不能建檔。照片公開可以之後再補勾。</p>
+          <ConsentFields />
+          <p className="hint">沒有簽同意書的孩子不能建檔。照片公開範圍之後可以再改。</p>
         </fieldset>
         <button type="submit" className="btn primary">建立學生</button>
       </form>
