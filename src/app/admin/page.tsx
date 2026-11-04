@@ -1,137 +1,128 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import { isAdminAuthorized } from "@/lib/adminAuth";
-import { sbFetch, supabaseConfig } from "@/lib/supabase";
-import { levels, majors } from "@/lib/content";
-import { LEAD_STATUSES, LEAD_TYPES } from "./labels";
-import { updateLeadStatus } from "./actions";
+import { requireStaff } from "@/lib/staff";
+import { sbGet } from "@/lib/supabase";
+import { fmtDate, fmtTime, taipeiDay, ymd } from "@/lib/admin";
 
-export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "詢問後台", robots: { index: false, follow: false } };
+export const metadata = { title: "今日課程" };
 
-type Lead = {
+type Sess = {
   id: string;
-  type: string;
-  guardian_name: string;
-  phone: string;
-  email: string | null;
-  child_level: string | null;
-  interests: string[];
-  message: string | null;
-  status: string;
-  created_at: string;
+  starts_at: string;
+  ends_at: string;
+  classes: { id: string; name: string; room: string | null; teachers: { name: string; nickname: string | null } | null; enrollments: { status: string }[] };
+  attendance: { status: string }[];
+};
+type Scan = { id: number; uid: string; result: string; scanned_at: string; students: { nickname: string } | null; teachers: { name: string } | null };
+
+const SCAN_LABEL: Record<string, string> = {
+  checkin: "簽到", checkout: "下課", already: "重複刷卡", no_session: "沒有對應的課", unknown: "未登記的卡",
+  revoked: "停用的卡", teacher_in: "老師上班", teacher_out: "老師下班",
 };
 
-const levelName = (slug: string | null) => levels.find((l) => l.slug === slug)?.name ?? "未填";
-const majorName = (slug: string) => majors.find((m) => m.slug === slug)?.short ?? slug;
-const fmt = new Intl.DateTimeFormat("zh-TW", {
-  timeZone: "Asia/Taipei",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
+export default async function TodayPage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
+  const staff = await requireStaff();
+  const { d } = await searchParams;
+  const day = d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : ymd();
+  const { start, end } = taipeiDay(day);
+  const prev = ymd(new Date(new Date(start).getTime() - 3600_000));
+  const next = ymd(new Date(new Date(end).getTime() + 3600_000));
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  // 第二道檢查：就算 proxy 沒擋到，沒登入一律看不到
-  const h = await headers();
-  if (!isAdminAuthorized(h.get("authorization"))) notFound();
-
-  const { status } = await searchParams;
-  const filter = LEAD_STATUSES.some((s) => s.value === status) ? status : undefined;
-
-  let leads: Lead[] = [];
-  let error = "";
-  if (!supabaseConfig()) {
-    error = "Supabase 尚未設定";
-  } else {
-    const q = new URLSearchParams({ select: "*", order: "created_at.desc", limit: "300" });
-    const res = await sbFetch(`leads?${q}`);
-    if (res.ok) leads = (await res.json()) as Lead[];
-    else error = `讀取失敗（${res.status}）`;
-  }
-
-  // 各狀態筆數（用來顯示在篩選按鈕上）
-  const counts: Record<string, number> = {};
-  for (const l of leads) counts[l.status] = (counts[l.status] ?? 0) + 1;
-  const shown = filter ? leads.filter((l) => l.status === filter) : leads;
+  const [sessions, scans, setup] = await Promise.all([
+    sbGet<Sess[]>(
+      `sessions?starts_at=gte.${start}&starts_at=lt.${end}&order=starts_at` +
+        `&select=id,starts_at,ends_at,classes(id,name,room,teachers(name,nickname),enrollments(status)),attendance(status)`,
+    ),
+    sbGet<Scan[]>(`card_scans?order=id.desc&limit=12&select=id,uid,result,scanned_at,students(nickname),teachers(name)`),
+    Promise.all([
+      sbGet<{ id: string }[]>("teachers?select=id&limit=2"),
+      sbGet<{ id: string }[]>("devices?select=id&active=eq.true&limit=1"),
+      sbGet<{ id: string }[]>("classes?select=id&limit=1"),
+      sbGet<{ id: string }[]>("students?select=id&limit=1"),
+    ]),
+  ]);
+  const [teachers, devices, classes, students] = setup;
+  const todo = [
+    { done: students.length > 0, text: "新增第一位學生（含家長與同意書）", href: "/admin/students/new" },
+    { done: classes.length > 0, text: "建立第一個班，並把學生加進班裡", href: "/admin/classes" },
+    ...(staff.is_admin
+      ? [
+          { done: devices.length > 0, text: "在教室平板啟用讀卡站", href: "/admin/devices" },
+          { done: teachers.length > 1, text: "幫其他老師開帳號", href: "/admin/teachers" },
+        ]
+      : []),
+  ].filter((t) => !t.done);
 
   return (
-    <section className="section admin">
-      <div className="container">
-        <div className="admin-head">
-          <h1>詢問後台</h1>
-          <p className="hint">官網表單送來的詢問，最新的在最上面。打完電話記得把狀態改掉。</p>
+    <>
+      <div className="adm-head">
+        <h1>{day === ymd() ? "今日課程" : "課程"}・{fmtDate(start)}</h1>
+        <div className="adm-actions">
+          <Link className="btn btn-sm" href={`/admin?d=${prev}`}>← 前一天</Link>
+          {day !== ymd() && <Link className="btn btn-sm" href="/admin">今天</Link>}
+          <Link className="btn btn-sm" href={`/admin?d=${next}`}>後一天 →</Link>
         </div>
+      </div>
 
-        <nav className="admin-filter" aria-label="依狀態篩選">
-          <Link href="/admin" className={!filter ? "on" : ""}>
-            全部 <b>{leads.length}</b>
-          </Link>
-          {LEAD_STATUSES.map((s) => (
-            <Link key={s.value} href={`/admin?status=${s.value}`} className={filter === s.value ? "on" : ""}>
-              {s.label} <b>{counts[s.value] ?? 0}</b>
-            </Link>
-          ))}
-        </nav>
+      {todo.length > 0 && (
+        <div className="adm-panel adm-setup">
+          <h2>開始使用</h2>
+          <ol>
+            {todo.map((t) => (
+              <li key={t.href}><Link href={t.href}>{t.text}</Link></li>
+            ))}
+          </ol>
+        </div>
+      )}
 
-        {error && <div className="notice err">{error}</div>}
-        {!error && shown.length === 0 && <p className="admin-empty">目前沒有這個狀態的詢問。</p>}
-
-        <ul className="admin-list">
-          {shown.map((l) => {
-            const st = LEAD_STATUSES.find((s) => s.value === l.status);
+      {sessions.length === 0 ? (
+        <p className="adm-empty">這天沒有排課。</p>
+      ) : (
+        <ul className="adm-sessions">
+          {sessions.map((s) => {
+            const enrolled = s.classes.enrollments.filter((e) => e.status === "active").length;
+            const here = s.attendance.filter((a) => a.status === "present" || a.status === "late").length;
+            const t = s.classes.teachers;
             return (
-              <li key={l.id} className="admin-card">
-                <div className="admin-card-top">
-                  <span className={`tag tag-${st?.color ?? "gray"}`}>{st?.label ?? l.status}</span>
-                  <span className="admin-type">{LEAD_TYPES[l.type] ?? l.type}</span>
-                  <time className="admin-time" dateTime={l.created_at}>
-                    {fmt.format(new Date(l.created_at))}
-                  </time>
-                </div>
-                <div className="admin-who">
-                  <strong>{l.guardian_name}</strong>
-                  <a href={`tel:${l.phone.replace(/[^0-9+]/g, "")}`}>{l.phone}</a>
-                  {l.email && <a href={`mailto:${l.email}`}>{l.email}</a>}
-                </div>
-                <dl className="admin-meta">
-                  <div>
-                    <dt>孩子年級</dt>
-                    <dd>{levelName(l.child_level)}</dd>
-                  </div>
-                  <div>
-                    <dt>有興趣</dt>
-                    <dd>{l.interests.length ? l.interests.map(majorName).join("、") : "未填"}</dd>
-                  </div>
-                </dl>
-                {l.message && <p className="admin-msg">{l.message}</p>}
-                <form action={updateLeadStatus} className="admin-status">
-                  <input type="hidden" name="id" value={l.id} />
-                  <input type="hidden" name="from" value={l.status} />
-                  <label>
-                    <span className="sr-only">狀態</span>
-                    <select name="status" defaultValue={l.status}>
-                      {LEAD_STATUSES.map((s) => (
-                        <option key={s.value} value={s.value}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button type="submit" className="btn btn-sm">
-                    更新狀態
-                  </button>
-                </form>
+              <li key={s.id}>
+                <Link href={`/admin/sessions/${s.id}`} className="adm-session">
+                  <span className="adm-session-time">{fmtTime(s.starts_at)}<small>–{fmtTime(s.ends_at)}</small></span>
+                  <span className="adm-session-name">
+                    <strong>{s.classes.name}</strong>
+                    <small>{[s.classes.room && `${s.classes.room} 教室`, t && (t.nickname ?? t.name)].filter(Boolean).join("・")}</small>
+                  </span>
+                  <span className={`adm-count ${here >= enrolled && enrolled > 0 ? "full" : ""}`}>
+                    {here}<small>／{enrolled} 到</small>
+                  </span>
+                </Link>
               </li>
             );
           })}
         </ul>
+      )}
+
+      <div className="adm-panel">
+        <h2>最近刷卡</h2>
+        {scans.length === 0 ? (
+          <p className="adm-empty">還沒有刷卡紀錄。</p>
+        ) : (
+          <table className="adm-table">
+            <tbody>
+              {scans.map((s) => (
+                <tr key={s.id}>
+                  <td>{fmtDate(s.scanned_at)} {fmtTime(s.scanned_at)}</td>
+                  <td>{s.students?.nickname ?? s.teachers?.name ?? <code>{s.uid}</code>}</td>
+                  <td>
+                    <span className={`tag ${s.result === "unknown" || s.result === "no_session" ? "tag-red" : "tag-gray"}`}>
+                      {SCAN_LABEL[s.result] ?? s.result}
+                    </span>
+                    {s.result === "unknown" && <Link href={`/admin/cards?uid=${s.uid}`} className="adm-inline">綁定這張卡</Link>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
-    </section>
+    </>
   );
 }

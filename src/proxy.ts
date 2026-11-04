@@ -1,27 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { adminPassword, isAdminAuthorized } from "@/lib/adminAuth";
+import { STAFF_COOKIE, verifyToken } from "@/lib/session";
 
-// /admin 後台的登入閘門：瀏覽器會跳出帳號密碼視窗
-export function proxy(req: NextRequest) {
-  if (!adminPassword()) {
-    return new NextResponse("後台尚未設定密碼（請在 Vercel 設定 ADMIN_PASSWORD，至少 8 碼）", {
-      status: 503,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+// 後台與讀卡站的第一道閘門：沒登入就導向登入頁。
+// 頁面與動作裡會再用 requireStaff() 檢查一次，並確認老師帳號仍在使用中。
+export async function proxy(req: NextRequest) {
+  const ok = await verifyToken(req.cookies.get(STAFF_COOKIE)?.value);
+  if (!ok) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search)}`;
+    return NextResponse.redirect(url);
   }
-  if (isAdminAuthorized(req.headers.get("authorization"))) {
-    const res = NextResponse.next();
-    res.headers.set("X-Robots-Tag", "noindex, nofollow");
-    res.headers.set("Cache-Control", "no-store");
-    return res;
-  }
-  return new NextResponse("需要登入", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="Play Collegeee admin", charset="UTF-8"',
-      "Content-Type": "text/plain; charset=utf-8",
-    },
-  });
+  const res = NextResponse.next();
+  res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  res.headers.set("Cache-Control", "no-store");
+  return res;
 }
 
 export const config = { matcher: ["/admin", "/admin/:path*"] };

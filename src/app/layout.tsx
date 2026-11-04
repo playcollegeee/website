@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AnnouncementBar from "@/components/AnnouncementBar";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import FloatingCta from "@/components/FloatingCta";
 import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -25,14 +21,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-Hant-TW">
-      <body>
-        <a href="#main" className="skip">跳到主要內容</a>
-        <AnnouncementBar />
-        <Header />
-        <main id="main">{children}</main>
-        <Footer />
-        <FloatingCta />
-      </body>
+      {/* 官網的頁首頁尾放在 (site)/layout.tsx；後台與讀卡站不顯示 */}
+      <body>{children}</body>
     </html>
   );
 }

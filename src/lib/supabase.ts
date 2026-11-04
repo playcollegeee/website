@@ -1,5 +1,6 @@
-// 伺服器端專用：用 service key 呼叫 Supabase REST API。
+// 伺服器端專用：用 service key 呼叫 Supabase（資料庫 REST API 與登入 Auth API）。
 // 金鑰只存在 Vercel 環境變數，絕不送到瀏覽器。
+// 權限檢查在我們自己的程式裡做（requireStaff），所以每個呼叫前都要先確認是誰在操作。
 
 export function supabaseConfig() {
   const url = process.env.SUPABASE_URL?.trim().replace(/\/+$/, "");
@@ -8,18 +9,94 @@ export function supabaseConfig() {
   return { url, key };
 }
 
+function authHeaders(key: string): Record<string, string> {
+  return {
+    apikey: key,
+    // 舊版 JWT 金鑰才需要 Authorization；新版 sb_secret_ 只放 apikey
+    ...(key.startsWith("eyJ") ? { Authorization: `Bearer ${key}` } : {}),
+  };
+}
+
 export async function sbFetch(path: string, init: RequestInit = {}) {
   const cfg = supabaseConfig();
   if (!cfg) throw new Error("Supabase 尚未設定");
   return fetch(`${cfg.url}/rest/v1/${path}`, {
     ...init,
     cache: "no-store",
-    headers: {
-      apikey: cfg.key,
-      // 舊版 JWT 金鑰才需要 Authorization；新版 sb_secret_ 只放 apikey
-      ...(cfg.key.startsWith("eyJ") ? { Authorization: `Bearer ${cfg.key}` } : {}),
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
+    headers: { ...authHeaders(cfg.key), "Content-Type": "application/json", ...(init.headers ?? {}) },
   });
+}
+
+// Supabase Auth（登入、建立老師帳號、改密碼）
+export async function sbAuthFetch(path: string, init: RequestInit = {}) {
+  const cfg = supabaseConfig();
+  if (!cfg) throw new Error("Supabase 尚未設定");
+  return fetch(`${cfg.url}/auth/v1/${path}`, {
+    ...init,
+    cache: "no-store",
+    headers: { ...authHeaders(cfg.key), "Content-Type": "application/json", ...(init.headers ?? {}) },
+  });
+}
+
+async function fail(res: Response, what: string): Promise<never> {
+  let msg = "";
+  try {
+    const j = (await res.json()) as { message?: string; details?: string };
+    msg = j.message ?? "";
+  } catch {}
+  throw new Error(`${what}失敗（${res.status}）${msg ? `：${msg}` : ""}`);
+}
+
+// 讀資料：sbGet<Student[]>("students?select=*&active=eq.true")
+export async function sbGet<T>(path: string): Promise<T> {
+  const res = await sbFetch(path);
+  if (!res.ok) await fail(res, "讀取");
+  return (await res.json()) as T;
+}
+
+// 新增資料並取回新增的那一筆
+export async function sbInsert<T = Record<string, unknown>>(table: string, row: object, upsert?: string): Promise<T> {
+  const res = await sbFetch(`${table}${upsert ? `?on_conflict=${upsert}` : ""}`, {
+    method: "POST",
+    headers: { Prefer: `return=representation${upsert ? ",resolution=merge-duplicates" : ""}` },
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) await fail(res, "儲存");
+  const rows = (await res.json()) as T[];
+  return rows[0];
+}
+
+export async function sbPatch(pathWithFilter: string, patch: object): Promise<void> {
+  const res = await sbFetch(pathWithFilter, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) await fail(res, "更新");
+}
+
+export async function sbDelete(pathWithFilter: string): Promise<void> {
+  const res = await sbFetch(pathWithFilter, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+  if (!res.ok) await fail(res, "刪除");
+}
+
+// 呼叫資料庫函式（例：checkin_by_card）
+export async function sbRpc<T>(fn: string, args: object): Promise<T> {
+  const res = await sbFetch(`rpc/${fn}`, { method: "POST", body: JSON.stringify(args) });
+  if (!res.ok) await fail(res, "執行");
+  return (await res.json()) as T;
+}
+
+// 操作紀錄：每次寫入都留下是誰、做了什麼（失敗不影響主要動作）
+export async function audit(actor: string, action: string, target: string, detail?: object) {
+  await sbFetch("audit_log", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ actor, action, target, detail: detail ?? null }),
+  }).catch(() => undefined);
+}
+
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function isUuid(v: unknown): v is string {
+  return typeof v === "string" && UUID.test(v);
 }
