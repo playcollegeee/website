@@ -2,7 +2,7 @@
   "name": "playcollegeee-website",
   "version": "0.1.0",
   "private": true,
-  "description": "玩學院 Play Academy 官網與整合系統",
+  "description": "玩學院 Play Collegeee 官網與整合系統",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

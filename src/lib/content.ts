@@ -3,7 +3,7 @@
 
 export const site = {
   name: "玩學院",
-  nameEn: "Play Academy",
+  nameEn: "Play Collegeee",
   tagline: "先探索、再發現、逐步深入，讓興趣成為孩子持續學習的動力。",
   city: "台中",
   email: "playcollegeee@gmail.com",

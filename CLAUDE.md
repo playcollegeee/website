@@ -4,7 +4,7 @@
 
 ## 這是什麼
 
-至聖文教事業有限公司旗下「玩學院 Play Academy」（台中兒童 STEAM 教室，創辦人阿智老師）的官網，之後會擴充成整合系統：
+至聖文教事業有限公司旗下「玩學院 Play Collegeee」（台中兒童 STEAM 教室，創辦人阿智老師）的官網，之後會擴充成整合系統：
 官網、簽到（NFC／QR 卡）、課程報名與點數金流、課程教案庫、學生資料庫與遊戲角色養成、AI Agent 行政自動化。
 
 - 開發藍圖（Claude Docs）：https://claude.ai/artifact/AuHQqrUHG8Tyy8w7wzqUwT
