@@ -18,8 +18,8 @@
 | GitHub | 個人帳號 `chisheng-edu`（chishengca@gmail.com），組織 `playcollegeee`，程式庫 `playcollegeee/website`（公開） | 後台、教案等敏感程式建議另開私人程式庫 |
 | Vercel | 團隊 `playcollegeee`（Hobby），專案 `website` | 推到 `main` 自動部署；正式商業使用前要升級 Pro |
 | Supabase | 組織 `playcollegeee`，專案 `playcollegeee`（ref `vwldlojnnkttwoawlbog`，孟買，Free） | 環境變數 `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`（sb_secret_）只放在 Vercel |
-| 網域 | hosting.com 註冊 playcollegeee.com，DNS 在 hosting.com | A @ → 216.198.79.1；CNAME www → Vercel；信箱相關紀錄不要動 |
-| 舊站 | hosting.com 上被入侵的 WordPress | 2026/11/04 已刪除；主機合約到 2027/12 |
+| 網域 | hosting.com 註冊 playcollegeee.com（2027/09/12 到期，要續約） | 2026/11/04 起 Nameserver 是 Vercel，DNS 紀錄在 Vercel 團隊 Domains 頁管理（含 MX、mail A、SPF TXT） |
+| 舊站 | hosting.com WP Plus 主機 | WordPress 2026/11/04 已刪除；主機要取消續約（到期 2027/09/12） |
 | 對外信箱 | playcollegeee@gmail.com | FB、IG 連結在 `src/lib/content.ts` |
 
 ## 已確認的品牌與課程制度（不可自行更改）
@@ -36,6 +36,8 @@
 - Next.js 16（App Router）＋ TypeScript，純 CSS（`src/app/globals.css`），沒有 Tailwind
 - 特效全部自己寫、不加套件：`BrickPlayground`（首頁積木雨，凸點格線物理）、`StackingLevels`（捲動疊積木階梯）、`src/lib/confetti.ts`（彩色紙片）
 - 所有動畫都要尊重 `prefers-reduced-motion`
+- 後台 `/admin`：`src/proxy.ts`（Next 16 的 middleware）做 Basic Auth，帳號 admin、密碼為環境變數 `ADMIN_PASSWORD`；頁面與 server action 內再檢查一次。Supabase 呼叫統一用 `src/lib/supabase.ts`
+- 分享預覽圖：各路由資料夾的 `opengraph-image.jpg`（1200×630）
 - 資料庫結構在 `supabase/migrations/`；目前只有 `0001_init.sql`（已在 Supabase 執行）。新的變更一律新增 migration 檔，不要直接改線上資料表
 - 核心設計：`attendance`（上課紀錄）是核心事件，觸發器自動發放裝備與經驗值；點數一律寫 `point_ledger` 流水帳
 
@@ -56,6 +58,7 @@ claude.ai 專案「玩學院系統開發」裡有「玩學院系統開發_現況
 
 ## 待辦（依優先順序）
 
-1. 表單新詢問通知（Email 或 LINE）、簡單的後台詢問列表
-2. 11/18 提醒：設定 Google Search Console 並提交 sitemap
-3. 學生／家長資料庫與簽到 MVP（見開發藍圖第 2 階段）
+1. 使用者設定 `ADMIN_PASSWORD` 後重新部署；DNS 生效後取消 WP 主機續約
+2. LINE 官方帳號連結（使用者辦理中）
+3. 11/18 提醒：設定 Google Search Console 並提交 sitemap
+4. 學生／家長資料庫與簽到 MVP（見開發藍圖第 2 階段）
