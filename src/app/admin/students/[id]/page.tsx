@@ -9,12 +9,14 @@ import {
 } from "../actions";
 import StudentFields from "../StudentFields";
 import GuardianFields from "../GuardianFields";
+import ConsentFields from "../ConsentFields";
 
 export const metadata = { title: "學生資料" };
 
 type Student = {
   id: string; name: string; nickname: string; level: string; birth_year: number | null; gender: string | null;
   school: string | null; notes: string | null; active: boolean; photo_consent: boolean; consent_at: string | null;
+  photo_scope: string; care_notes: string | null; care_consent_at: string | null;
   consent_method: string | null; consent_version: string | null; created_at: string;
   student_guardians: {
     relation: string | null; is_primary: boolean; can_pickup: boolean;
@@ -59,6 +61,7 @@ export default async function StudentPage({
       </div>
       {created && <p className="notice ok">已建立學生，也自動建立了遊戲角色。下一步：綁定卡片、加入班級。</p>}
       {saved && <p className="notice ok">已儲存。</p>}
+      {s.care_notes && <p className="notice err">⚠ 照護注意事項：{s.care_notes}</p>}
       {!s.active && <p className="notice err">這位學生已設為「離開」，讀卡站不會讓他簽到。</p>}
 
       <div className="adm-cols">
@@ -232,10 +235,10 @@ export default async function StudentPage({
             <form action={updateStudent}>
               <input type="hidden" name="id" value={id} />
               <StudentFields v={s} />
-              <label className="adm-check"><input type="checkbox" name="photo_consent" defaultChecked={s.photo_consent} /> 同意照片、作品公開</label>
+              <ConsentFields photoScope={s.photo_scope} careNotes={s.care_notes} careConsented={!!s.care_consent_at} />
               <label className="adm-check"><input type="checkbox" name="active" defaultChecked={s.active} /> 在學中（取消勾選＝離開，資料保留）</label>
               <p className="hint">
-                個資同意：{s.consent_at ? `${fmtDateTime(s.consent_at)}，${s.consent_method === "online" ? "線上" : "紙本"}（版本 ${s.consent_version}）` : "未紀錄"}
+                個資同意：{s.consent_at ? `${fmtDateTime(s.consent_at)}，${s.consent_method === "online" ? "線上報名" : "紙本"}（版本 ${s.consent_version}）` : "未紀錄"}
               </p>
               <button className="btn btn-sm primary" type="submit">儲存基本資料</button>
             </form>

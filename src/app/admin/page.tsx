@@ -27,7 +27,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const prev = ymd(new Date(new Date(start).getTime() - 3600_000));
   const next = ymd(new Date(new Date(end).getTime() + 3600_000));
 
-  const [sessions, scans, setup] = await Promise.all([
+  const [sessions, scans, setup, pendingRegs] = await Promise.all([
     sbGet<Sess[]>(
       `sessions?starts_at=gte.${start}&starts_at=lt.${end}&order=starts_at` +
         `&select=id,starts_at,ends_at,classes(id,name,room,teachers(name,nickname),enrollments(status)),attendance(status)`,
@@ -39,6 +39,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       sbGet<{ id: string }[]>("classes?select=id&limit=1"),
       sbGet<{ id: string }[]>("students?select=id&limit=1"),
     ]),
+    sbGet<{ id: string }[]>("registration_requests?status=eq.pending&select=id").catch(() => []),
   ]);
   const [teachers, devices, classes, students] = setup;
   const todo = [
@@ -62,6 +63,12 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           <Link className="btn btn-sm" href={`/admin?d=${next}`}>後一天 →</Link>
         </div>
       </div>
+
+      {pendingRegs.length > 0 && (
+        <p className="notice err">
+          有 {pendingRegs.length} 筆線上報名等待審核。<Link href="/admin/registrations">前往審核 →</Link>
+        </p>
+      )}
 
       {todo.length > 0 && (
         <div className="adm-panel adm-setup">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff";
+import { sbFetch } from "@/lib/supabase";
 import { logout } from "../login/actions";
 import AdminNav from "./AdminNav";
 import PendingFeedback from "./PendingFeedback";
@@ -13,8 +14,16 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireStaff();
+  // 待審核的線上報名筆數（顯示在選單上）
+  const pending = await sbFetch("registration_requests?status=eq.pending&select=id", {
+    method: "HEAD",
+    headers: { Prefer: "count=exact" },
+  })
+    .then((r) => Number(r.headers.get("content-range")?.split("/")[1] ?? 0))
+    .catch(() => 0);
   const links = [
     { href: "/admin", label: "今日課程" },
+    { href: "/admin/registrations", label: "報名", badge: pending },
     { href: "/admin/students", label: "學生" },
     { href: "/admin/classes", label: "開班" },
     { href: "/admin/cards", label: "卡片" },

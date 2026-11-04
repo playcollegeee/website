@@ -48,8 +48,9 @@ export default function StudentFields({ v = {} }: { v?: StudentValues }) {
         <input id="school" name="school" maxLength={60} defaultValue={v.school ?? ""} />
       </div>
       <div className="field adm-wide">
-        <label htmlFor="notes">注意事項</label>
-        <textarea id="notes" name="notes" rows={3} maxLength={1000} defaultValue={v.notes ?? ""} placeholder="接送、過敏、需要特別留意的地方" />
+        <label htmlFor="notes">老師備註</label>
+        <textarea id="notes" name="notes" rows={3} maxLength={1000} defaultValue={v.notes ?? ""} placeholder="接送方式、學習上需要留意的地方" />
+        <small>過敏、健康等資料請填在下方「照護注意事項」</small>
       </div>
     </div>
   );

@@ -20,6 +20,9 @@ export default function Footer() {
           <p style={{ margin: 0 }}>
             <Link href="/contact">預約試聽與課程諮詢</Link>
           </p>
+          <p style={{ margin: 0 }}>
+            <Link href="/enroll">新生線上報名</Link>
+          </p>
           <p className="social" style={{ margin: "8px 0 0" }}>
             {site.facebook && (
               <a href={site.facebook} target="_blank" rel="noopener noreferrer">
