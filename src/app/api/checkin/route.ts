@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { KIOSK_COOKIE, deviceFromKey } from "@/lib/kiosk";
 import { sbRpc, supabaseConfig } from "@/lib/supabase";
+import { allow } from "@/lib/rateLimit";
 
 // 簽到入口：教室平板、手機 NFC、ESP32 讀卡機都呼叫這裡。
 // 驗證：平板用 cookie；ESP32 用 Authorization: Bearer <讀卡站金鑰>
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
   const jar = await cookies();
   const device = await deviceFromKey(bearer ?? jar.get(KIOSK_COOKIE)?.value);
   if (!device) return NextResponse.json({ result: "unauthorized" }, { status: 401 });
+  if (!(await allow("checkin", device.id))) return NextResponse.json({ result: "error", message: "刷太快了，請稍等一下" }, { status: 429 });
 
   let uid = "";
   try {

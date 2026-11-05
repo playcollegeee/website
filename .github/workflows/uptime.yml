@@ -1,0 +1,63 @@
+# 網站監控：每 30 分鐘檢查官網、後台登入頁、資料庫。
+# 連續失敗會開一張 Issue（GitHub 會寄信通知），恢復正常後自動關閉。
+name: 網站監控
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 檢查網站
+        id: probe
+        run: |
+          fail=""
+          for url in "https://playcollegeee.com/" "https://playcollegeee.com/login" "https://playcollegeee.com/api/health"; do
+            ok=""
+            for try in 1 2 3; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$url" || echo 000)
+              if [ "$code" = "200" ]; then ok=1; break; fi
+              sleep 20
+            done
+            if [ -z "$ok" ]; then fail="$fail\n- $url（HTTP $code）"; fi
+          done
+          if [ -n "$fail" ]; then
+            echo "down=1" >> "$GITHUB_OUTPUT"
+            { echo "detail<<EOF"; printf "%b\n" "$fail"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "down=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 開立或關閉通知
+        uses: actions/github-script@v7
+        env:
+          DOWN: ${{ steps.probe.outputs.down }}
+          DETAIL: ${{ steps.probe.outputs.detail }}
+        with:
+          script: |
+            const title = "⚠️ 網站監控：官網或資料庫無法連線";
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: "open", labels: "uptime",
+            });
+            const now = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+            if (process.env.DOWN === "1") {
+              const body = `檢查時間：${now}\n\n無法正常開啟：\n${process.env.DETAIL}\n\n請先打開 https://playcollegeee.com 看看，或到 Vercel、Supabase 確認狀態。`;
+              if (open.length) {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: open[0].number, body });
+              } else {
+                await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ["uptime"], assignees: ["chisheng-edu"] });
+              }
+              core.setFailed("網站無法連線");
+            } else {
+              for (const i of open) {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: i.number, body: `✅ ${now} 已恢復正常。` });
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: i.number, state: "closed" });
+              }
+            }

@@ -1,9 +1,10 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { STAFF_COOKIE, STAFF_MAX_AGE, signToken } from "@/lib/session";
 import { audit, sbAuthFetch, sbGet, sbPatch, supabaseConfig } from "@/lib/supabase";
+import { TOO_MANY, allow, clientIp } from "@/lib/rateLimit";
 
 type Teacher = { id: string; auth_user_id: string | null; is_admin: boolean; active: boolean };
 
@@ -21,6 +22,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   if (!supabaseConfig()) return fail("系統尚未設定 Supabase。");
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return fail("請輸入 Email 與密碼。");
+
+  // 防止猜密碼：同一個網路、同一個帳號短時間內嘗試次數有上限
+  const ip = clientIp(await headers());
+  const [okIp, okEmail] = await Promise.all([allow("loginIp", ip), allow("loginEmail", email)]);
+  if (!okIp || !okEmail) return fail(TOO_MANY);
 
   // 1. 交給 Supabase Auth 確認帳密
   const res = await sbAuthFetch("token?grant_type=password", {

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireStaff } from "@/lib/staff";
 import { sbFetch } from "@/lib/supabase";
 import { logout } from "../login/actions";
-import AdminNav from "./AdminNav";
+import AdminNav, { type NavGroup } from "./AdminNav";
 import PendingFeedback from "./PendingFeedback";
 
 export const dynamic = "force-dynamic";
@@ -21,37 +20,68 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   })
     .then((r) => Number(r.headers.get("content-range")?.split("/")[1] ?? 0))
     .catch(() => 0);
-  const links = [
-    { href: "/admin", label: "今日課程" },
-    { href: "/admin/registrations", label: "報名", badge: pending },
-    { href: "/admin/students", label: "學生" },
-    { href: "/admin/classes", label: "開班" },
-    { href: "/admin/cards", label: "卡片" },
-    { href: "/admin/timesheet", label: "打卡" },
+  // 官網新詢問（未處理）筆數，只有管理員看得到
+  const newLeads = staff.is_admin
+    ? await sbFetch("leads?status=eq.new&select=id", { method: "HEAD", headers: { Prefer: "count=exact" } })
+        .then((r) => Number(r.headers.get("content-range")?.split("/")[1] ?? 0))
+        .catch(() => 0)
+    : 0;
+
+  // 依用途分類：每天上課 → 學生與家長 → 課程 → 招生與官網 → 系統設定
+  const groups: NavGroup[] = [
+    {
+      title: "每天上課",
+      items: [
+        { href: "/admin", label: "今日課程", icon: "📅" },
+        { href: "/admin/timesheet", label: "打卡紀錄", icon: "⏱️" },
+      ],
+    },
+    {
+      title: "學生與家長",
+      items: [
+        { href: "/admin/students", label: "學生名冊", icon: "🧒" },
+        { href: "/admin/registrations", label: "報名審核", icon: "📝", badge: pending },
+        { href: "/admin/cards", label: "學生卡片", icon: "💳" },
+      ],
+    },
+    {
+      title: "課程",
+      items: [{ href: "/admin/classes", label: "開班與排課", icon: "🏫" }],
+    },
     ...(staff.is_admin
       ? [
-          { href: "/admin/leads", label: "詢問" },
-          { href: "/admin/photos", label: "官網照片" },
-          { href: "/admin/teachers", label: "老師" },
-          { href: "/admin/devices", label: "讀卡站" },
+          {
+            title: "招生與官網",
+            items: [
+              { href: "/admin/leads", label: "官網詢問", icon: "💬", badge: newLeads },
+              { href: "/admin/photos", label: "官網照片", icon: "🖼️" },
+            ],
+          },
+          {
+            title: "系統設定",
+            items: [
+              { href: "/admin/teachers", label: "老師帳號", icon: "👩‍🏫" },
+              { href: "/admin/devices", label: "讀卡站", icon: "📟" },
+            ],
+          },
         ]
       : []),
   ];
+
   return (
-    <div className="adm">
-      <header className="adm-bar">
-        <Link href="/admin" className="adm-brand">
-          <img src="/brand/logo-icon.png" alt="" width={32} height={32} />
-          <span>玩學院後台</span>
-        </Link>
-        <AdminNav links={links} />
-        <div className="adm-me">
-          <Link href="/admin/account">{staff.nickname ?? staff.name}</Link>
+    <div className="adm adm-shell">
+      <AdminNav
+        groups={groups}
+        me={staff.nickname ?? staff.name}
+        logout={
           <form action={logout}>
-            <button type="submit" className="adm-link">登出</button>
+            <button type="submit" className="adm-menu-link">
+              <span className="adm-ico" aria-hidden="true">🚪</span>
+              <span className="adm-label">登出</span>
+            </button>
           </form>
-        </div>
-      </header>
+        }
+      />
       <main id="main" className="adm-main">{children}</main>
       <PendingFeedback />
     </div>

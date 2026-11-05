@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { CONSENT_VERSION } from "@/lib/consent";
 import { sbFetch, supabaseConfig } from "@/lib/supabase";
+import { TOO_MANY, allow, clientIp } from "@/lib/rateLimit";
 
 // 線上新生報名：驗證後寫入 registration_requests（待老師審核），不直接建立學生。
 const LEVELS = new Set(["wanbao", "wantong", "wanle", "wanchuang", "wanjia"]);
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "資料格式錯誤" }, { status: 400 });
   }
   if (clean(b.website, 200)) return NextResponse.json({ ok: true }); // 防機器人欄位
+  if (!(await allow("enroll", clientIp(req.headers)))) return NextResponse.json({ error: TOO_MANY }, { status: 429 });
 
   const childName = clean(b.childName, 40);
   const nickname = clean(b.nickname, 20);

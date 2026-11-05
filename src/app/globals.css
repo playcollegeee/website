@@ -425,18 +425,7 @@ h3 { font-size: 20px; }
 
 /* ---------- 後台框架 ---------- */
 .adm { min-height: 100vh; background: #f7f5ee; }
-.adm-bar {
-  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap;
-  padding: 10px 20px; background: #fff; border-bottom: 2px solid var(--line);
-}
-.adm-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; text-decoration: none; }
-.adm-nav { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
-.adm-nav a { padding: 6px 12px; border-radius: 999px; text-decoration: none; font-weight: 700; font-size: 15px; color: var(--ink-soft); }
-.adm-nav a:hover { background: var(--paper); color: var(--ink); }
-.adm-nav a.on { background: var(--yellow); color: var(--ink); }
-.adm-me { display: flex; align-items: center; gap: 12px; font-size: 14px; }
-.adm-me a { font-weight: 700; text-decoration: none; }
-.adm-main { width: min(1200px, 100% - 32px); margin: 0 auto; padding: 24px 0 64px; }
+.adm-main { width: min(1200px, 100% - 32px); margin: 0 auto; padding: 24px 0 64px; min-width: 0; }
 .adm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .adm-head h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); }
 .adm-head h1 small, .adm-panel h2 small { font-size: 0.6em; font-weight: 600; color: var(--ink-soft); margin-left: 8px; }
@@ -602,12 +591,6 @@ fieldset.adm-panel legend { font-weight: 800; padding: 0 6px; }
 @media (prefers-reduced-motion: reduce) {
   .kiosk-card, .kiosk-result, .kiosk-loot li { animation: none; }
 }
-@media (max-width: 760px) {
-  .adm-bar { padding: 10px 14px; }
-  .adm-me { margin-left: auto; }
-  .adm-nav { order: 3; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .adm-nav a { white-space: nowrap; }
-}
 .adm .adm-levels label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; margin: 0; }
 .adm .adm-levels input { width: 18px; height: 18px; accent-color: var(--green); }
 
@@ -653,7 +636,6 @@ button[data-pending]::after { content: " …"; }
 .adm-dl > div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
 .adm-dl dt { color: var(--ink-soft); font-size: 14px; }
 .adm-dl dd { margin: 0; }
-.adm-nav .badge { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--red); color: #fff; font-size: 12px; text-align: center; }
 
 /* ---------- 首頁：角色試玩 ---------- */
 .ac { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 28px; align-items: start; }
@@ -753,3 +735,47 @@ button[data-pending]::after { content: " …"; }
 .adm-shift-form { display: grid; gap: 6px; margin-top: 6px; min-width: 220px; }
 .adm-shift-form label { display: grid; font-size: 13px; color: var(--ink-soft); }
 .adm-shift-form input { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 14px; }
+
+/* ---------- 後台外框：分類側邊選單 ---------- */
+.adm-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); align-items: start; }
+.adm-shell > .adm-main { width: auto; margin: 0; padding: 28px 32px 64px; max-width: 1240px; }
+.adm-side {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; background: #fff; border-right: 2px solid var(--line);
+  padding: 16px 12px 20px; display: flex; flex-direction: column; gap: 8px;
+}
+.adm-side-top { display: flex; align-items: center; gap: 10px; padding: 0 6px 8px; }
+.adm-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; text-decoration: none; color: var(--ink); }
+.adm-side-current, .adm-menu-btn { display: none; }
+.adm-menu { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.adm-group { display: grid; gap: 2px; }
+.adm-group-title { margin: 0 0 4px; padding: 0 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: var(--ink-soft); }
+.adm-menu a, .adm-menu-link {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; text-decoration: none;
+  color: var(--ink); font-weight: 700; font-size: 15px; background: none; border: 0; font-family: inherit; cursor: pointer; width: 100%; text-align: left;
+}
+.adm-menu a:hover, .adm-menu-link:hover { background: var(--paper); }
+.adm-menu a.on { background: var(--yellow-soft); box-shadow: inset 4px 0 0 var(--yellow); }
+.adm-ico { width: 22px; text-align: center; flex: none; }
+.adm-label { flex: 1; min-width: 0; }
+.adm-menu .badge, .adm-menu-btn .badge {
+  display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--red); color: #fff;
+  font-size: 12px; line-height: 20px; text-align: center;
+}
+.adm-me { margin-top: auto; padding-top: 12px; border-top: 2px solid var(--line); }
+.adm-me form { margin: 0; }
+@media (max-width: 900px) {
+  .adm-shell { display: block; }
+  .adm-shell > .adm-main { padding: 18px 16px 64px; }
+  .adm-side { position: sticky; top: 0; z-index: 30; height: auto; max-height: 100vh; padding: 8px 12px; border-right: 0; border-bottom: 2px solid var(--line); }
+  .adm-side-top { padding: 0; }
+  .adm-side-current { display: block; flex: 1; text-align: center; font-weight: 800; color: var(--ink-soft); font-size: 14px; }
+  .adm-brand span { display: none; }
+  .adm-menu-btn {
+    display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 6px 14px; border: 2px solid var(--ink);
+    border-radius: 999px; background: #fff; font: inherit; font-weight: 800; cursor: pointer;
+  }
+  .adm-menu { display: none; padding: 10px 2px 6px; }
+  .adm-side.open .adm-menu { display: flex; }
+  .adm-side.open { overflow-y: auto; }
+  .adm-menu a, .adm-menu-link { padding: 12px 10px; font-size: 16px; }
+}

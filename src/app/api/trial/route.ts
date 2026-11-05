@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { TOO_MANY, allow, clientIp } from "@/lib/rateLimit";
 
 // 試聽／諮詢表單：驗證後寫入 Supabase 的 leads 表。
 // 需要在 Vercel 設定 SUPABASE_URL 與 SUPABASE_SERVICE_ROLE_KEY（只存在伺服器端）。
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
 
   // 防機器人：隱藏欄位有填就當作送出成功，但不寫入
   if (clean(body.website, 200)) return NextResponse.json({ ok: true });
+  if (!(await allow("trial", clientIp(req.headers)))) return NextResponse.json({ error: TOO_MANY }, { status: 429 });
 
   const type = clean(body.type, 20);
   const guardianName = clean(body.guardianName, 40);
