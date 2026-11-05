@@ -60,7 +60,7 @@ export default async function TeachersPage() {
         })}
       </ul>
       <NewTeacherForm />
-      <p className="hint">老師刷卡上下班：到「卡片」頁把卡綁給老師即可。停用老師後，他就無法登入，卡片也不能刷。</p>
+      <p className="hint">老師上下班：教室用刷卡（到「卡片」頁把卡綁給老師），外派地點用手機登入後台按「上班打卡」，紀錄都在「打卡」頁。停用老師後，他就無法登入，卡片也不能刷。</p>
     </>
   );
 }

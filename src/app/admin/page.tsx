@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff";
 import { sbGet } from "@/lib/supabase";
-import { fmtDate, fmtTime, taipeiDay, ymd } from "@/lib/admin";
+import { OPEN_WINDOW_HOURS, fmtDate, fmtTime, taipeiDay, ymd } from "@/lib/admin";
+import PunchCard from "./timesheet/PunchCard";
 
 export const metadata = { title: "今日課程" };
 
@@ -27,7 +28,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const prev = ymd(new Date(new Date(start).getTime() - 3600_000));
   const next = ymd(new Date(new Date(end).getTime() + 3600_000));
 
-  const [sessions, scans, setup, pendingRegs] = await Promise.all([
+  const since = new Date(Date.now() - OPEN_WINDOW_HOURS * 3600_000).toISOString();
+  const [sessions, scans, setup, pendingRegs, myShifts] = await Promise.all([
     sbGet<Sess[]>(
       `sessions?starts_at=gte.${start}&starts_at=lt.${end}&order=starts_at` +
         `&select=id,starts_at,ends_at,classes(id,name,room,teachers(name,nickname),enrollments(status)),attendance(status)`,
@@ -40,7 +42,15 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       sbGet<{ id: string }[]>("students?select=id&limit=1"),
     ]),
     sbGet<{ id: string }[]>("registration_requests?status=eq.pending&select=id").catch(() => []),
+    // 我的最近打卡：判斷是否上班中，並提供常用地點
+    sbGet<{ check_in_at: string; check_out_at: string | null; location: string | null }[]>(
+      `teacher_attendance?teacher_id=eq.${staff.id}&order=check_in_at.desc&limit=30&select=check_in_at,check_out_at,location`,
+    ).catch(() => []),
   ]);
+  const openShift = myShifts.find((x) => !x.check_out_at && x.check_in_at >= since) ?? null;
+  const places = [...new Set(["玩學院教室", ...myShifts.map((x) => x.location).filter((x): x is string => !!x)])];
+  const lastPlace = myShifts.find((x) => x.location)?.location;
+  const suggestions = lastPlace ? [lastPlace, ...places.filter((p) => p !== lastPlace)] : places;
   const [teachers, devices, classes, students] = setup;
   const todo = [
     { done: students.length > 0, text: "新增第一位學生（含家長與同意書）", href: "/admin/students/new" },
@@ -63,6 +73,11 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           <Link className="btn btn-sm" href={`/admin?d=${next}`}>後一天 →</Link>
         </div>
       </div>
+
+      <PunchCard
+        open={openShift ? { since: openShift.check_in_at, location: openShift.location } : null}
+        suggestions={suggestions}
+      />
 
       {pendingRegs.length > 0 && (
         <p className="notice err">

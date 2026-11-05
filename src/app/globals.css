@@ -741,3 +741,15 @@ button[data-pending]::after { content: " …"; }
 .ph-msg.ok { color: #2f8a76; }
 .ph-msg.err { color: var(--red); }
 @media (max-width: 520px) { .ph-fields { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- 老師打卡 ---------- */
+.adm-punch { display: grid; gap: 10px; }
+.adm-punch.on { background: var(--green-soft); border-color: var(--green); }
+.adm-punch-head { display: flex; justify-content: space-between; align-items: center; }
+.adm-punch-head h2 { margin: 0; }
+.adm-punch .hint { margin: 0; }
+.adm-punch-row input { width: 100%; padding: 12px 14px; border: 2px solid var(--line); border-radius: 12px; font: inherit; font-size: 16px; background: #fff; }
+.adm-punch-btn { justify-self: start; min-height: 52px; font-size: 18px; padding-inline: 28px; }
+.adm-shift-form { display: grid; gap: 6px; margin-top: 6px; min-width: 220px; }
+.adm-shift-form label { display: grid; font-size: 13px; color: var(--ink-soft); }
+.adm-shift-form input { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 14px; }

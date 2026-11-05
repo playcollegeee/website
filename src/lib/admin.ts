@@ -63,3 +63,6 @@ export function optStr(fd: FormData, key: string, max = 200): string | null {
 export function normalizeUid(v: string): string {
   return v.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
 }
+
+// 老師打卡：超過 16 小時還沒下班的紀錄，視為忘記打下班卡（與資料庫 checkin_by_card 規則一致）
+export const OPEN_WINDOW_HOURS = 16;
