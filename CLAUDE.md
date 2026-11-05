@@ -38,6 +38,8 @@
 - 首頁角色試玩：`src/components/AvatarCreator.tsx`（SVG 分層角色、三條路線的裝備圖；規則為示意，純前端不存資料），之後正式角色頁與讀卡站可共用角色圖
 - 官網照片：首頁「成果紀錄」「教室現場」讀 `site_photos`（`src/lib/sitePhotos.ts`，tag `site-photos` 快取一小時，讀不到資料表就用 `content.ts` 內建照片）；後台 `/admin/photos` 上傳到 Storage 公開 bucket `site-photos`（瀏覽器先縮圖 1600px WebP，`next.config.ts` 的 serverActions bodySizeLimit 4mb）；存檔呼叫 `updateTag("site-photos")`
 - 所有動畫都要尊重 `prefers-reduced-motion`
+- 資安（2026-11-06）：`next.config.ts` 有 CSP／Permissions-Policy／COOP（新增外部服務要把網域加進 CSP；定位只開給本站線上打卡）；公開表單、登入、讀卡站用 `src/lib/rateLimit.ts` 的 `allow()` 做次數限制（`rate_limits` 表，migration 0006，表不存在時放行）；`/api/health` 給監控用；`.github/workflows/uptime.yml` 每 30 分鐘監控、失敗開 Issue；`.github/dependabot.yml` 每週檢查套件。詳見專案文件「玩學院系統開發_資安與維運計畫」
+- 後台選單：`src/app/admin/layout.tsx` 的 `groups` 分五類（每天上課／學生與家長／課程／招生與官網／系統設定），`AdminNav.tsx` 桌機側邊欄、手機「☰ 選單」；新頁面要放進分類
 - 頁面分組：官網各頁在 `src/app/(site)/`（有頁首頁尾）；後台 `src/app/admin/`、登入 `src/app/login/`、讀卡站 `src/app/kiosk/` 不套官網外框
 - 老師登入：每位老師一個帳號，帳密交給 Supabase Auth 驗證（`/auth/v1/token`，用 fetch 呼叫，沒有裝 supabase-js），成功後發自簽 cookie `pc_staff`（`src/lib/session.ts`，HMAC 金鑰由 service key 推導，12 小時）。`src/proxy.ts` 擋 `/admin`；每個頁面與 server action 開頭都要呼叫 `requireStaff()`（管理員限定用 `requireStaff(true)`），它會回資料庫確認老師仍在職。老師資料在 `teachers` 表，用 `email` 對應登入帳號
 - 讀卡站：`/kiosk` 頁面（USB 鍵盤式讀卡機＋Android Web NFC）與 `/api/checkin`（平板用 cookie `pc_kiosk`、ESP32 用 `Authorization: Bearer 金鑰`），`devices` 表只存金鑰 SHA-256。簽到邏輯全部在資料庫函式 `checkin_by_card()`，每次刷卡寫 `card_scans`
@@ -70,7 +72,7 @@ claude.ai 專案「玩學院系統開發」裡有「玩學院系統開發_現況
 
 ## 待辦（依優先順序）
 
-1. 使用者在 Supabase 執行 `0004_site_photos.sql`；留意 hosting.com 取消工單回覆
+1. 使用者在 Supabase 執行 `0006_rate_limits.sql`、開兩步驟驗證與 GitHub 安全掃描；留意 hosting.com 取消工單回覆
 2. LINE 官方帳號連結（使用者辦理中）
 3. 11/18 提醒：設定 Google Search Console 並提交 sitemap
 4. 第 2 階段（學生資料庫＋簽到）程式已完成，待使用者執行 0002 migration、建立第一個管理員帳號、買讀卡機與 NTAG 卡實測
