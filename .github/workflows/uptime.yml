@@ -36,7 +36,7 @@ jobs:
           fi
 
       - name: 開立或關閉通知
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           DOWN: ${{ steps.probe.outputs.down }}
           DETAIL: ${{ steps.probe.outputs.detail }}
