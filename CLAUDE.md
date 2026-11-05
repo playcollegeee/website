@@ -72,7 +72,7 @@ claude.ai 專案「玩學院系統開發」裡有「玩學院系統開發_現況
 
 ## 待辦（依優先順序）
 
-1. 使用者在 Supabase 執行 `0006_rate_limits.sql`、開兩步驟驗證與 GitHub 安全掃描；留意 hosting.com 取消工單回覆
+1. 使用者開兩步驟驗證（0006 已執行、GitHub 安全掃描已開，2026-11-06）；留意 hosting.com 取消工單回覆
 2. LINE 官方帳號連結（使用者辦理中）
 3. 11/18 提醒：設定 Google Search Console 並提交 sitemap
 4. 第 2 階段（學生資料庫＋簽到）程式已完成，待使用者執行 0002 migration、建立第一個管理員帳號、買讀卡機與 NTAG 卡實測
