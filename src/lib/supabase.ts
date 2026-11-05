@@ -11,7 +11,7 @@ export function supabaseConfig() {
   return { url, key };
 }
 
-function authHeaders(key: string): Record<string, string> {
+export function authHeaders(key: string): Record<string, string> {
   return {
     apikey: key,
     // 舊版 JWT 金鑰才需要 Authorization；新版 sb_secret_ 只放 apikey
@@ -105,6 +105,26 @@ export async function audit(actor: string, action: string, target: string, detai
   } catch {
     await write();
   }
+}
+
+// ---------- 檔案儲存（Supabase Storage） ----------
+// 上傳到公開 bucket，回傳公開網址；path 例：gallery/1730000000-ab12.webp
+export async function sbUpload(bucket: string, path: string, file: Blob, contentType: string): Promise<string> {
+  const cfg = supabaseConfig();
+  if (!cfg) throw new Error("Supabase 尚未設定");
+  const res = await fetch(`${cfg.url}/storage/v1/object/${bucket}/${path}`, {
+    method: "POST",
+    headers: { ...authHeaders(cfg.key), "Content-Type": contentType, "x-upsert": "true", "Cache-Control": "max-age=31536000" },
+    body: file,
+  });
+  if (!res.ok) await fail(res, "上傳");
+  return `${cfg.url}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+export async function sbRemoveFile(bucket: string, path: string): Promise<void> {
+  const cfg = supabaseConfig();
+  if (!cfg) return;
+  await fetch(`${cfg.url}/storage/v1/object/${bucket}/${path}`, { method: "DELETE", headers: authHeaders(cfg.key) }).catch(() => undefined);
 }
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

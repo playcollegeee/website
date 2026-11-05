@@ -4,7 +4,8 @@ import AvatarCreator from "@/components/AvatarCreator";
 import BrickPlayground from "@/components/BrickPlayground";
 import CourseQuiz from "@/components/CourseQuiz";
 import StackingLevels from "@/components/StackingLevels";
-import { featured, gallery, highlights, interestQuests, site, stats, valueProps } from "@/lib/content";
+import { featured, interestQuests, site, stats, valueProps } from "@/lib/content";
+import { getPublishedPhotos } from "@/lib/sitePhotos";
 
 const ribbonWords = ["先探索", "再發現", "逐步深入", "LEGO 機器人", "3D 造物", "美術創作", "動手做", "玩出興趣"];
 
@@ -22,7 +23,8 @@ function Ribbon({ tone }: { tone: "yellow" | "blue" }) {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [highlightPhotos, galleryPhotos] = await Promise.all([getPublishedPhotos("highlights"), getPublishedPhotos("gallery")]);
   return (
     <>
       {/* 1. 首屏 */}
@@ -164,45 +166,49 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. 成果與活動紀錄 */}
-      <section>
-        <div className="container">
-          <div className="section-head">
-            <p className="eyebrow">成果與活動紀錄</p>
-            <h2>孩子們最近做了什麼</h2>
+      {/* 7. 成果與活動紀錄（照片與文字在後台「官網照片」管理） */}
+      {highlightPhotos.length > 0 && (
+        <section>
+          <div className="container">
+            <div className="section-head">
+              <p className="eyebrow">成果與活動紀錄</p>
+              <h2>孩子們最近做了什麼</h2>
+            </div>
+            <div className="grid cols-3">
+              {highlightPhotos.map((h) => (
+                <article key={h.id} className={`card photo-card bar-${h.color}`}>
+                  <div className="photo">
+                    <Image src={h.image_url} alt={h.title} width={h.width} height={h.height} sizes="(max-width: 860px) 100vw, 360px" />
+                  </div>
+                  {h.tag && <span className="tag">{h.tag}</span>}
+                  <h3>{h.title}</h3>
+                  {h.body && <p>{h.body}</p>}
+                </article>
+              ))}
+            </div>
           </div>
-          <div className="grid cols-3">
-            {highlights.map((h) => (
-              <article key={h.title} className={`card photo-card bar-${h.color}`}>
-                <div className="photo">
-                  <Image src={h.image} alt={h.title} width={825} height={1100} sizes="(max-width: 860px) 100vw, 360px" />
-                </div>
-                <span className="tag">{h.date}</span>
-                <h3>{h.title}</h3>
-                <p>{h.text}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* 8. 作品牆 */}
-      <section className="bg-yellow">
-        <div className="container">
-          <div className="section-head">
-            <p className="eyebrow">教室現場</p>
-            <h2>每一個作品，都是孩子自己動手完成的</h2>
+      {/* 8. 作品牆（照片與說明在後台「官網照片」管理） */}
+      {galleryPhotos.length > 0 && (
+        <section className="bg-yellow">
+          <div className="container">
+            <div className="section-head">
+              <p className="eyebrow">教室現場</p>
+              <h2>每一個作品，都是孩子自己動手完成的</h2>
+            </div>
+            <div className="photo-wall">
+              {galleryPhotos.map((g) => (
+                <figure key={g.id} className="photo-item">
+                  <Image src={g.image_url} alt={g.title} width={g.width} height={g.height} sizes="(max-width: 860px) 50vw, 380px" />
+                  <figcaption>{g.title}</figcaption>
+                </figure>
+              ))}
+            </div>
           </div>
-          <div className="photo-wall">
-            {gallery.map((g) => (
-              <figure key={g.src} className="photo-item">
-                <Image src={g.src} alt={g.alt} width={g.w} height={g.h} sizes="(max-width: 860px) 50vw, 380px" />
-                <figcaption>{g.alt}</figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 9. 角色試玩 */}
       <section className="bg-blue" id="avatar">
