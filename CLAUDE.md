@@ -7,7 +7,7 @@
 至聖文教事業有限公司旗下「玩學院 Play Collegeee」（台中兒童 STEAM 教室，創辦人阿智老師）的官網，之後會擴充成整合系統：
 官網、簽到（NFC／QR 卡）、課程報名與點數金流、課程教案庫、學生資料庫與遊戲角色養成、AI Agent 行政自動化。
 
-- 開發藍圖（Claude Docs）：https://claude.ai/artifact/AuHQqrUHG8Tyy8w7wzqUwT
+- 開發藍圖：以 claude.ai 專案文件「玩學院系統開發_開發藍圖」v0.3 為準（舊版 v0.1：https://claude.ai/artifact/AuHQqrUHG8Tyy8w7wzqUwT）；角色養成、教案庫各有專案文件
 - 正式網址：https://playcollegeee.com（www 會 308 轉到主網域）
 - 預覽網址：https://website-psi-amber-10.vercel.app
 
@@ -45,14 +45,13 @@
 - 讀卡站：`/kiosk` 頁面（USB 鍵盤式讀卡機＋Android Web NFC）與 `/api/checkin`（平板用 cookie `pc_kiosk`、ESP32 用 `Authorization: Bearer 金鑰`），`devices` 表只存金鑰 SHA-256。簽到邏輯全部在資料庫函式 `checkin_by_card()`，每次刷卡寫 `card_scans`
 - 線上新生報名：官網 `/enroll` → `/api/enroll` 寫入 `registration_requests`（待審核）→ 後台 `/admin/registrations` 審核建檔。個資告知文字與同意書版本在 `src/lib/consent.ts`（`CONSENT_VERSION`），紙本同意書在 Claude Docs：https://claude.ai/artifact/YCKtwhW4tq3vubGJ3sQ7j5
 - 老師打卡：教室刷卡（`checkin_by_card`）與線上打卡（後台首頁 `timesheet/PunchCard.tsx`，外派地點用，記地點與選填的手機定位）共用 `teacher_attendance`，`source`／`check_out_source` 記方式（card／online／manual）；超過 16 小時未下班視為忘記打卡（`OPEN_WINDOW_HOURS`）。`/admin/timesheet` 月報表，管理員可修改與補登（寫 `edited_by`）。注意 `teacher_attendance` 有兩個指向 teachers 的外鍵，嵌入時要寫 `teachers!teacher_attendance_teacher_id_fkey(...)`
-- 老師打卡：教室刷卡（`checkin_by_card`）與線上打卡（後台首頁 `timesheet/PunchCard.tsx`，外派地點用，記地點與選填的手機定位）共用 `teacher_attendance`，`source`／`check_out_source` 記方式（card／online／manual）；超過 16 小時未下班視為忘記打卡（`OPEN_WINDOW_HOURS`）。`/admin/timesheet` 月報表，管理員可修改與補登（寫 `edited_by`）。`teacher_attendance` 有兩個指向 teachers 的外鍵，嵌入時要寫 `teachers!teacher_attendance_teacher_id_fkey(...)`
 - 卡片建議 13.56 MHz NTAG213／215；卡號統一去冒號轉大寫（`normalizeUid` 與 SQL 規則一致）
 - 伺服器地區：`vercel.json` 的 `regions` 設為 `bom1`（孟買），必須和 Supabase 同地區，否則每次查資料都要繞地球；搬資料庫時一起改
 - 後台即時回饋：點名用 `sessions/RollButtons.tsx`、詢問狀態用 `leads/LeadStatusForm.tsx`（useOptimistic）；`admin/PendingFeedback.tsx` 讓所有表單送出時按鈕顯示處理中；`admin/loading.tsx` 換頁動畫；`audit()` 用 `after()` 在回應後寫入
 - Supabase 呼叫統一用 `src/lib/supabase.ts`（`sbGet`、`sbInsert`、`sbPatch`、`sbRpc`、`audit`）；每次寫入都呼叫 `audit()` 寫操作紀錄
 - 分享預覽圖：各路由資料夾的 `opengraph-image.jpg`（1200×630）
-- 資料庫結構在 `supabase/migrations/`：`0001_init.sql`（已執行）、`0002_students_checkin.sql`（學生多家長、同意紀錄、讀卡站、簽到函式）、`0003_registrations.sql`（線上報名待審核表、照片公開範圍 `photo_scope`、照護注意事項 `care_notes` 需 `care_consent_at`）、`0004_site_photos.sql`（官網照片表＋Storage bucket，2026-11-05 待使用者執行）、`0005_teacher_punch.sql`（老師線上打卡欄位）。新的變更一律新增 migration 檔，不要直接改線上資料表
-- 核心設計：`attendance`（上課紀錄）是核心事件，觸發器自動發放裝備與經驗值；點數一律寫 `point_ledger` 流水帳
+- 資料庫結構在 `supabase/migrations/`：`0001_init.sql`（已執行）、`0002_students_checkin.sql`（學生多家長、同意紀錄、讀卡站、簽到函式）、`0003_registrations.sql`（線上報名待審核表、照片公開範圍 `photo_scope`、照護注意事項 `care_notes` 需 `care_consent_at`）、`0004_site_photos.sql`（官網照片表＋Storage bucket）、`0005_teacher_punch.sql`（老師線上打卡欄位）、`0006_rate_limits.sql`（次數限制），0001～0006 都已在正式站執行。新的變更一律新增 migration 檔，不要直接改線上資料表
+- 核心設計：`attendance`（上課紀錄）是核心事件，觸發器目前發裝備與經驗值（已定案改成只發經驗值、裝備期末發放，見專案文件「玩學院角色養成_設計規劃」）；點數一律寫 `point_ledger` 流水帳
 
 ## 開發注意事項
 
@@ -75,5 +74,6 @@ claude.ai 專案「玩學院系統開發」裡有「玩學院系統開發_現況
 1. 使用者開兩步驟驗證（0006 已執行、GitHub 安全掃描已開，2026-11-06）；留意 hosting.com 取消工單回覆
 2. LINE 官方帳號連結（使用者辦理中）
 3. 11/18 提醒：設定 Google Search Console 並提交 sitemap
-4. 第 2 階段（學生資料庫＋簽到）程式已完成，待使用者執行 0002 migration、建立第一個管理員帳號、買讀卡機與 NTAG 卡實測
-5. 之後：LINE 到校通知、ESP32 讀卡機韌體、卡片寫入角色頁網址、家長同意書線上版
+4. 第 2 階段已上線，待買讀卡機與 NTAG 卡實測
+5. 官網照片共享：建議先用 Google 雲端硬碟共用資料夾，之後在後台做私人「照片庫」（老師上傳、推薦、管理員一鍵上官網）；待使用者決定
+6. 之後：LINE 到校通知、ESP32 讀卡機韌體、卡片寫入角色頁網址、家長同意書線上版
