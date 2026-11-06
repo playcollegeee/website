@@ -4,6 +4,8 @@ import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
 import { CLASS_KIND, LEVEL_NAME, MAJOR_NAME, fmtDate, fmtTime } from "@/lib/admin";
 import { addSession, moveSession, updateClass } from "../actions";
+import LessonPicker from "../LessonPicker";
+import { MAJOR_SHORT } from "@/lib/lessons";
 import { enrollStudent, setEnrollmentStatus } from "../../students/actions";
 
 export const metadata = { title: "班級" };
@@ -12,7 +14,9 @@ type Cls = {
   id: string; name: string; room: string | null; capacity: number; note: string | null; teacher_id: string | null;
   courses: { title: string; kind: string; major: string | null };
   enrollments: { status: string; students: { id: string; nickname: string; name: string; level: string } }[];
-  sessions: { id: string; starts_at: string; ends_at: string; lessons: { seq: number; title: string } | null; attendance: { status: string }[] }[];
+  sessions: { id: string; starts_at: string; ends_at: string; lesson_id: string | null; lessons: { id: string; title: string; status: string } | null; attendance: { status: string }[] }[];
+};
+type LessonOpt = { id: string; title: string; status: string; category: { major: string; name: string; sort: number } | null
 };
 
 // datetime-local 的預設值（台灣時間）
@@ -23,20 +27,35 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
   await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [rows, teachers, students] = await Promise.all([
+  const [rows, teachers, students, lessonOpts] = await Promise.all([
     sbGet<Cls[]>(
       `classes?id=eq.${id}&select=id,name,room,capacity,note,teacher_id,courses(title,kind,major),` +
-        `enrollments(status,students(id,nickname,name,level)),sessions(id,starts_at,ends_at,lessons(seq,title),attendance(status))` +
+        `enrollments(status,students(id,nickname,name,level)),sessions(id,starts_at,ends_at,lesson_id,lessons(id,title,status),attendance(status))` +
         `&sessions.order=starts_at`,
     ),
     sbGet<{ id: string; name: string; nickname: string | null }[]>("teachers?active=eq.true&order=name&select=id,name,nickname"),
     sbGet<{ id: string; nickname: string; name: string }[]>("students?active=eq.true&order=nickname&select=id,nickname,name"),
+    // 可排課的教案（未封存）；畫面上依類別分組
+    sbGet<LessonOpt[]>("lessons?status=neq.archived&select=id,title,status,category:lesson_categories(major,name,sort)&order=title&limit=1000"),
   ]);
   const c = rows[0];
   if (!c) notFound();
   const active = c.enrollments.filter((e) => e.status === "active");
   const enrolled = new Set(c.enrollments.map((e) => e.students.id));
   const now = Date.now();
+
+  // 教案選單：這班是某個主修時只列該主修的教案（找不到時列全部）
+  const sameMajor = c.courses.major ? lessonOpts.filter((l) => l.category?.major === c.courses.major) : [];
+  const opts = sameMajor.length ? sameMajor : lessonOpts;
+  const groups = new Map<string, { label: string; order: string; items: LessonOpt[] }>();
+  for (const l of opts) {
+    const key = l.category ? `${l.category.major}|${l.category.name}` : "none";
+    const label = l.category ? `${MAJOR_SHORT[l.category.major]}・${l.category.name}` : "未分類";
+    const order = l.category ? `${["lego", "3d", "art"].indexOf(l.category.major)}-${String(l.category.sort).padStart(4, "0")}` : "9";
+    if (!groups.has(key)) groups.set(key, { label, order, items: [] });
+    groups.get(key)!.items.push(l);
+  }
+  const lessonGroups = [...groups.values()].sort((a, b) => a.order.localeCompare(b.order));
 
   return (
     <>
@@ -55,9 +74,16 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
                 const isPast = new Date(s.ends_at).getTime() < now;
                 return (
                   <tr key={s.id} className={isPast ? "muted" : ""}>
-                    <td>第 {i + 1} 堂</td>
-                    <td><Link href={`/admin/sessions/${s.id}`} className="adm-strong">{fmtDate(s.starts_at)} {fmtTime(s.starts_at)}</Link></td>
-                    <td>{s.lessons ? s.lessons.title : <span className="muted">未指定教案</span>}</td>
+                    <td className="lsn-nowrap">第 {i + 1} 堂</td>
+                    <td className="lsn-nowrap"><Link href={`/admin/sessions/${s.id}`} className="adm-strong">{fmtDate(s.starts_at)} {fmtTime(s.starts_at)}</Link></td>
+                    <td>
+                      {s.lessons ? <Link href={`/admin/lessons/${s.lessons.id}`}>{s.lessons.title}</Link> : <span className="muted">未指定教案</span>}
+                      <LessonPicker
+                        sessionId={s.id}
+                        current={s.lessons}
+                        groups={lessonGroups.map((g) => ({ label: g.label, items: g.items.map((l) => ({ id: l.id, title: l.title, status: l.status })) }))}
+                      />
+                    </td>
                     <td>{s.attendance.length ? `${here}／${active.length} 到` : ""}</td>
                     <td>
                       <details className="adm-pop">

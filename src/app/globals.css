@@ -799,3 +799,115 @@ button[data-pending]::after { content: " …"; }
   .adm-side.open { overflow-y: auto; }
   .adm-menu a, .adm-menu-link { padding: 12px 10px; font-size: 16px; }
 }
+
+/* ===== 課程教案庫 ===== */
+.lsn-filters .lsn-q { flex: 1 1 260px; }
+.lsn-selected { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: -6px 0 14px; font-weight: 700; font-size: 14px; }
+.lsn-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700;
+  background: var(--paper); border: 1.5px solid var(--line); color: var(--ink); text-decoration: none; line-height: 1.5;
+}
+a.lsn-chip:hover { border-color: var(--ink); }
+.lsn-chip b { font-weight: 600; color: var(--ink-soft); }
+.lsn-chip em { font-style: normal; font-size: 11px; background: var(--yellow); border-radius: 6px; padding: 0 4px; }
+.lsn-chip button { background: none; border: 0; padding: 0 0 0 2px; cursor: pointer; font-size: 12px; color: var(--ink-soft); }
+.lsn-chip-theme { background: var(--yellow-soft); border-color: var(--yellow); }
+.lsn-chip-skill { background: var(--green-soft); border-color: var(--green); }
+.lsn-chip-structure { background: var(--blue-soft); border-color: var(--blue); }
+.lsn-chip-code { background: #ece6fb; border-color: #9a86d6; }
+.lsn-chip-technique { background: var(--red-soft); border-color: var(--red); }
+.lsn-chip-knowledge { background: #fff; border-color: var(--ink-soft); }
+
+.lsn-cards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.lsn-card { background: #fff; border: 2px solid var(--line); border-top: 6px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lsn-major-lego { border-top-color: var(--red); }
+.lsn-major-3d { border-top-color: var(--blue); }
+.lsn-major-art { border-top-color: var(--yellow); }
+.lsn-card-top { display: flex; align-items: center; gap: 6px; }
+.lsn-card-top .tag { margin-left: auto; }
+.lsn-cat { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.lsn-card-title { font-size: 18px; font-weight: 800; color: var(--ink); text-decoration: none; line-height: 1.35; }
+.lsn-card-title:hover { color: var(--blue); }
+.lsn-card-sum { margin: 0; font-size: 14px; }
+.lsn-card-meta, .lsn-card-foot { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.lsn-card-foot { margin-top: auto; padding-top: 4px; }
+.lsn-card-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.lsn-stars { color: #d9a300; letter-spacing: 1px; }
+
+/* 教案表單 */
+.lsn-form legend { font-weight: 800; font-size: 18px; padding: 0 4px; }
+.lsn-form legend small { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-left: 8px; }
+.lsn-form .lsn-over { color: var(--red); }
+.lsn-tagkinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 16px; }
+.lsn-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 2px solid var(--line); border-radius: 12px; padding: 6px 8px; background: #fff; }
+.lsn-chips:focus-within { border-color: var(--blue); }
+.adm .lsn-chips input { border: 0; padding: 4px; flex: 1 1 140px; min-width: 120px; font-size: 15px; outline: none; }
+.lsn-phase { border-left: 5px solid var(--line); padding: 4px 0 8px 14px; margin: 14px 0; }
+.lsn-phase h3 { font-size: 16px; margin: 0 0 8px; }
+.lsn-phase h3 small { font-weight: 600; color: var(--ink-soft); margin-left: 6px; font-size: 13px; }
+.lsn-phase-intro { border-left-color: var(--yellow); }
+.lsn-phase-main { border-left-color: var(--green); }
+.lsn-phase-wrap { border-left-color: var(--blue); }
+.lsn-step { background: var(--paper); border-radius: 12px; padding: 8px; margin-bottom: 8px; }
+.lsn-step-top { display: flex; gap: 6px; align-items: center; }
+.lsn-step-top input { flex: 1; min-width: 0; }
+.adm .lsn-step input, .adm .lsn-step textarea, .lsn-full, .lsn-mat input {
+  padding: 8px 10px; border: 2px solid var(--line); border-radius: 10px; font: inherit; font-size: 15px; background: #fff;
+}
+.adm .lsn-step .lsn-min { flex: 0 0 64px; }
+.lsn-step-btns { display: flex; gap: 8px; flex: 0 0 auto; }
+.lsn-step-body { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.lsn-step-body textarea { resize: vertical; min-width: 0; }
+.lsn-full { width: 100%; resize: vertical; }
+.lsn-mat { margin: 0 0 6px; }
+.lsn-mat input:first-child { flex: 2 1 200px; }
+.lsn-mat input:nth-child(2) { flex: 1 1 120px; }
+
+/* 教案檢視 */
+.lsn-meta dl { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0; font-size: 15px; }
+.lsn-meta dl div { display: flex; gap: 6px; }
+.lsn-meta dt { color: var(--ink-soft); }
+.lsn-meta dd { margin: 0; font-weight: 700; }
+.lsn-summary { margin: 12px 0 0; font-size: 17px; }
+.lsn-tagrows { display: grid; gap: 6px; margin-top: 12px; }
+.lsn-tagrows > div { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.lsn-tagkind { font-size: 13px; font-weight: 700; color: var(--ink-soft); min-width: 3em; }
+.lsn-text p { margin: 0; white-space: pre-wrap; }
+.lsn-text a { color: var(--blue); word-break: break-all; }
+.lsn-refs { background: var(--yellow-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+.lsn-timeline { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.lsn-timeline li { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; }
+.lsn-min-badge { font-weight: 800; font-size: 14px; background: var(--paper); border-radius: 10px; text-align: center; padding: 4px 0; align-self: start; }
+.lsn-who { display: grid; grid-template-columns: 3em minmax(0, 1fr); gap: 6px; margin-top: 4px; font-size: 15px; }
+.lsn-who em { font-style: normal; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.lsn-sub { font-size: 15px; margin: 10px 0 4px; }
+.lsn-sub:first-of-type { margin-top: 0; }
+.lsn-mats { margin: 0; padding-left: 20px; }
+.lsn-mats small { margin-left: 8px; color: var(--ink-soft); }
+.adm .lsn-pick { max-width: 200px; }
+.adm-table .lsn-nowrap { white-space: nowrap; }
+
+/* 課程分類與標籤設定 */
+.lsn-set-group { margin: 14px 0 18px; }
+.lsn-set-group h3 { font-size: 16px; margin: 0 0 6px; }
+.lsn-set-group h3 small { color: var(--ink-soft); font-weight: 600; margin-left: 6px; font-size: 13px; }
+.lsn-set-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.lsn-set-tag > summary { list-style: none; }
+.lsn-set-tag > summary::-webkit-details-marker { display: none; }
+.lsn-set-tag[open] { flex-basis: 100%; }
+.lsn-set-pop { background: var(--paper); border-radius: 12px; padding: 8px 10px; margin-top: 6px; }
+.lsn-set-pop .adm-inline-form { margin: 0 0 6px; }
+
+@media (max-width: 640px) {
+  .lsn-step-body { grid-template-columns: minmax(0, 1fr); }
+  .lsn-tagkinds { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 列印教案：只印內容 */
+@media print {
+  .adm-side, .lsn-noprint, .adm-loading, .adm-progress { display: none !important; }
+  .adm { background: #fff; display: block; }
+  .adm-main { width: 100%; padding: 0; }
+  .adm-panel { border: 1px solid #ccc; break-inside: avoid; }
+  .adm-cols { grid-template-columns: 1fr 1fr; }
+}

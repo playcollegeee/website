@@ -10,7 +10,7 @@ export const metadata = { title: "點名" };
 
 type Sess = {
   id: string; starts_at: string; ends_at: string; class_id: string;
-  lessons: { id: string; seq: number; title: string; goals: string | null } | null;
+  lessons: { id: string; title: string; goals: string | null; summary: string | null } | null;
   classes: { name: string; room: string | null; enrollments: { status: string; students: { id: string; nickname: string; name: string; level: string; notes: string | null; care_notes: string | null } }[] };
   attendance: { id: string; student_id: string; status: string; checked_in_at: string | null; checked_out_at: string | null; source: string; note: string | null }[];
 };
@@ -20,7 +20,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const rows = await sbGet<Sess[]>(
-    `sessions?id=eq.${id}&select=id,starts_at,ends_at,class_id,lessons(id,seq,title,goals),` +
+    `sessions?id=eq.${id}&select=id,starts_at,ends_at,class_id,lessons(id,title,goals,summary),` +
       `classes(name,room,enrollments(status,students(id,nickname,name,level,notes,care_notes))),` +
       `attendance(id,student_id,status,checked_in_at,checked_out_at,source,note)`,
   );
@@ -47,7 +47,11 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
       <div className="adm-panel">
         <p className="adm-lesson">
-          {s.lessons ? <>今日教案：<strong>第 {s.lessons.seq} 堂 {s.lessons.title}</strong>{s.lessons.goals && <><br /><small>{s.lessons.goals}</small></>}</> : "這堂還沒有指定教案（之後在教案庫設定）。"}
+          {s.lessons ? (
+            <>今日教案：<Link href={`/admin/lessons/${s.lessons.id}`} className="adm-strong">{s.lessons.title}</Link>{(s.lessons.summary || s.lessons.goals) && <><br /><small>{s.lessons.summary ?? s.lessons.goals}</small></>}</>
+          ) : (
+            <>這堂還沒有指定教案，可以到<Link href={`/admin/classes/${s.class_id}`}>班級頁</Link>選。</>
+          )}
         </p>
         <p className="adm-big-count"><strong>{here}</strong>／{list.length} 位已到</p>
       </div>

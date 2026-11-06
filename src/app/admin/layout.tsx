@@ -46,7 +46,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     },
     {
       title: "課程",
-      items: [{ href: "/admin/classes", label: "開班與排課", icon: "🏫" }],
+      items: [
+        { href: "/admin/lessons", label: "教案庫", icon: "📚" },
+        { href: "/admin/classes", label: "開班與排課", icon: "🏫" },
+      ],
     },
     ...(staff.is_admin
       ? [
@@ -62,6 +65,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             items: [
               { href: "/admin/teachers", label: "老師帳號", icon: "👩‍🏫" },
               { href: "/admin/devices", label: "讀卡站", icon: "📟" },
+              { href: "/admin/lesson-settings", label: "課程分類與標籤", icon: "🏷️" },
             ],
           },
         ]
