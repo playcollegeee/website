@@ -45,19 +45,20 @@
 - 讀卡站：`/kiosk` 頁面（USB 鍵盤式讀卡機＋Android Web NFC）與 `/api/checkin`（平板用 cookie `pc_kiosk`、ESP32 用 `Authorization: Bearer 金鑰`），`devices` 表只存金鑰 SHA-256。簽到邏輯全部在資料庫函式 `checkin_by_card()`，每次刷卡寫 `card_scans`
 - 線上新生報名：官網 `/enroll` → `/api/enroll` 寫入 `registration_requests`（待審核）→ 後台 `/admin/registrations` 審核建檔。個資告知文字與同意書版本在 `src/lib/consent.ts`（`CONSENT_VERSION`），紙本同意書在 Claude Docs：https://claude.ai/artifact/YCKtwhW4tq3vubGJ3sQ7j5
 - 老師打卡：教室刷卡（`checkin_by_card`）與線上打卡（後台首頁 `timesheet/PunchCard.tsx`，外派地點用，記地點與選填的手機定位）共用 `teacher_attendance`，`source`／`check_out_source` 記方式（card／online／manual）；超過 16 小時未下班視為忘記打卡（`OPEN_WINDOW_HOURS`）。`/admin/timesheet` 月報表，管理員可修改與補登（寫 `edited_by`）。注意 `teacher_attendance` 有兩個指向 teachers 的外鍵，嵌入時要寫 `teachers!teacher_attendance_teacher_id_fkey(...)`
+- 課程教案庫（2026-11-06 第 1 批，migration 0007）：教案（`lessons`）不再綁某個 `courses`，改掛 `lesson_categories`（主修→類別，管理員在 `/admin/lesson-settings` 改名、排序、停用），標籤詞庫 `tags`（kind：theme 主題／skill 技能／structure 結構／code 程式／technique 技巧／knowledge 知識）＋`lesson_tags`。教學流程存在 `lessons.timeline` `[{phase: intro|main|wrap, min, title, teacher, students}]`、器材 `materials` `[{name, qty}]`。搜尋用資料庫函式 `search_lessons()`（關鍵字比對 `search_text` 產生欄位＋標籤名稱，pg_trgm 索引），合併同義標籤用 `merge_tags()`，兩者只有伺服器能呼叫。只有作者或管理員能改教案（`canEditLesson`）。頁面：`/admin/lessons`（列表搜尋）、`/new`、`/[id]`（可列印）、`/[id]/edit`；班級頁每堂旁的 `classes/LessonPicker.tsx` 選教案（用 transition 直接呼叫 `setSessionLesson`，避免 `<form action>` 送出後 React 把 select 重設）。共用常數在 `src/lib/lessons.ts`
 - 卡片建議 13.56 MHz NTAG213／215；卡號統一去冒號轉大寫（`normalizeUid` 與 SQL 規則一致）
 - 伺服器地區：`vercel.json` 的 `regions` 設為 `bom1`（孟買），必須和 Supabase 同地區，否則每次查資料都要繞地球；搬資料庫時一起改
 - 後台即時回饋：點名用 `sessions/RollButtons.tsx`、詢問狀態用 `leads/LeadStatusForm.tsx`（useOptimistic）；`admin/PendingFeedback.tsx` 讓所有表單送出時按鈕顯示處理中；`admin/loading.tsx` 換頁動畫；`audit()` 用 `after()` 在回應後寫入
 - Supabase 呼叫統一用 `src/lib/supabase.ts`（`sbGet`、`sbInsert`、`sbPatch`、`sbRpc`、`audit`）；每次寫入都呼叫 `audit()` 寫操作紀錄
 - 分享預覽圖：各路由資料夾的 `opengraph-image.jpg`（1200×630）
-- 資料庫結構在 `supabase/migrations/`：`0001_init.sql`（已執行）、`0002_students_checkin.sql`（學生多家長、同意紀錄、讀卡站、簽到函式）、`0003_registrations.sql`（線上報名待審核表、照片公開範圍 `photo_scope`、照護注意事項 `care_notes` 需 `care_consent_at`）、`0004_site_photos.sql`（官網照片表＋Storage bucket）、`0005_teacher_punch.sql`（老師線上打卡欄位）、`0006_rate_limits.sql`（次數限制），0001～0006 都已在正式站執行。新的變更一律新增 migration 檔，不要直接改線上資料表
-- 核心設計：`attendance`（上課紀錄）是核心事件，觸發器目前發裝備與經驗值（已定案改成只發經驗值、裝備期末發放，見專案文件「玩學院角色養成_設計規劃」）；點數一律寫 `point_ledger` 流水帳
+- 資料庫結構在 `supabase/migrations/`：`0001_init.sql`（已執行）、`0002_students_checkin.sql`（學生多家長、同意紀錄、讀卡站、簽到函式）、`0003_registrations.sql`（線上報名待審核表、照片公開範圍 `photo_scope`、照護注意事項 `care_notes` 需 `care_consent_at`）、`0004_site_photos.sql`（官網照片表＋Storage bucket）、`0005_teacher_punch.sql`（老師線上打卡欄位）、`0006_rate_limits.sql`（次數限制），0001～0006 都已在正式站執行；`0007_lesson_library.sql`（教案庫：類別、標籤、教案欄位、搜尋與合併函式、出席只發經驗值）待執行。新的變更一律新增 migration 檔，不要直接改線上資料表
+- 核心設計：`attendance`（上課紀錄）是核心事件，觸發器自動發經驗值（讀該堂教案的 `lessons.xp`，沒有教案給 10）；0007 起不再每堂發裝備，裝備改成期末發放（角色養成系統處理，`lesson_rewards` 暫留未用）。學生上過哪些教案＝出席紀錄＋該堂 `sessions.lesson_id`；點數一律寫 `point_ledger` 流水帳
 
 ## 開發注意事項
 
 - 驗證方式（2026-11-04 起雲端環境可以 `npm install`，請先試；不行再用 esbuild 檢查語法）：
   1. `npm install && npx next build`（會跑 TypeScript 檢查）；不要把 package-lock.json 和 tsconfig 的自動修改提交
-  2. 端對端測試：本機 Postgres＋PostgREST（GitHub releases 下載 static 版）＋一個模擬 Supabase Auth 的小 node 伺服器，`next start` 後用 Playwright 走流程、截圖
+  2. 端對端測試：本機 Postgres＋PostgREST（GitHub releases 下載 static 版）＋一個模擬 Supabase Auth 的小 node 伺服器，`next start` 後用 Playwright 走流程、截圖（Chrome 在 `/usr/bin/google-chrome`；同一帳號登入超過 8 次會被次數限制擋，測試時清空 `rate_limits`；重新編譯後要先結束舊的 `next-server` 程序，否則新的伺服器起不來、測到的是舊版）
   3. 推到 GitHub 後用 `gh api repos/playcollegeee/website/commits/main/status` 確認 Vercel 編譯成功
   4. Postgres 16 可在本機啟動，用來測試 migration（需自建 `auth.users`、`auth.uid()` 替身）
 - commit 作者用 `chisheng-edu <chishengca@gmail.com>`，程式註解用繁體中文
@@ -76,4 +77,5 @@ claude.ai 專案「玩學院系統開發」裡有「玩學院系統開發_現況
 3. 11/18 提醒：設定 Google Search Console 並提交 sitemap
 4. 第 2 階段已上線，待買讀卡機與 NTAG 卡實測
 5. 官網照片共享：建議先用 Google 雲端硬碟共用資料夾，之後在後台做私人「照片庫」（老師上傳、推薦、管理員一鍵上官網）；待使用者決定
-6. 之後：LINE 到校通知、ESP32 讀卡機韌體、卡片寫入角色頁網址、家長同意書線上版
+6. 課程教案庫第 1 批：待使用者在 Supabase 執行 0007。下一批：附件上傳、版本紀錄、複製成自己的版本
+7. 之後：LINE 到校通知、ESP32 讀卡機韌體、卡片寫入角色頁網址、家長同意書線上版
