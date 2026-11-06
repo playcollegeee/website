@@ -680,10 +680,30 @@ button[data-pending]::after { content: " …"; }
 @keyframes ac-pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ac-pop { animation: none; } .ac-bar span, .ac-stage { transition: none; } }
 .ac-quick { display: none; }
+/* 像素角色舞台（戰棋風）：深色場景＋光暈＋RPG 對話框 */
+.ac-stage-px {
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--ac) 45%, transparent) 0, transparent 55%),
+    linear-gradient(180deg, #1e1a2e 0%, #3a2f4e 100%);
+  color: #fff;
+}
+.ac-sprite { position: relative; margin: 0 auto; max-width: 100%; aspect-ratio: 1; }
+.ac-sprite img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; user-select: none; }
+.ac-dialog { margin-top: 10px; background: rgba(14, 12, 24, 0.92); border: 3px solid #fbc20f; outline: 1px solid #9a6612; outline-offset: -8px; border-radius: 6px; padding: 12px 16px; }
+.ac-dialog-name { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.ac-dialog-name strong { color: #fbc20f; font-size: 22px; }
+.ac-dialog-name span { color: #ddd9ee; font-weight: 700; font-size: 14px; }
+.ac-dialog-msg { min-height: 26px; margin-top: 6px; font-weight: 800; font-size: 15px; }
+.ac-dialog-msg .muted { color: #a8a4bc; font-weight: 600; }
+.ac-jobs { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ac-jobs li { display: grid; justify-items: center; gap: 2px; padding: 8px 6px; border-radius: 12px; background: linear-gradient(180deg, #ece9f4, #d9d4e8); border: 2px solid var(--line); text-align: center; }
+.ac-jobs img { width: 72px; height: 72px; image-rendering: pixelated; }
+.ac-jobs strong { font-size: 14px; }
+.ac-jobs small { color: var(--ink-soft); font-size: 12px; }
 @media (max-width: 860px) {
   .ac { grid-template-columns: 1fr; }
   .ac-stage { position: static; padding: 14px; }
   .ac-svg { max-width: 220px; }
+  .ac-sprite { width: 256px !important; height: 256px !important; }
   .ac-quick { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
   .ac-quick .btn:disabled { opacity: 0.6; }
 }
