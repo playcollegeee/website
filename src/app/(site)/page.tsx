@@ -215,9 +215,9 @@ export default async function HomePage() {
         <div className="container">
           <div className="section-head">
             <p className="eyebrow">角色試玩・玩學院角色養成</p>
-            <h2>捏一個你的角色，上課就能解鎖裝備</h2>
+            <h2>選一條職業路線，完成一期就能轉職</h2>
             <p className="lead">
-              每位學生都有一個專屬的積木角色。上課刷卡簽到就會累積經驗值、解鎖裝備；完成一個系列，還會拿到專屬稱號與技能。先來試玩看看！
+              每位學生都有一個專屬的像素角色。每堂課刷卡累積經驗值，完成一期解鎖新裝備；完成第 1 期還能從 6 種職業裡挑一種轉職。先來試玩看看！
             </p>
           </div>
           <AvatarCreator />
