@@ -20,6 +20,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   })
     .then((r) => Number(r.headers.get("content-range")?.split("/")[1] ?? 0))
     .catch(() => 0);
+  // 指派給我、還沒完成的規劃待辦（0012 還沒執行時當 0）
+  const myTasks = await sbFetch(`plan_tasks?assignee_id=eq.${staff.id}&done_at=is.null&select=id`, {
+    method: "HEAD",
+    headers: { Prefer: "count=exact" },
+  })
+    .then((r) => (r.ok ? Number(r.headers.get("content-range")?.split("/")[1] ?? 0) : 0))
+    .catch(() => 0);
   // 官網新詢問（未處理）筆數，只有管理員看得到
   const newLeads = staff.is_admin
     ? await sbFetch("leads?status=eq.new&select=id", { method: "HEAD", headers: { Prefer: "count=exact" } })
@@ -48,6 +55,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       title: "課程",
       items: [
         { href: "/admin/lessons", label: "教案庫", icon: "📚" },
+        { href: "/admin/plans", label: "課程規劃", icon: "🗓️", badge: myTasks },
         { href: "/admin/classes", label: "開班與排課", icon: "🏫" },
       ],
     },

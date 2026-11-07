@@ -1033,3 +1033,84 @@ a.lsn-chip:hover { border-color: var(--ink); }
 .lsn-org li button { flex: none; }
 .lsn-pre { white-space: pre-wrap; }
 fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
+
+/* 課程規劃（2026-11-07） */
+.pln-kind { font-size: .9rem; color: var(--ink-soft); font-weight: 600; margin-right: 4px; }
+.pln-badge { display: inline-block; font-size: .78rem; padding: 2px 10px; border-radius: 999px; margin-left: 8px; vertical-align: middle; font-weight: 700; }
+.pln-badge.idea { background: #f1eee6; color: #776; }
+.pln-badge.discuss { background: #fff1c2; color: #8a6400; }
+.pln-badge.final { background: #dff2ec; color: #2f7a6b; }
+.pln-badge.decision { background: #dff2ec; color: #2f7a6b; margin-left: 6px; }
+.pln-meta { color: var(--ink-soft); margin: -6px 0 6px; }
+.pln-summary { white-space: pre-wrap; background: #fffaf0; border-radius: 10px; padding: 10px 14px; }
+.pln-head-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 16px; }
+.pln-status { display: inline-flex; border: 1px solid #ddd5c2; border-radius: 999px; overflow: hidden; }
+.pln-status-btn { border: 0; background: #fff; padding: 5px 14px; cursor: pointer; font-size: .9rem; }
+.pln-status-btn + .pln-status-btn { border-left: 1px solid #ddd5c2; }
+.pln-status-btn.on.idea { background: #f1eee6; font-weight: 700; }
+.pln-status-btn.on.discuss { background: #ffe9a8; font-weight: 700; }
+.pln-status-btn.on.final { background: #bfe6da; font-weight: 700; }
+.pln-status-btn:disabled { cursor: default; }
+.pln-info-edit { flex-basis: 100%; }
+.pln-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .pln-layout { grid-template-columns: 1fr; } }
+.pln-side { display: grid; gap: 14px; position: sticky; top: 12px; }
+@media (max-width: 1100px) { .pln-side { position: static; } }
+.pln-sec > summary { cursor: pointer; list-style: none; }
+.pln-sec > summary::-webkit-details-marker { display: none; }
+.pln-sec > summary h2::after { content: " ▸"; color: var(--ink-soft); }
+.pln-sec[open] > summary h2::after { content: " ▾"; }
+.pln-sec h2 small, .pln-side h2 small { font-weight: 400; color: var(--ink-soft); font-size: .8rem; margin-left: 6px; }
+.pln-item { border-bottom: 1px dashed #e5e0d4; padding: 8px 0; }
+.pln-item:last-of-type { border-bottom: 0; }
+.pln-item.empty .pln-item-main { opacity: .7; }
+.pln-item-head { display: flex; gap: 10px; align-items: flex-start; }
+.pln-item-label { flex: none; min-width: 5.5em; font-weight: 700; color: #2f6fa8; font-size: .9rem; padding-top: 2px; }
+.pln-item-main { flex: 1; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; min-width: 0; }
+.pln-lesson { font-size: .9rem; }
+.pln-notes { flex-basis: 100%; margin: 2px 0 0; white-space: pre-wrap; font-size: .9rem; color: #555; }
+.pln-item-tools { flex: none; display: flex; gap: 10px; }
+.pln-item-tools .has { font-weight: 700; color: var(--red); }
+.pln-item-edit { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 12px; margin: 8px 0 4px; padding: 10px; background: #fafaf6; border-radius: 8px; }
+.pln-item-edit label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
+.pln-item-edit .wide { grid-column: 1 / -1; }
+.pln-add { margin-top: 6px; }
+.pln-day h3 { margin: 12px 0 2px; font-size: 1rem; }
+.pln-thread { display: grid; gap: 8px; }
+.pln-thread.compact { margin: 8px 0 4px 5.5em; padding: 8px 10px; background: #f7fbfa; border-radius: 8px; }
+@media (max-width: 700px) { .pln-thread.compact { margin-left: 0; } }
+.pln-c { padding: 6px 0; }
+.pln-c.reply { margin-left: 18px; padding-left: 10px; border-left: 3px solid #e3efe9; }
+.pln-c.decision .pln-c-body { background: #eef8f4; border-radius: 6px; padding: 4px 8px; }
+.pln-c-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.pln-c-body { margin: 2px 0; white-space: pre-wrap; }
+.pln-c-tools { display: flex; gap: 12px; font-size: .82rem; }
+.pln-c-edit { display: grid; gap: 6px; }
+.pln-c-edit.reply { margin-left: 18px; }
+.pln-c-new { display: flex; gap: 8px; align-items: flex-end; }
+.pln-c-new textarea { flex: 1; }
+.pln-decisions { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; white-space: pre-wrap; }
+.pln-tasks ul { list-style: none; padding: 0; margin: 0 0 6px; display: grid; gap: 6px; }
+.pln-task { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; }
+.pln-task small { grid-column: 1; padding-left: 26px; }
+.pln-task button { grid-row: 1; grid-column: 2; }
+.pln-task.done span { text-decoration: line-through; color: #999; }
+.pln-task.late small { color: var(--red); }
+.pln-task-new { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; margin-top: 8px; }
+.pln-task-new input:first-child { grid-column: 1 / -1; }
+.pln-task-new select, .pln-task-new input { min-width: 0; }
+.pln-thread.compact .pln-c-new textarea { min-height: 2.4em; }
+.pln-tabs { display: flex; gap: 6px; margin: 10px 0 4px; flex-wrap: wrap; }
+.pln-tabs a { padding: 8px 16px; border-radius: 10px 10px 0 0; background: #f1eee6; text-decoration: none; color: inherit; font-weight: 600; }
+.pln-tabs a.on { background: var(--yellow); }
+.pln-filter { display: flex; gap: 8px; margin: 6px 0 12px; font-size: .9rem; }
+.pln-filter a { padding: 2px 10px; border-radius: 999px; text-decoration: none; color: inherit; border: 1px solid #ddd5c2; }
+.pln-filter a.on { background: #333; color: #fff; border-color: #333; }
+.pln-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.pln-card { display: grid; gap: 4px; padding: 14px; border: 1px solid #eee4cc; border-radius: 12px; background: #fff; text-decoration: none; color: inherit; }
+.pln-card:hover { border-color: var(--yellow); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.pln-card .pln-badge { justify-self: start; margin-left: 0; }
+.pln-card strong { font-size: 1.05rem; }
+.pln-card small { color: var(--ink-soft); }
+.pln-new > summary { cursor: pointer; list-style: none; }
+.pln-new > summary::-webkit-details-marker { display: none; }

@@ -1,0 +1,89 @@
+// 課程規劃（migration 0012）共用常數與型別
+export const PLAN_KINDS = [
+  { value: "season", label: "季主題", icon: "🍂", hint: "一期一個主題；主修 12 堂、走讀課程、工作坊都圍繞主題" },
+  { value: "month", label: "月份主題", icon: "📆", hint: "積木故事屋、樂高動滋動，每場的主題就是該月主題" },
+  { value: "camp", label: "冬夏令營", icon: "🏕️", hint: "分週排每天上午、下午的課程、流程與材料" },
+] as const;
+export type PlanKind = (typeof PLAN_KINDS)[number]["value"];
+export const PLAN_KIND_LABEL: Record<string, string> = Object.fromEntries(PLAN_KINDS.map((k) => [k.value, k.label]));
+
+export const PLAN_STATUS = [
+  { value: "idea", label: "構想" },
+  { value: "discuss", label: "討論中" },
+  { value: "final", label: "定案" },
+] as const;
+export const PLAN_STATUS_LABEL: Record<string, string> = Object.fromEntries(PLAN_STATUS.map((s) => [s.value, s.label]));
+
+// 規劃內容的區塊（plan_items.section）
+export const SECTIONS: Record<string, { label: string; kind: PlanKind; major?: string; dated?: boolean }> = {
+  major_lego: { label: "LEGO 主修 12 堂", kind: "season", major: "lego" },
+  major_3d: { label: "3D 列印主修 12 堂", kind: "season", major: "3d" },
+  major_art: { label: "美術主修 12 堂", kind: "season", major: "art" },
+  walk: { label: "走讀課程", kind: "season", dated: true },
+  workshop: { label: "工作坊", kind: "season", dated: true },
+  story: { label: "積木故事屋", kind: "month", dated: true },
+  move: { label: "樂高動滋動", kind: "month", dated: true },
+  camp: { label: "營隊課程", kind: "camp", dated: true },
+};
+export const MAJOR_SECTIONS = ["major_lego", "major_3d", "major_art"] as const;
+export const LIST_SECTIONS: Record<PlanKind, string[]> = { season: ["walk", "workshop"], month: ["story", "move"], camp: [] };
+export const MAJOR_LESSONS = 12;
+
+// 營隊每天的時段（2026-11-07 使用者暫定：上午 9:30–12:00、下午 13:30–16:00）
+export const CAMP_SLOTS = [
+  { value: "am", label: "上午", time: "9:30–12:00" },
+  { value: "pm", label: "下午", time: "13:30–16:00" },
+] as const;
+
+export type Person = { name: string; nickname: string | null } | null;
+export const who = (p: Person) => (p ? p.nickname || p.name : "（已離職）");
+
+export type Plan = {
+  id: string; kind: PlanKind; title: string; start_date: string | null; end_date: string | null; status: string;
+  summary: string | null; owner_id: string | null; created_by: string | null; created_at: string; updated_at: string;
+  owner?: Person;
+};
+export type PlanItem = {
+  id: string; plan_id: string; section: string; seq: number; day: string | null; slot: string | null; title: string | null;
+  lesson_id: string | null; teacher_id: string | null; notes: string | null; updated_at: string;
+  lesson?: { id: string; title: string } | null;
+  teacher?: Person;
+};
+export type PlanComment = {
+  id: string; plan_id: string; item_id: string | null; parent_id: string | null; body: string; is_decision: boolean;
+  decided_at: string | null; author_id: string | null; created_at: string; updated_at: string; author?: Person;
+};
+export type PlanTask = {
+  id: string; plan_id: string; title: string; assignee_id: string | null; due_date: string | null; done_at: string | null;
+  created_by: string | null; created_at: string; assignee?: Person; plan?: { id: string; title: string; kind: string } | null;
+};
+
+// 權限：規劃本身與內容由負責老師、建立者或管理員修改；每一項的負責老師可以改那一項
+export const canEditPlan = (p: { owner_id: string | null; created_by: string | null }, s: { id: string; is_admin: boolean }) =>
+  s.is_admin || p.owner_id === s.id || p.created_by === s.id;
+
+// 日期工具：營隊的每一天（週一到週五），依週分組
+export function campDays(start: string | null, end: string | null): { week: number; days: string[] }[] {
+  if (!start || !end) return [];
+  const out: { week: number; days: string[] }[] = [];
+  const d = new Date(start + "T00:00:00Z");
+  const last = new Date(end + "T00:00:00Z");
+  let week = 0;
+  let cur: string[] = [];
+  for (let i = 0; d <= last && i < 120; i++) {
+    const dow = d.getUTCDay();
+    if (dow === 1 && cur.length) { out.push({ week: ++week, days: cur }); cur = []; }
+    if (dow >= 1 && dow <= 5) cur.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  if (cur.length) out.push({ week: ++week, days: cur });
+  return out;
+}
+const WD = ["日", "一", "二", "三", "四", "五", "六"];
+export const fmtDay = (ymd: string | null) => {
+  if (!ymd) return "";
+  const d = new Date(ymd + "T00:00:00Z");
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WD[d.getUTCDay()]}）`;
+};
+export const fmtRange = (a: string | null, b: string | null) =>
+  a && b ? (a === b ? fmtDay(a) : `${a.replace(/-/g, "/")} ～ ${b.replace(/-/g, "/")}`) : a ? `${a.replace(/-/g, "/")} 起` : "日期未定";
