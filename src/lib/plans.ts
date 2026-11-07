@@ -39,7 +39,7 @@ export type Person = { name: string; nickname: string | null } | null;
 export const who = (p: Person) => (p ? p.nickname || p.name : "（已離職）");
 
 export type Plan = {
-  id: string; kind: PlanKind; title: string; start_date: string | null; end_date: string | null; status: string;
+  id: string; kind: PlanKind; title: string; theme: string | null; start_date: string | null; end_date: string | null; status: string;
   summary: string | null; owner_id: string | null; created_by: string | null; created_at: string; updated_at: string;
   owner?: Person;
 };
@@ -87,3 +87,28 @@ export const fmtDay = (ymd: string | null) => {
 };
 export const fmtRange = (a: string | null, b: string | null) =>
   a && b ? (a === b ? fmtDay(a) : `${a.replace(/-/g, "/")} ～ ${b.replace(/-/g, "/")}`) : a ? `${a.replace(/-/g, "/")} 起` : "日期未定";
+
+// 新增規劃時依時間自動產生名稱（2026-11-07 使用者決定：主題討論完才填，名稱先用時間）
+//   季主題：2027 第1季（依開始月份：1–3 月第 1 季、4–6 月第 2 季…）
+//   月份主題：2027 3月份主題
+//   冬夏令營：2027冬令營第1梯／2027夏令營第2梯（5–9 月開始算夏令營，其他算冬令營；梯次＝同年同類已有幾梯＋1）
+export const campType = (start: string) => {
+  const m = Number(start.slice(5, 7));
+  return m >= 5 && m <= 9 ? "夏令營" : "冬令營";
+};
+export function autoTitle(kind: string, start: string, campCount = 0): string {
+  if (!/^\d{4}-\d{2}/.test(start)) return "";
+  const y = start.slice(0, 4);
+  const m = Number(start.slice(5, 7));
+  if (kind === "season") return `${y} 第${Math.ceil(m / 3)}季`;
+  if (kind === "month") return `${y} ${m}月份主題`;
+  return `${y}${campType(start)}第${campCount + 1}梯`;
+}
+// 月份 YYYY-MM → 該月第一天與最後一天
+export function monthRange(ym: string): { start: string; end: string } | null {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return null;
+  const [y, m] = ym.split("-").map(Number);
+  if (m < 1 || m > 12) return null;
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
+}

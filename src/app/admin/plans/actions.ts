@@ -1,11 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { actorOf, requireStaff, type Staff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbGet, sbInsert, sbPatch } from "@/lib/supabase";
-import { str } from "@/lib/admin";
-import { PLAN_KINDS, PLAN_STATUS, SECTIONS, canEditPlan, MAJOR_LESSONS } from "@/lib/plans";
+import { PLAN_KINDS, PLAN_STATUS, SECTIONS, autoTitle, campType, canEditPlan, monthRange, MAJOR_LESSONS } from "@/lib/plans";
 
 type Result = { ok: boolean; message: string };
 const fail = (e: unknown): Result => ({ ok: false, message: e instanceof Error ? e.message : "儲存失敗，請再試一次" });
@@ -38,39 +36,57 @@ async function teacherOk(id: string | null) {
 }
 
 // ---------- 規劃本身 ----------
-export async function createPlan(fd: FormData) {
-  const staff = await requireStaff();
-  const kind = str(fd, "kind", 10);
-  const title = str(fd, "title", 80).trim();
-  if (!PLAN_KINDS.some((k) => k.value === kind) || !title) throw new Error("請選擇種類並填寫主題");
-  const start = str(fd, "start_date", 10);
-  const end = str(fd, "end_date", 10);
-  const p = await sbInsert<{ id: string }>("plans", {
-    kind, title,
-    start_date: isDate(start) ? start : null,
-    end_date: isDate(end) ? end : null,
-    summary: str(fd, "summary", 3000).trim() || null,
-    owner_id: staff.id, created_by: staff.id, updated_by: staff.id,
-    status: "idea",
-  });
-  await audit(actorOf(staff), "plan.create", `plans:${p.id}`, { kind, title });
-  revalidatePath("/admin/plans");
-  redirect(`/admin/plans/${p.id}`);
+// 新增：只選時間，名稱自動產生；主題討論完再填
+export async function createPlan(input: {
+  kind: string; start: string; end: string; month: string; summary: string;
+}): Promise<Result & { id?: string }> {
+  try {
+    const staff = await requireStaff();
+    const kind = input.kind;
+    if (!PLAN_KINDS.some((k) => k.value === kind)) return { ok: false, message: "種類不正確" };
+    let start: string | null = isDate(input.start) ? input.start : null;
+    let end: string | null = isDate(input.end) ? input.end : null;
+    if (kind === "month") {
+      const r = monthRange(input.month);
+      if (!r) return { ok: false, message: "請選擇月份" };
+      start = r.start;
+      end = r.end;
+    }
+    if (!start) return { ok: false, message: "請選擇開始日期" };
+    if (kind === "camp" && !end) return { ok: false, message: "請選擇營隊的結束日期" };
+    if (end && end < start) return { ok: false, message: "結束日期不能早於開始日期" };
+    let campCount = 0;
+    if (kind === "camp") {
+      const prefix = `${start.slice(0, 4)}${campType(start)}`;
+      campCount = (await sbGet<{ id: string }[]>(`plans?kind=eq.camp&title=like.${encodeURIComponent(prefix + "*")}&select=id`)).length;
+    }
+    const title = autoTitle(kind, start, campCount);
+    const p = await sbInsert<{ id: string }>("plans", {
+      kind, title, start_date: start, end_date: end,
+      summary: text(input.summary, 3000) || null,
+      owner_id: staff.id, created_by: staff.id, updated_by: staff.id, status: "idea",
+    });
+    await audit(actorOf(staff), "plan.create", `plans:${p.id}`, { kind, title });
+    revalidatePath("/admin/plans");
+    return { ok: true, message: "已建立", id: p.id };
+  } catch (e) {
+    return fail(e);
+  }
 }
 
 export async function updatePlan(input: {
-  id: string; title: string; start: string; end: string; summary: string; ownerId: string;
+  id: string; title: string; theme: string; start: string; end: string; summary: string; ownerId: string;
 }): Promise<Result> {
   try {
     const staff = await requireStaff();
     await mustEdit(input.id, staff);
     const title = text(input.title, 80);
-    if (!title) return { ok: false, message: "請填寫主題" };
+    if (!title) return { ok: false, message: "請填寫名稱" };
     const start = isDate(input.start) ? input.start : null;
     const end = isDate(input.end) ? input.end : null;
     if (start && end && end < start) return { ok: false, message: "結束日期不能早於開始日期" };
     const patch = {
-      title, start_date: start, end_date: end, summary: text(input.summary, 3000) || null,
+      title, theme: text(input.theme, 80) || null, start_date: start, end_date: end, summary: text(input.summary, 3000) || null,
       owner_id: await teacherOk(input.ownerId || null), updated_by: staff.id, updated_at: new Date().toISOString(),
     };
     await sbPatch(`plans?id=eq.${input.id}`, patch);

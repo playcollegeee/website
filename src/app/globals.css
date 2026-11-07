@@ -1134,3 +1134,7 @@ fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
 @media (max-width: 700px) { .pln-apply-row.task { grid-template-columns: auto 1fr; } .pln-apply-row.task select, .pln-apply-row.task input[type=date] { grid-column: 2; } }
 .pln-meet-foot { display: flex; gap: 16px; margin-top: 8px; }
 .pln-transcript { max-height: 360px; overflow: auto; background: #fafaf6; border-radius: 8px; padding: 10px; font-size: .9rem; margin-top: 6px; }
+.pln-theme { font-size: .9rem; color: #2f7a6b; }
+.pln-theme.none { color: #b08a2e; }
+.pln-theme.big { font-size: 1.05rem; margin: -4px 0 6px; }
+.pln-preview { background: #fffaf0; border-radius: 8px; padding: 8px 12px; }
