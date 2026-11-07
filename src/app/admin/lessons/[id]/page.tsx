@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff";
-import { isUuid, sbGet } from "@/lib/supabase";
+import { isUuid, sbGet, sbSignUrls } from "@/lib/supabase";
 import { fmtDate, fmtTime } from "@/lib/admin";
 import {
-  LESSON_STATUS, PHASES, TAG_KINDS, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
+  LESSON_BUCKET, LESSON_STATUS, PHASES, TAG_KINDS, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
 } from "@/lib/lessons";
 import { setLessonStatus } from "../actions";
 import PrintButton from "../PrintButton";
+import LessonFiles from "../LessonFiles";
 
 export const metadata = { title: "教案" };
 
@@ -22,6 +23,10 @@ type L = {
   lesson_tags: { tags: Tag }[];
 };
 type S = { id: string; starts_at: string; classes: { id: string; name: string } };
+type F = {
+  id: string; kind: string; storage_path: string; thumb_path: string | null; file_name: string | null;
+  size_bytes: number | null; is_cover: boolean; uploaded_by: string | null;
+};
 
 // 多行文字：網址變成可點的連結
 function Text({ v }: { v: string | null }) {
@@ -44,17 +49,31 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [rows, sessions] = await Promise.all([
+  const [rows, sessions, files] = await Promise.all([
     sbGet<L[]>(
       `lessons?id=eq.${id}&select=id,title,levels,difficulty,minutes,summary,goals,refs,timeline,challenge,support,materials,tips,xp,status,version,author_id,created_at,updated_at,` +
         `category:lesson_categories(major,name),author:teachers!lessons_author_id_fkey(name,nickname),editor:teachers!lessons_updated_by_fkey(name,nickname),` +
         `lesson_tags(tags(id,kind,name))`,
     ),
     sbGet<S[]>(`sessions?lesson_id=eq.${id}&select=id,starts_at,classes(id,name)&order=starts_at.desc&limit=50`),
+    sbGet<F[]>(
+      `lesson_files?lesson_id=eq.${id}&kind=in.(image,model_io)&select=id,kind,storage_path,thumb_path,file_name,size_bytes,is_cover,uploaded_by&order=sort`,
+    ),
   ]);
   const l = rows[0];
   if (!l) notFound();
   const editable = canEditLesson(staff, l.author_id);
+  // 照片在私人空間：產生 1 小時有效的連結（縮圖給照片牆、大圖給放大檢視）
+  const images = files.filter((f) => f.kind === "image").sort((a, b) => Number(b.is_cover) - Number(a.is_cover));
+  const signed = await sbSignUrls(LESSON_BUCKET, images.flatMap((f) => [f.storage_path, f.thumb_path ?? f.storage_path]));
+  const manage = (f: F) => editable || (f.uploaded_by !== null && f.uploaded_by === staff.id);
+  const photos = images.map((f) => ({
+    id: f.id, name: f.file_name ?? "照片", is_cover: f.is_cover, canManage: manage(f),
+    full: signed.get(f.storage_path) ?? null, thumb: signed.get(f.thumb_path ?? f.storage_path) ?? null,
+  }));
+  const models = files.filter((f) => f.kind === "model_io").map((f) => ({
+    id: f.id, name: f.file_name ?? "model.io", size: f.size_bytes, canManage: manage(f),
+  }));
   const steps = stepsOf(l.timeline);
   const materials = materialsOf(l.materials);
   const tags = l.lesson_tags.map((x) => x.tags);
@@ -107,6 +126,8 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
           </div>
         )}
       </div>
+
+      <LessonFiles lessonId={id} photos={photos} models={models} />
 
       <section className="adm-panel">
         <h2>學習目標</h2>
@@ -182,7 +203,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
             ))}
           </ul>
         )}
-        <p className="hint">課後回饋、附件與版本紀錄會在下一批加上。</p>
+        <p className="hint">課後回饋與版本紀錄會在之後加上。</p>
       </section>
 
       {editable && (

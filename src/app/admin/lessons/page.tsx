@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff";
-import { isUuid, sbGet, sbRpc } from "@/lib/supabase";
+import { isUuid, sbGet, sbRpc, sbSignUrls } from "@/lib/supabase";
 import { LEVEL_NAME, fmtDate } from "@/lib/admin";
 import {
-  DIFFICULTY, LESSON_STATUS, MAJOR_SHORT, TAG_KIND_LABEL, categoryLabel, levelsLabel, stars,
+  DIFFICULTY, LESSON_BUCKET, LESSON_STATUS, MAJOR_SHORT, TAG_KIND_LABEL, categoryLabel, levelsLabel, stars,
   type Category, type Tag,
 } from "@/lib/lessons";
 
@@ -60,6 +60,20 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
       )
     : [];
   const byId = new Map(details.map((d) => [d.id, d]));
+
+  // 封面縮圖與 .io 數量（照片在私人空間，產生 1 小時有效的連結）
+  const fileRows = ids.length
+    ? await sbGet<{ lesson_id: string; kind: string; thumb_path: string | null; storage_path: string; is_cover: boolean; sort: number }[]>(
+        `lesson_files?lesson_id=in.(${ids.join(",")})&kind=in.(image,model_io)&select=lesson_id,kind,thumb_path,storage_path,is_cover,sort&order=sort`,
+      )
+    : [];
+  const coverPath = new Map<string, string>();
+  const ioCount = new Map<string, number>();
+  for (const f of fileRows) {
+    if (f.kind === "model_io") ioCount.set(f.lesson_id, (ioCount.get(f.lesson_id) ?? 0) + 1);
+    else if (f.is_cover || !coverPath.has(f.lesson_id)) coverPath.set(f.lesson_id, f.thumb_path ?? f.storage_path);
+  }
+  const coverUrl = await sbSignUrls(LESSON_BUCKET, [...new Set(coverPath.values())]);
   const rows = ids.map((id) => byId.get(id)).filter((r): r is Row => !!r);
 
   const selectedTags = tagIds.map((id) => allTags.find((t) => t.id === id)).filter((t): t is Tag => !!t);
@@ -85,6 +99,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
         <h1>教案庫 <small>{rows.length} 個{rows.length >= 200 ? "以上" : ""}</small></h1>
         <div className="adm-actions">
           <Link href="/admin/lessons?author=me&status=all" className="btn btn-sm">我的教案</Link>
+          {staff.is_admin && <Link href="/admin/lessons/import-files" className="btn btn-sm">📁 匯入照片與 .io</Link>}
           <Link href={`/admin/lessons/new${category ? `?category=${category}` : ""}`} className="btn btn-sm primary">＋ 新增教案</Link>
         </div>
       </div>
@@ -154,6 +169,14 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
             const tags = r.lesson_tags.map((x) => x.tags);
             return (
               <li key={r.id} className={`lsn-card lsn-major-${r.category?.major ?? "none"}`}>
+                {(() => {
+                  const url = coverUrl.get(coverPath.get(r.id) ?? "");
+                  return (
+                    <Link href={`/admin/lessons/${r.id}`} className={`lsn-card-img${url ? "" : " is-empty"}`} tabIndex={-1} aria-hidden>
+                      {url ? <img src={url} alt="" loading="lazy" /> : <span>尚無照片</span>}
+                    </Link>
+                  );
+                })()}
                 <div className="lsn-card-top">
                   <span className="lsn-cat">{categoryLabel(r.category)}</span>
                   {r.status !== "ready" && <span className={`tag ${st.tag}`}>{st.label}</span>}
@@ -179,6 +202,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
                   </div>
                 )}
                 <p className="lsn-card-foot">
+                  {ioCount.get(r.id) ? <span className="lsn-io-badge" title="有組裝圖檔">🧱 .io</span> : null}
                   {r.author ? r.author.nickname ?? r.author.name : "—"}・{fmtDate(r.updated_at)} 更新
                 </p>
               </li>

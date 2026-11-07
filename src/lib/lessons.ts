@@ -114,3 +114,8 @@ export function materialsOf(materials: unknown): Material[] {
 // 誰可以修改教案：作者本人或管理員（沒有作者的舊教案只有管理員能改）
 export const canEditLesson = (staff: { id: string; is_admin: boolean }, authorId: string | null) =>
   staff.is_admin || (authorId !== null && authorId === staff.id);
+
+// 教案照片與 .io 放的私人 bucket（migration 0008）
+export const LESSON_BUCKET = "lesson-files";
+export const fmtBytes = (n: number | null) =>
+  n === null ? "" : n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;

@@ -121,6 +121,45 @@ export async function sbUpload(bucket: string, path: string, file: Blob, content
   return `${cfg.url}/storage/v1/object/public/${bucket}/${path}`;
 }
 
+// 私人 bucket 的限時連結；download 有值時瀏覽器會以這個檔名下載
+// Supabase 回傳的 signedURL 是相對路徑（/object/sign/...），這裡補成完整網址
+export async function sbSignUrls(
+  bucket: string,
+  paths: string[],
+  expiresIn = 3600,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const cfg = supabaseConfig();
+  if (!cfg || paths.length === 0) return out;
+  const res = await fetch(`${cfg.url}/storage/v1/object/sign/${bucket}`, {
+    method: "POST",
+    headers: { ...authHeaders(cfg.key), "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn, paths }),
+    cache: "no-store",
+  });
+  if (!res.ok) return out;
+  for (const r of (await res.json()) as { path: string | null; signedURL: string | null; error: string | null }[]) {
+    if (r.path && r.signedURL) out.set(r.path, `${cfg.url}/storage/v1${r.signedURL}`);
+  }
+  return out;
+}
+
+export async function sbSignUrl(bucket: string, path: string, expiresIn = 60, download?: string): Promise<string | null> {
+  const cfg = supabaseConfig();
+  if (!cfg) return null;
+  const res = await fetch(`${cfg.url}/storage/v1/object/sign/${bucket}/${path}`, {
+    method: "POST",
+    headers: { ...authHeaders(cfg.key), "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn }),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const { signedURL } = (await res.json()) as { signedURL?: string };
+  if (!signedURL) return null;
+  const url = `${cfg.url}/storage/v1${signedURL}`;
+  return download === undefined ? url : `${url}&download=${encodeURIComponent(download)}`;
+}
+
 export async function sbRemoveFile(bucket: string, path: string): Promise<void> {
   const cfg = supabaseConfig();
   if (!cfg) return;
