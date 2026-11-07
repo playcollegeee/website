@@ -1007,3 +1007,12 @@ a.lsn-chip:hover { border-color: var(--ink); }
 .lsn-reply { padding: 4px 0; font-size: .92rem; }
 .lsn-reply-btn { margin: 4px 0 0 18px; font-size: .85rem; }
 .lsn-issue .lsn-note-meta, .lsn-reply .lsn-note-meta { margin-top: 2px; }
+.lsn-org { margin-top: 10px; }
+.lsn-org-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.lsn-org h4, .lsn-sugg h4 { margin: 6px 0; }
+.lsn-org ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.lsn-org li { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; background: #fff; border: 1px solid #eee4cc; border-radius: 8px; padding: 8px 10px; }
+.lsn-org li p { margin: 2px 0 0; font-size: .9rem; }
+.lsn-org li button { flex: none; }
+.lsn-pre { white-space: pre-wrap; }
+fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }

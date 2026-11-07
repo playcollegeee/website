@@ -7,7 +7,7 @@ import {
   type Category, type LessonNote, type Material, type MaterialPreset, type NoteKind, type Tag,
 } from "@/lib/lessons";
 import { saveLesson } from "./actions";
-import { suggestRefs, type Suggestion } from "./aiActions";
+import { suggestRefs, type Organize, type Suggestion } from "./aiActions";
 
 export type LessonInit = {
   id?: string;
@@ -54,6 +54,8 @@ export default function LessonForm({
   const [aiNotes, setAiNotes] = useState("");
   const [aiMsg, setAiMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [sugg, setSugg] = useState<Record<NoteKind, Suggestion[]> | null>(null);
+  const [org, setOrg] = useState<Organize | null>(null);
+  const [tagKey, setTagKey] = useState(0);
   const [added, setAdded] = useState<string[]>([]); // 已加入的候選（用 kind+title 記）
   const [noteText, setNoteText] = useState<Record<NoteKind, string>>({ ref: "", activity: "" });
   const [issues, setIssues] = useState<string[]>([""]);
@@ -87,13 +89,48 @@ export default function LessonForm({
         return;
       }
       setSugg({ ref: r.refs, activity: r.activities });
+      setOrg(r.organize);
       setAdded([]);
       setAiMsg({
         ok: true,
-        text: `找到 ${r.refs.length} 個參考資料、${r.activities.length} 個活動點子${r.usedPhoto ? "（有參考成品照片）" : ""}。點「加入」放進欄位，可以再修改；繪本書名請先確認真的存在。`,
+        text: `整理好了${r.usedPhoto ? "（有參考成品照片）" : ""}：下面是整理建議、${r.refs.length} 個參考資料與 ${r.activities.length} 個活動點子。按「套用」或「加入」才會放進表單，可以再修改；繪本書名請先確認真的存在。`,
       });
     });
   }
+  // 套用整理建議（都是合併或填入，不會刪掉老師已寫的；文字欄位 onlyBlank 時只填空白）
+  const applyOrg = (part: "summary" | "challenge" | "support" | "materials" | "issues" | "tags", onlyBlank = false) => {
+    if (!org) return;
+    if (part === "summary" || part === "challenge" || part === "support") {
+      if (!org[part]) return;
+      setText((t) => (onlyBlank && t[part].trim() ? t : { ...t, [part]: org[part] }));
+    } else if (part === "materials") {
+      org.materials.forEach((m) =>
+        setMaterials((all) => {
+          if (all.some((x) => x.name.trim() === m.name)) return all;
+          const blank = all.findIndex((x) => !x.name.trim() && !x.qty.trim());
+          return blank >= 0 ? all.map((x, i) => (i === blank ? m : x)) : [...all, m];
+        }),
+      );
+    } else if (part === "issues") {
+      setIssues((all) => {
+        const have = all.map((x) => x.trim()).filter(Boolean);
+        const more = org.issues.filter((x) => !have.includes(x));
+        return [...have, ...more].length ? [...have, ...more] : [""];
+      });
+    } else {
+      setChosenTags((all) => {
+        const next = { ...all };
+        for (const [k, list] of Object.entries(org.tags)) {
+          const have = next[k] ?? [];
+          next[k] = [...have, ...list.filter((x) => !have.some((h) => h.toLowerCase() === x.toLowerCase()))];
+        }
+        return next;
+      });
+      setTagKey((n) => n + 1);
+    }
+    setAdded((a) => [...a, "org-" + part]);
+  };
+  const applyAll = () => (["summary", "challenge", "support", "materials", "issues", "tags"] as const).forEach((p) => applyOrg(p, true));
   const haveIssues = (init.notes ?? []).filter((n) => n.kind === "issue");
   const take = (kind: NoteKind, x: Suggestion) => {
     setNoteText((t) => ({ ...t, [kind]: (t[kind].trim() ? t[kind].trimEnd() + "\n" : "") + `${x.title}：${x.detail}` }));
@@ -160,13 +197,86 @@ export default function LessonForm({
         </div>
       </fieldset>
 
+      <fieldset className="adm-panel lsn-ai">
+        <legend>✨ AI 協助查詢與整理</legend>
+        {aiReady ? (
+          <>
+            <p className="hint">
+              填好<strong>標題、類別</strong>，可以把你的想法、上課筆記貼在下面。AI 會整理簡介、器材、差異化、可能遇到的問題、標籤，並查詢參考資料與活動點子。
+              結果會先列出來，你按「套用」或「加入」才會放進表單，不會直接存。{hasPhoto ? "會參考這個教案的封面照片。" : ""}
+            </p>
+            <textarea value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} maxLength={1500} rows={3} className="lsn-full"
+              placeholder="你的想法、筆記或想找的方向（選填）：例如 用齒輪讓鱷魚嘴巴開合；想要有繪本；最後玩分組餵食遊戲" aria-label="想法或筆記" />
+            <div className="lsn-ai-row">
+              <button type="button" className="btn btn-sm primary" onClick={runAi} disabled={aiBusy || !text.title.trim() || !categoryId}>
+                {aiBusy ? "AI 查詢整理中…（約 20–40 秒）" : "✨ 協助查詢與整理"}
+              </button>
+            </div>
+            {aiMsg && <p className={`notice ${aiMsg.ok ? "ok" : "err"}`} role="status">{aiMsg.text}</p>}
+            {org && (
+              <div className="lsn-org">
+                <div className="lsn-org-head">
+                  <h4>📝 整理建議</h4>
+                  <button type="button" className="btn btn-sm" onClick={applyAll}>全部套用（文字只填空白欄位）</button>
+                </div>
+                <ul>
+                  {([
+                    ["summary", "一句話簡介", org.summary],
+                    ["challenge", "做得快的挑戰題", org.challenge],
+                    ["support", "需要協助時的簡化版", org.support],
+                    ["materials", "器材與材料", org.materials.map((m) => m.name + (m.qty ? `（${m.qty}）` : "")).join("、")],
+                    ["issues", "可能遇到的問題", org.issues.map((x) => "• " + x).join("\n")],
+                    ["tags", "標籤", TAG_KINDS.filter((k) => org.tags[k.value]?.length).map((k) => `${k.label}：${org.tags[k.value].join("、")}`).join("　")],
+                  ] as const).filter(([, , v]) => v).map(([part, label, v]) => {
+                    const done = added.includes("org-" + part);
+                    return (
+                      <li key={part}>
+                        <div><strong>{label}</strong><p className="lsn-pre">{v}</p></div>
+                        <button type="button" className="btn btn-sm" disabled={done} onClick={() => applyOrg(part)}>
+                          {done ? "✓ 已套用" : part === "summary" || part === "challenge" || part === "support" ? "套用" : "＋ 加入"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            {sugg && (
+              <div className="lsn-sugg">
+                {NOTE_KINDS.map((k) => (
+                  <div key={k.value}>
+                    <h4>{k.icon} {k.label}</h4>
+                    {sugg[k.value].length === 0 && <p className="muted">沒有建議。</p>}
+                    <ul>
+                      {sugg[k.value].map((x, i) => {
+                        const done = added.includes(k.value + x.title);
+                        return (
+                          <li key={i}>
+                            <div><strong>{x.title}</strong><p>{x.detail}</p></div>
+                            <button type="button" className="btn btn-sm" disabled={done} onClick={() => take(k.value, x)}>
+                              {done ? "✓ 已加入" : "＋ 加入"}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="hint">還沒設定 AI 金鑰（管理員到 Vercel 設定 ANTHROPIC_API_KEY 後就能使用）。</p>
+        )}
+      </fieldset>
+
       <fieldset className="adm-panel">
         <legend>分類標籤</legend>
         <p className="hint">打字會提示既有標籤；按 Enter 或逗號加入。盡量選既有的標籤，搜尋與排課才找得到。</p>
         <div className="lsn-tagkinds">
           {TAG_KINDS.map((k) => (
             <TagInput
-              key={k.value}
+              key={`${k.value}-${tagKey}`}
               kind={k.value}
               label={k.label}
               hint={k.hint}
@@ -209,50 +319,6 @@ export default function LessonForm({
           );
         })}
 
-        <div className="lsn-ai">
-          <h3 className="lsn-sub">✨ 協助查詢參考資料與參考進行活動</h3>
-          {aiReady ? (
-            <>
-              <p className="hint">
-                填好<strong>標題、類別</strong>後按下面的按鈕，AI 會列出繪本、影片、活動點子等候選，你看過後點「加入」才會放進上面的欄位，不會直接存。
-                {hasPhoto ? "會參考這個教案的封面照片。" : ""}
-              </p>
-              <div className="lsn-ai-row">
-                <input value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} maxLength={300} className="lsn-full"
-                  placeholder="想找的方向（選填）：例如 要有繪本、想要分組競賽、結合節慶" aria-label="想找的方向" />
-                <button type="button" className="btn btn-sm primary" onClick={runAi} disabled={aiBusy || !text.title.trim() || !categoryId}>
-                  {aiBusy ? "AI 查詢中…（約 20–40 秒）" : "✨ 協助查詢"}
-                </button>
-              </div>
-              {aiMsg && <p className={`notice ${aiMsg.ok ? "ok" : "err"}`} role="status">{aiMsg.text}</p>}
-              {sugg && (
-                <div className="lsn-sugg">
-                  {NOTE_KINDS.map((k) => (
-                    <div key={k.value}>
-                      <h4>{k.icon} {k.label}</h4>
-                      {sugg[k.value].length === 0 && <p className="muted">沒有建議。</p>}
-                      <ul>
-                        {sugg[k.value].map((x, i) => {
-                          const done = added.includes(k.value + x.title);
-                          return (
-                            <li key={i}>
-                              <div><strong>{x.title}</strong><p>{x.detail}</p></div>
-                              <button type="button" className="btn btn-sm" disabled={done} onClick={() => take(k.value, x)}>
-                                {done ? "✓ 已加入" : "＋ 加入"}
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="hint">還沒設定 AI 金鑰（管理員到 Vercel 設定 ANTHROPIC_API_KEY 後就能使用）。</p>
-          )}
-        </div>
       </fieldset>
 
       <fieldset className="adm-panel">
