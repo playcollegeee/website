@@ -6,23 +6,18 @@ import { LEVEL_NAME } from "@/lib/admin";
 import { allow, TOO_MANY } from "@/lib/rateLimit";
 import { askForJson, aiConfigured, AI_MODEL } from "@/lib/ai";
 import {
-  LESSON_BUCKET, TAG_KINDS, TAG_KIND_LABEL, categoryLabel, cleanTagName, materialsOf, parseMaterials, parseSteps,
-  type Material, type Step,
+  LESSON_BUCKET, TAG_KIND_LABEL, categoryLabel, materialsOf, parseSteps, type Step,
 } from "@/lib/lessons";
 
 // AI 兩個用途（都只回傳結果給畫面，由老師確認後才儲存，AI 不會直接寫進資料庫）：
-// 1. draftLesson：教案表單的「協助整理」，補簡介、器材、差異化、常見卡關、標籤
+// 1. suggestRefs：教案表單的「協助查詢參考資料與參考進行活動」，列出候選讓老師挑，不直接存
 // 2. draftCollab：教案頁的「合作單位版」，需要時才產生學習目標、繪本、三段流程、給家長的話、活動簡介
 
-export type Draft = {
-  summary: string;
-  challenge: string;
-  support: string;
-  materials: Material[];
-  tips: string;
-  tags: Record<string, string[]>;
-};
-export type DraftResult = { ok: true; draft: Draft; usedPhoto: boolean } | { ok: false; message: string };
+// 參考建議：每一項是一個可以點選加入的候選
+export type Suggestion = { title: string; detail: string };
+export type SuggestResult =
+  | { ok: true; refs: Suggestion[]; activities: Suggestion[]; usedPhoto: boolean }
+  | { ok: false; message: string };
 
 export type Collab = { goals: string; refs: string; steps: Step[]; parent_note: string; outline: string };
 export type CollabResult = { ok: true; collab: Collab; usedPhoto: boolean } | { ok: false; message: string };
@@ -55,26 +50,26 @@ const EXAMPLE = `【範例教案：大嘴鱷魚（玩寶，親子，60 分鐘）
 const str = { type: "string" };
 const strArr = { type: "array", items: str };
 
-// 1. 表單協助整理
-const DRAFT_SCHEMA = {
+// 1. 參考資料與參考進行活動的候選
+const item = {
+  type: "object",
+  properties: { title: str, detail: str },
+  required: ["title", "detail"],
+  additionalProperties: false,
+};
+const SUGGEST_SCHEMA = {
   type: "object",
   properties: {
-    summary: { type: "string", description: "一句話簡介，30 字內，說出孩子會做出什麼、體驗什麼" },
-    challenge: { type: "string", description: "做得快的孩子的挑戰題" },
-    support: { type: "string", description: "需要協助時的簡化版" },
-    materials: {
-      type: "array",
-      items: { type: "object", properties: { name: str, qty: str }, required: ["name", "qty"], additionalProperties: false },
+    refs: {
+      type: "array", items: item,
+      description: "參考資料 4–6 項：繪本、影片類型、圖片、實物、生活經驗。title 寫名稱（繪本寫書名），detail 寫怎麼用在這堂課（40 字內）",
     },
-    tips: { type: "string", description: "孩子常卡關的地方與引導方式，2–4 點，一行一點" },
-    tags: {
-      type: "object",
-      properties: Object.fromEntries(TAG_KINDS.map((k) => [k.value, strArr])),
-      required: TAG_KINDS.map((k) => k.value),
-      additionalProperties: false,
+    activities: {
+      type: "array", items: item,
+      description: "參考進行活動 3–5 項：引起動機的遊戲、組裝後的玩法、分組競賽、延伸挑戰。title 寫活動名稱，detail 寫具體怎麼進行（80 字內）",
     },
   },
-  required: ["summary", "challenge", "support", "materials", "tips", "tags"],
+  required: ["refs", "activities"],
   additionalProperties: false,
 };
 
@@ -139,9 +134,9 @@ async function gate() {
   return staff;
 }
 
-export async function draftLesson(input: {
+export async function suggestRefs(input: {
   title: string; categoryId: string; levels: string[]; minutes: number; notes: string; lessonId?: string;
-}): Promise<DraftResult> {
+}): Promise<SuggestResult> {
   try {
     const title = clip(input.title, 80);
     if (!title) return { ok: false, message: "請先填教案標題" };
@@ -152,49 +147,36 @@ export async function draftLesson(input: {
     const levels = (input.levels ?? []).filter((l) => LEVEL_NAME[l]);
     const minutes = Number.isInteger(input.minutes) && input.minutes >= 10 && input.minutes <= 480 ? input.minutes : 60;
     const notes = clip(input.notes, 1500);
-
-    const allTags = await sbGet<{ kind: string; name: string }[]>("tags?select=kind,name&order=name");
-    const tagList = TAG_KINDS.map((k) => `${k.label}（${k.value}）：${allTags.filter((t) => t.kind === k.value).map((t) => t.name).join("、") || "（尚無）"}`).join("\n");
     const photo = input.lessonId && isUuid(input.lessonId) ? await coverImage(input.lessonId) : null;
 
-    const text = `請幫老師整理這個教案的資料：
+    const text = `老師正在準備這堂課，請提供可以參考的資料與活動點子，讓老師自己挑選：
 - 標題：${title}
 - 類別：${categoryLabel(cats[0])}
 - 適用階段：${levels.length ? levels.map((l) => LEVEL_NAME[l]).join("、") : "未指定（請依類別判斷）"}
 - 時長：${minutes} 分鐘
-${notes ? `- 老師寫的內容與補充：${notes}\n` : ""}${photo ? "- 附上成品照片，請依照片判斷結構、器材與標籤。\n" : "- 沒有成品照片，請依標題推想常見的作法。\n"}
-既有標籤（盡量從這裡挑）：
-${tagList}
+${notes ? `- 老師想找的方向：${notes}\n` : ""}${photo ? "- 附上成品照片，請依作品主題與結構發想。\n" : ""}
+注意：
+- 繪本只列你確定真實存在的書（寫出書名，作者知道再寫）；不確定就改列「影片類型」「實物」「生活經驗」等不需要書名的資料。
+- 活動要符合孩子的年齡，能在教室裡用積木或簡單材料進行。
+請直接呼叫 lesson_refs 工具回傳結果，不要另外寫文字說明。`;
 
-請直接呼叫 lesson_draft 工具回傳結果，不要另外寫文字說明。`;
-
-    const raw = await askForJson<{
-      summary?: string; challenge?: string; support?: string; materials?: unknown[]; tips?: string; tags?: Record<string, unknown>;
-    }>({
+    const raw = await askForJson<{ refs?: unknown[]; activities?: unknown[] }>({
       system: SYSTEM,
       content: withPhoto(photo, text),
-      toolName: "lesson_draft",
-      toolDescription: "回傳教案的簡介、器材、差異化、常見卡關與標籤",
-      schema: DRAFT_SCHEMA,
+      toolName: "lesson_refs",
+      toolDescription: "回傳參考資料與參考進行活動的候選清單",
+      schema: SUGGEST_SCHEMA,
     });
-
-    const tags: Record<string, string[]> = {};
-    for (const k of TAG_KINDS) {
-      const v = raw.tags?.[k.value];
-      tags[k.value] = Array.isArray(v) ? [...new Set(v.map((x) => cleanTagName(String(x))).filter(Boolean))].slice(0, 4) : [];
-    }
-    const draft: Draft = {
-      summary: clip(raw.summary, 200),
-      challenge: clip(raw.challenge, 2000),
-      support: clip(raw.support, 2000),
-      materials: parseMaterials(JSON.stringify(raw.materials ?? [])),
-      tips: clip(raw.tips, 3000),
-      tags,
-    };
-    await audit(actorOf(staff), "lesson.ai_draft", input.lessonId ? `lessons:${input.lessonId}` : "lessons:new", {
+    const pick = (list: unknown[] | undefined, n: number): Suggestion[] =>
+      (list ?? [])
+        .map((x) => x as { title?: unknown; detail?: unknown })
+        .map((x) => ({ title: clip(x.title, 80), detail: clip(x.detail, 300) }))
+        .filter((x) => x.title)
+        .slice(0, n);
+    await audit(actorOf(staff), "lesson.ai_refs", input.lessonId ? `lessons:${input.lessonId}` : "lessons:new", {
       title, model: AI_MODEL, photo: !!photo,
     });
-    return { ok: true, draft, usedPhoto: !!photo };
+    return { ok: true, refs: pick(raw.refs, 8), activities: pick(raw.activities, 6), usedPhoto: !!photo };
   } catch (e) {
     return fail(e);
   }
@@ -207,11 +189,16 @@ export async function draftCollab(input: { lessonId: string; notes: string }): P
     const staff = await gate();
     const rows = await sbGet<{
       title: string; levels: string[]; minutes: number; summary: string | null; materials: unknown; challenge: string | null;
-      support: string | null; tips: string | null; lesson_categories: { major: string; name: string } | null;
+      support: string | null; lesson_categories: { major: string; name: string } | null;
       lesson_tags: { tags: { kind: string; name: string } | null }[];
     }[]>(
-      `lessons?id=eq.${input.lessonId}&select=title,levels,minutes,summary,materials,challenge,support,tips,lesson_categories(major,name),lesson_tags(tags(kind,name))`,
+      `lessons?id=eq.${input.lessonId}&select=title,levels,minutes,summary,materials,challenge,support,lesson_categories(major,name),lesson_tags(tags(kind,name))`,
     );
+    // 課程遇到的問題、參考資料、參考進行活動（老師們累積的）也給 AI 參考
+    const shared = await sbGet<{ kind: string; body: string }[]>(
+      `lesson_notes?lesson_id=eq.${input.lessonId}&kind=in.(issue,ref,activity)&select=kind,body&order=created_at&limit=30`,
+    ).catch(() => []);
+    const listOf = (k: string) => shared.filter((x) => x.kind === k).map((x) => x.body.replace(/\s+/g, " ").slice(0, 200)).join("；");
     const l = rows[0];
     if (!l) return { ok: false, message: "找不到這個教案" };
     const notes = clip(input.notes, 1500);
@@ -226,7 +213,7 @@ export async function draftCollab(input: { lessonId: string; notes: string }): P
 - 類別：${categoryLabel(l.lesson_categories)}
 - 適用階段：${l.levels.length ? l.levels.map((x) => LEVEL_NAME[x]).join("、") : "未指定（請依類別判斷）"}
 - 時長：${l.minutes} 分鐘（三段流程分鐘數加總要等於這個時長）
-${l.summary ? `- 簡介：${l.summary}\n` : ""}${mats ? `- 器材：${mats}\n` : ""}${tags.length ? `- 標籤：${tags.map((t) => `${TAG_KIND_LABEL[t.kind]}「${t.name}」`).join("、")}\n` : ""}${l.challenge ? `- 挑戰題：${l.challenge}\n` : ""}${l.support ? `- 簡化版：${l.support}\n` : ""}${l.tips ? `- 常見卡關：${l.tips}\n` : ""}${notes ? `- 這次的補充（合作單位、人數、想用的繪本等）：${notes}\n` : ""}${photo ? "- 附上成品照片，請依照片描述作品結構。\n" : ""}
+${l.summary ? `- 簡介：${l.summary}\n` : ""}${mats ? `- 器材：${mats}\n` : ""}${tags.length ? `- 標籤：${tags.map((t) => `${TAG_KIND_LABEL[t.kind]}「${t.name}」`).join("、")}\n` : ""}${l.challenge ? `- 挑戰題：${l.challenge}\n` : ""}${l.support ? `- 簡化版：${l.support}\n` : ""}${listOf("issue") ? `- 課程遇到的問題：${listOf("issue")}\n` : ""}${listOf("ref") ? `- 老師分享的參考資料：${listOf("ref")}\n` : ""}${listOf("activity") ? `- 老師分享的參考進行活動：${listOf("activity")}\n` : ""}${notes ? `- 這次的補充（合作單位、人數、想用的繪本等）：${notes}\n` : ""}${photo ? "- 附上成品照片，請依照片描述作品結構。\n" : ""}
 請直接呼叫 collab_draft 工具回傳結果，不要另外寫文字說明。`;
 
     const raw = await askForJson<{

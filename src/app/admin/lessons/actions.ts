@@ -76,7 +76,6 @@ export async function saveLesson(fd: FormData) {
     challenge: optStr(fd, "challenge", 2000),
     support: optStr(fd, "support", 2000),
     materials: parseMaterials(str(fd, "materials", 20000)),
-    tips: optStr(fd, "tips", 3000),
     xp: int(str(fd, "xp", 3), 0, 100) ?? 10,
     status: ["ready", "archived"].includes(status) ? status : "draft",
     updated_by: staff.id,
@@ -104,14 +103,26 @@ export async function saveLesson(fd: FormData) {
   }
 
   // 表單裡新寫的「參考資料」「參考進行活動」：各新增一筆，作者是自己（之後在教案頁編輯）
-  const notes = NOTE_KINDS.map((k) => ({ kind: k.value, body: str(fd, `note_${k.value}`, 3000).trim() })).filter((n) => n.body);
+  const notes: { kind: string; body: string }[] = NOTE_KINDS
+    .map((k) => ({ kind: k.value as string, body: str(fd, `note_${k.value}`, 3000).trim() }))
+    .filter((n) => n.body);
+  // 課程遇到的問題：條列，一個問題一筆
+  try {
+    const list = JSON.parse(str(fd, "issues", 20000) || "[]");
+    if (Array.isArray(list)) {
+      for (const x of list.slice(0, 30)) {
+        const body = String(x ?? "").trim().slice(0, 500);
+        if (body) notes.push({ kind: "issue", body });
+      }
+    }
+  } catch { /* 格式不對就略過 */ }
   if (notes.length) {
     const res = await sbFetch("lesson_notes", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify(notes.map((n) => ({ lesson_id: lessonId, kind: n.kind, body: n.body, author_id: staff.id, updated_by: staff.id }))),
     });
-    if (!res.ok) throw new Error("儲存參考資料失敗（請確認 0010 已執行）");
+    if (!res.ok) throw new Error("儲存參考資料／課程遇到的問題失敗（請確認 0011 已執行）");
   }
 
   await audit(actorOf(staff), editing ? "lesson.update" : "lesson.create", `lessons:${lessonId}`, {

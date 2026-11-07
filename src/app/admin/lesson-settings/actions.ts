@@ -102,3 +102,40 @@ export async function deleteTag(fd: FormData) {
   await audit(actorOf(staff), "tag.delete", `tags:${id}`);
   done();
 }
+
+// ---------- 器材盒組與常用材料（只有管理員）：教案表單「器材與材料」可直接點選 ----------
+const presetKind = (fd: FormData) => (str(fd, "kind", 10) === "material" ? "material" : "kit");
+
+export async function createPreset(fd: FormData) {
+  const staff = await requireStaff(true);
+  const name = str(fd, "name", 80).trim();
+  if (!name) throw new Error("請填寫名稱");
+  const dup = await sbGet<{ id: string }[]>(`material_presets?name=eq.${encodeURIComponent(name)}&select=id`);
+  if (dup.length) throw new Error("已經有同名的項目");
+  const p = await sbInsert<{ id: string }>("material_presets", { name, kind: presetKind(fd), sort: sortOf(fd) });
+  await audit(actorOf(staff), "material_preset.create", `material_presets:${p.id}`, { name });
+  done();
+}
+
+export async function updatePreset(fd: FormData) {
+  const staff = await requireStaff(true);
+  const id = str(fd, "id", 40);
+  const name = str(fd, "name", 80).trim();
+  if (!isUuid(id) || !name) throw new Error("請填寫名稱");
+  const dup = await sbGet<{ id: string }[]>(`material_presets?name=eq.${encodeURIComponent(name)}&id=neq.${id}&select=id`);
+  if (dup.length) throw new Error("已經有同名的項目");
+  const patch = { name, kind: presetKind(fd), sort: sortOf(fd), active: fd.get("active") === "on" };
+  await sbPatch(`material_presets?id=eq.${id}`, patch);
+  await audit(actorOf(staff), "material_preset.update", `material_presets:${id}`, patch);
+  done();
+}
+
+// 刪除只會讓它不再出現在點選清單；已經寫進教案的器材文字不受影響
+export async function deletePreset(fd: FormData) {
+  const staff = await requireStaff(true);
+  const id = str(fd, "id", 40);
+  if (!isUuid(id)) throw new Error("資料不正確");
+  await sbDelete(`material_presets?id=eq.${id}`);
+  await audit(actorOf(staff), "material_preset.delete", `material_presets:${id}`, {});
+  done();
+}

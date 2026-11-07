@@ -28,20 +28,45 @@ async function loadNote(id: string) {
 
 const done = (staff: Staff, lessonId: string) => revalidatePath(`/admin/lessons/${lessonId}`);
 
-// 新增：所有老師都可以
-export async function addNote(input: { lessonId: string; kind: NoteKind; body: string; url: string }): Promise<Result> {
+const ADD_KINDS = [...NOTE_KINDS.map((k) => k.value), "issue"] as string[];
+
+// 新增：所有老師都可以（參考資料、參考進行活動、課程遇到的問題）
+export async function addNote(input: { lessonId: string; kind: NoteKind | "issue"; body: string; url: string }): Promise<Result> {
   try {
     const staff = await requireStaff();
-    if (!isUuid(input.lessonId) || !NOTE_KINDS.some((k) => k.value === input.kind)) return { ok: false, message: "資料不正確" };
+    if (!isUuid(input.lessonId) || !ADD_KINDS.includes(input.kind)) return { ok: false, message: "資料不正確" };
     const { body, url } = clean(input);
     const exists = await sbGet<{ id: string }[]>(`lessons?id=eq.${input.lessonId}&select=id`);
     if (!exists[0]) return { ok: false, message: "找不到這個教案" };
-    const row = await sbInsert<{ id: string }[]>("lesson_notes", {
+    const row = await sbInsert<{ id: string }>("lesson_notes", {
       lesson_id: input.lessonId, kind: input.kind, body, url, author_id: staff.id, updated_by: staff.id,
     });
-    await audit(actorOf(staff), "lesson.note_add", `lesson_notes:${row[0]?.id ?? "?"}`, { lesson: input.lessonId, kind: input.kind });
+    await audit(actorOf(staff), "lesson.note_add", `lesson_notes:${row?.id ?? "?"}`, { lesson: input.lessonId, kind: input.kind });
     done(staff, input.lessonId);
     return { ok: true, message: "已新增" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 問題底下的備註：所有老師都可以留，互相回饋解法
+export async function addReply(input: { issueId: string; body: string }): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    if (!isUuid(input.issueId)) return { ok: false, message: "資料不正確" };
+    const body = String(input.body ?? "").trim().slice(0, 2000);
+    if (!body) return { ok: false, message: "請填寫備註" };
+    const rows = await sbGet<{ id: string; lesson_id: string; kind: string }[]>(
+      `lesson_notes?id=eq.${input.issueId}&select=id,lesson_id,kind`,
+    );
+    const issue = rows[0];
+    if (!issue || issue.kind !== "issue") return { ok: false, message: "找不到這個問題，可能已被刪除" };
+    const row = await sbInsert<{ id: string }>("lesson_notes", {
+      lesson_id: issue.lesson_id, kind: "reply", parent_id: issue.id, body, author_id: staff.id, updated_by: staff.id,
+    });
+    await audit(actorOf(staff), "lesson.note_reply", `lesson_notes:${row?.id ?? "?"}`, { issue: issue.id });
+    done(staff, issue.lesson_id);
+    return { ok: true, message: "已留下備註" };
   } catch (e) {
     return fail(e);
   }
