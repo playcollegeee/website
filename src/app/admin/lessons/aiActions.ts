@@ -70,22 +70,26 @@ const SCHEMA = {
           students: { type: "string", description: "孩子做什麼" },
         },
         required: ["phase", "min", "title", "teacher", "students"],
+        additionalProperties: false,
       },
     },
     challenge: { type: "string", description: "做得快的孩子的挑戰題" },
     support: { type: "string", description: "需要協助時的簡化版" },
     materials: {
       type: "array",
-      items: { type: "object", properties: { name: str, qty: str }, required: ["name", "qty"] },
+      items: { type: "object", properties: { name: str, qty: str }, required: ["name", "qty"], additionalProperties: false },
     },
     parent_note: { type: "string", description: "給家長的話，60–120 字" },
     outline: { type: "string", description: "對外活動簡介（宣傳、親子館簡章用），60–120 字，活潑有畫面" },
     tags: {
       type: "object",
       properties: Object.fromEntries(TAG_KINDS.map((k) => [k.value, { type: "array", items: str }])),
+      required: TAG_KINDS.map((k) => k.value),
+      additionalProperties: false,
     },
   },
-  required: ["summary", "goals", "steps", "challenge", "support", "materials", "parent_note", "outline", "tags"],
+  required: ["summary", "goals", "picture_books", "steps", "challenge", "support", "materials", "parent_note", "outline", "tags"],
+  additionalProperties: false,
 };
 
 type Raw = {
@@ -143,7 +147,9 @@ export async function draftLesson(input: {
 - 時長：${minutes} 分鐘
 ${notes ? `- 老師的補充：${notes}\n` : ""}${photo ? "- 附上成品照片，請依照片描述作品結構。\n" : "- 沒有成品照片，請依標題設計常見的作法。\n"}
 既有標籤（盡量從這裡挑）：
-${tagList}`;
+${tagList}
+
+請直接呼叫 lesson_draft 工具回傳結果，不要另外寫文字說明。`;
 
     const raw = await askForJson<Raw>({
       system: SYSTEM,
