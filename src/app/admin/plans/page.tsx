@@ -4,7 +4,7 @@ import { sbGet } from "@/lib/supabase";
 import {
   PLAN_KINDS, PLAN_STATUS, PLAN_STATUS_LABEL, fmtRange, who, type Plan, type PlanKind, type PlanTask,
 } from "@/lib/plans";
-import { createPlan } from "./actions";
+import PlanCreate from "./PlanCreate";
 import Tasks from "./Tasks";
 
 export const metadata = { title: "課程規劃" };
@@ -16,7 +16,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const kind = (PLAN_KINDS.some((k) => k.value === sp.kind) ? sp.kind : "season") as PlanKind;
   const status = PLAN_STATUS.some((s) => s.value === sp.status) ? sp.status : "";
-  const [plans, myTasks] = await Promise.all([
+  const [plans, myTasks, camps] = await Promise.all([
     sbGet<Row[]>(
       `plans?kind=eq.${kind}${status ? `&status=eq.${status}` : ""}` +
         `&select=*,owner:teachers!plans_owner_id_fkey(name,nickname),plan_comments(created_at),plan_tasks(done_at),plan_items(id)` +
@@ -25,7 +25,9 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     sbGet<PlanTask[]>(
       `plan_tasks?assignee_id=eq.${staff.id}&done_at=is.null&select=*,plan:plans(id,title,kind)&order=due_date.nullslast`,
     ).catch(() => [] as PlanTask[]),
+    kind === "camp" ? sbGet<{ title: string }[]>("plans?kind=eq.camp&select=title").catch(() => []) : Promise.resolve([]),
   ]);
+  const campTitles = camps.map((c) => c.title);
   const k = PLAN_KINDS.find((x) => x.value === kind)!;
   const day = (iso: string) => new Date(iso).toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" });
 
@@ -64,6 +66,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
             <Link key={p.id} href={`/admin/plans/${p.id}`} className="pln-card">
               <span className={`pln-badge ${p.status}`}>{PLAN_STATUS_LABEL[p.status]}</span>
               <strong>{p.title}</strong>
+              <span className={p.theme ? "pln-theme" : "pln-theme none"}>{p.theme ? `主題：${p.theme}` : "主題討論中"}</span>
               <small>📅 {fmtRange(p.start_date, p.end_date)}</small>
               <small>👤 {p.owner_id ? who(p.owner ?? null) : "未指定"}・{p.plan_items.length} 項內容</small>
               <small>💬 {p.plan_comments.length} 則{last ? `（最新 ${day(last)}）` : ""}・📌 {open} 項待辦</small>
@@ -75,24 +78,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
 
       <details className="adm-panel pln-new" open={plans?.length === 0}>
         <summary><h2>＋ 新增{k.label}</h2></summary>
-        <form action={createPlan} className="adm-form">
-          <input type="hidden" name="kind" value={kind} />
-          <div className="adm-grid">
-            <div className="field adm-wide">
-              <label htmlFor="n-title">主題 *</label>
-              <input id="n-title" name="title" required maxLength={80}
-                placeholder={kind === "season" ? "例：2027 春季・恐龍探險隊" : kind === "month" ? "例：2027 年 3 月・春天的昆蟲" : "例：2027 夏令營・未來城市"} />
-            </div>
-            <div className="field"><label htmlFor="n-start">開始日期</label><input id="n-start" name="start_date" type="date" /></div>
-            <div className="field"><label htmlFor="n-end">結束日期</label><input id="n-end" name="end_date" type="date" /></div>
-            <div className="field adm-wide">
-              <label htmlFor="n-sum">主題說明、目標（選填）</label>
-              <textarea id="n-sum" name="summary" rows={3} maxLength={3000} />
-            </div>
-          </div>
-          <p className="hint">建立後你是負責老師，可以再改。其他老師都能看到、留言、新增待辦。</p>
-          <button type="submit" className="btn primary">建立</button>
-        </form>
+        <PlanCreate kind={kind} campTitles={campTitles} />
       </details>
     </>
   );

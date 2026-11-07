@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { PLAN_STATUS, type Plan } from "@/lib/plans";
+import { PLAN_STATUS, monthRange, type Plan } from "@/lib/plans";
 import { deletePlan, setPlanStatus, updatePlan } from "./actions";
 
 type T = { id: string; name: string; nickname: string | null };
@@ -12,7 +12,7 @@ export default function PlanHeader({ plan, canEdit, isAdmin, teachers }: { plan:
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState({
-    title: plan.title, start: plan.start_date ?? "", end: plan.end_date ?? "", summary: plan.summary ?? "", ownerId: plan.owner_id ?? "",
+    title: plan.title, theme: plan.theme ?? "", start: plan.start_date ?? "", end: plan.end_date ?? "", summary: plan.summary ?? "", ownerId: plan.owner_id ?? "",
   });
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, start] = useTransition();
@@ -30,7 +30,7 @@ export default function PlanHeader({ plan, canEdit, isAdmin, teachers }: { plan:
           </button>
         ))}
       </div>
-      {canEdit && !editing && <button type="button" className="btn btn-sm" onClick={() => setEditing(true)}>編輯主題與日期</button>}
+      {canEdit && !editing && <button type="button" className="btn btn-sm" onClick={() => setEditing(true)}>編輯名稱、主題與日期</button>}
       {isAdmin && (
         <button type="button" className="adm-link danger" disabled={busy}
           onClick={() => {
@@ -41,9 +41,20 @@ export default function PlanHeader({ plan, canEdit, isAdmin, teachers }: { plan:
       {editing && (
         <div className="adm-panel pln-info-edit">
           <div className="adm-grid">
-            <div className="field adm-wide"><label htmlFor="p-title">主題</label><input id="p-title" value={f.title} onChange={set("title")} maxLength={80} /></div>
-            <div className="field"><label htmlFor="p-start">開始日期</label><input id="p-start" type="date" value={f.start} onChange={set("start")} /></div>
-            <div className="field"><label htmlFor="p-end">結束日期</label><input id="p-end" type="date" value={f.end} onChange={set("end")} /></div>
+            <div className="field adm-wide"><label htmlFor="p-theme">主題 <small>討論完後填寫</small></label>
+              <input id="p-theme" value={f.theme} onChange={set("theme")} maxLength={80} placeholder="例：恐龍探險隊" /></div>
+            <div className="field"><label htmlFor="p-title">名稱</label><input id="p-title" value={f.title} onChange={set("title")} maxLength={80} /></div>
+            {plan.kind === "month" ? (
+              <div className="field"><label htmlFor="p-month">月份</label>
+                <input id="p-month" type="month" value={f.start.slice(0, 7)}
+                  onChange={(e) => { const r = monthRange(e.target.value); if (r) setF((x) => ({ ...x, start: r.start, end: r.end })); }} />
+              </div>
+            ) : (
+              <>
+                <div className="field"><label htmlFor="p-start">開始日期</label><input id="p-start" type="date" value={f.start} onChange={set("start")} /></div>
+                <div className="field"><label htmlFor="p-end">結束日期</label><input id="p-end" type="date" value={f.end} onChange={set("end")} /></div>
+              </>
+            )}
             <div className="field"><label htmlFor="p-owner">負責老師</label>
               <select id="p-owner" value={f.ownerId} onChange={set("ownerId")}>
                 <option value="">（未指定）</option>

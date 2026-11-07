@@ -144,7 +144,7 @@ export async function summarizeMeeting(id: string): Promise<Result> {
     await sbPatch(`meetings?id=eq.${id}`, { status: "summarizing", updated_at: new Date().toISOString() });
     const [teachers, plan] = await Promise.all([
       sbGet<{ name: string; nickname: string | null }[]>("teachers?active=eq.true&select=name,nickname"),
-      m.plan_id ? sbGet<{ kind: string; title: string; start_date: string | null }[]>(`plans?id=eq.${m.plan_id}&select=kind,title,start_date`) : Promise.resolve([]),
+      m.plan_id ? sbGet<{ kind: string; title: string; theme: string | null; start_date: string | null }[]>(`plans?id=eq.${m.plan_id}&select=kind,title,theme,start_date`) : Promise.resolve([]),
     ]);
     const today = new Date().toISOString().slice(0, 10);
     const raw = await askForJson<MeetingAi>({
@@ -152,7 +152,7 @@ export async function summarizeMeeting(id: string): Promise<Result> {
       content: [{
         type: "text",
         text: `會議：${m.title}（今天 ${today}）
-${plan[0] ? `討論的規劃：${PLAN_KIND_LABEL[plan[0].kind]}「${plan[0].title}」${plan[0].start_date ? `，${plan[0].start_date} 開始` : ""}\n` : ""}老師名單：${teachers.map((t) => (t.nickname ? `${t.nickname}（${t.name}）` : t.name)).join("、")}
+${plan[0] ? `討論的規劃：${PLAN_KIND_LABEL[plan[0].kind]}「${plan[0].title}${plan[0].theme ? `・${plan[0].theme}` : "（主題討論中）"}」${plan[0].start_date ? `，${plan[0].start_date} 開始` : ""}\n` : ""}老師名單：${teachers.map((t) => (t.nickname ? `${t.nickname}（${t.name}）` : t.name)).join("、")}
 
 逐字稿：
 ${transcript.slice(0, 60000)}

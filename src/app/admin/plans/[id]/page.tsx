@@ -67,6 +67,9 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <Link href={`/admin/plans?kind=${plan.kind}`} className="adm-link">← 課程規劃</Link>
         </div>
       </div>
+      <p className={plan.theme ? "pln-theme big" : "pln-theme big none"}>
+        {plan.theme ? <>主題：<strong>{plan.theme}</strong></> : "主題還沒決定（討論完後按「編輯名稱、主題與日期」填寫）"}
+      </p>
       <p className="pln-meta">
         📅 {fmtRange(plan.start_date, plan.end_date)}　👤 負責：{plan.owner_id ? who(plan.owner ?? null) : "未指定"}
       </p>
@@ -99,7 +102,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
           {plan.kind === "camp" && (() => {
             const weeks = campDays(plan.start_date, plan.end_date);
-            if (!weeks.length) return <p className="notice err">請先按「編輯主題與日期」設定營隊的開始與結束日期，系統會排出每週每天的上午、下午。</p>;
+            if (!weeks.length) return <p className="notice err">請先按「編輯名稱、主題與日期」設定營隊的開始與結束日期，系統會排出每週每天的上午、下午。</p>;
             return weeks.map((w) => (
               <details key={w.week} className="adm-panel pln-sec" open>
                 <summary><h2>第 {w.week} 週 <small>{fmtDay(w.days[0])} ～ {fmtDay(w.days[w.days.length - 1])}</small></h2></summary>

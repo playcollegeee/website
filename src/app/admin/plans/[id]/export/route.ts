@@ -33,11 +33,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ].filter(Boolean);
   };
   const blocks: Block[] = [
-    { type: "title", text: `${PLAN_KIND_LABEL[p.kind]}｜${p.title}` },
+    { type: "title", text: `${PLAN_KIND_LABEL[p.kind]}｜${p.title}${p.theme ? `・${p.theme}` : ""}` },
     { type: "subtitle", text: `玩學院 Play Collegeee` },
     {
       type: "table",
       rows: [
+        { label: "主題", lines: [p.theme ?? "（討論中）"] },
         { label: "日期", lines: [fmtRange(p.start_date, p.end_date)] },
         { label: "狀態", lines: [PLAN_STATUS_LABEL[p.status]] },
         { label: "負責老師", lines: [p.owner_id ? who(p.owner ?? null) : ""] },
@@ -80,7 +81,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const file = buildDocx(blocks);
   await audit(actorOf(staff), "plan.export", `plans:${id}`, {});
-  const name = `${PLAN_KIND_LABEL[p.kind]}_${p.title}.docx`.replace(/[\\/:*?"<>|]/g, "_");
+  const name = `${PLAN_KIND_LABEL[p.kind]}_${p.title}${p.theme ? `_${p.theme}` : ""}.docx`.replace(/[\\/:*?"<>|]/g, "_");
   return new NextResponse(Buffer.from(file), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
