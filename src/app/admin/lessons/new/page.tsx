@@ -30,7 +30,7 @@ export default async function NewLessonPage({ searchParams }: { searchParams: Pr
         hasPhoto={false}
         init={{
           title: "", category_id: cat?.id ?? "", levels: cat?.levels ?? [], difficulty: null, minutes: 90,
-          summary: "", goals: "", refs: "", steps: [], challenge: "", support: "", materials: [], tips: "", parent_note: "", outline: "",
+          summary: "", challenge: "", support: "", materials: [], tips: "",
           xp: 10, status: "draft", tags: [],
         }}
       />

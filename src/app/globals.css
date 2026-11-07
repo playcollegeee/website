@@ -954,3 +954,11 @@ a.lsn-chip:hover { border-color: var(--ink); }
 .lsn-export li:hover { background: var(--paper); }
 .lsn-export li a { font-weight: 700; color: var(--ink); }
 .lsn-export li small { color: var(--ink-soft); font-size: 12px; }
+
+/* 合作單位版（教案頁需要時才產生，2026-11-07） */
+.lsn-collab { border-color: var(--green); }
+.lsn-collab-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.lsn-collab-head h2 { margin: 0; }
+.lsn-collab-gen { margin-top: 8px; }
+.lsn-collab-redo { margin-top: 18px; border-top: 1px dashed var(--line, #ddd); padding-top: 10px; }
+.lsn-collab-redo > summary { cursor: pointer; font-weight: 700; color: var(--ink-soft); }

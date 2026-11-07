@@ -73,15 +73,10 @@ export async function saveLesson(fd: FormData) {
     difficulty: int(str(fd, "difficulty", 1), 1, 5),
     minutes: int(str(fd, "minutes", 3), 10, 480) ?? 90,
     summary: optStr(fd, "summary", 200),
-    goals: optStr(fd, "goals", 2000),
-    refs: optStr(fd, "refs", 3000),
-    timeline: parseSteps(str(fd, "timeline", 100000)),
     challenge: optStr(fd, "challenge", 2000),
     support: optStr(fd, "support", 2000),
     materials: parseMaterials(str(fd, "materials", 20000)),
     tips: optStr(fd, "tips", 3000),
-    parent_note: optStr(fd, "parent_note", 1000),
-    outline: optStr(fd, "outline", 1000),
     xp: int(str(fd, "xp", 3), 0, 100) ?? 10,
     status: ["ready", "archived"].includes(status) ? status : "draft",
     updated_by: staff.id,
@@ -112,6 +107,33 @@ export async function saveLesson(fd: FormData) {
   revalidatePath("/admin/lessons");
   revalidatePath(`/admin/lessons/${lessonId}`);
   redirect(`/admin/lessons/${lessonId}`);
+}
+
+// 合作單位版（學習目標、三段流程、給家長的話、活動簡介）：在教案頁需要時才產生、編輯。
+// 帶課的老師常常不是作者，所以所有老師都可以存；每次存檔都記操作紀錄。
+export async function saveCollab(fd: FormData): Promise<{ ok: boolean; message: string }> {
+  try {
+    const staff = await requireStaff();
+    const id = str(fd, "id", 40);
+    if (!isUuid(id)) return { ok: false, message: "資料不正確" };
+    const rows = await sbGet<{ id: string }[]>(`lessons?id=eq.${id}&select=id`);
+    if (!rows[0]) return { ok: false, message: "找不到這個教案" };
+    const row = {
+      goals: optStr(fd, "goals", 2000),
+      refs: optStr(fd, "refs", 3000),
+      timeline: parseSteps(str(fd, "timeline", 100000)),
+      parent_note: optStr(fd, "parent_note", 1000),
+      outline: optStr(fd, "outline", 1000),
+      updated_by: staff.id,
+      updated_at: new Date().toISOString(),
+    };
+    await sbPatch(`lessons?id=eq.${id}`, row);
+    await audit(actorOf(staff), "lesson.collab", `lessons:${id}`, { steps: row.timeline.length });
+    revalidatePath(`/admin/lessons/${id}`);
+    return { ok: true, message: "已儲存合作單位版" };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "儲存失敗，請再試一次" };
+  }
 }
 
 // 改狀態：草稿／可使用／封存

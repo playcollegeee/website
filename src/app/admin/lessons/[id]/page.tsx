@@ -4,14 +4,17 @@ import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet, sbSignUrls } from "@/lib/supabase";
 import { fmtDate, fmtTime } from "@/lib/admin";
 import {
-  LESSON_BUCKET, LESSON_STATUS, PHASES, TAG_KINDS, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
+  LESSON_BUCKET, LESSON_STATUS, TAG_KINDS, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
 } from "@/lib/lessons";
 import { setLessonStatus } from "../actions";
 import PrintButton from "../PrintButton";
 import LessonFiles from "../LessonFiles";
-import { EXPORT_FORMATS } from "@/lib/lessonExport";
+import CollabPack from "../CollabPack";
+import Text from "../LessonText";
+import { aiConfigured } from "@/lib/ai";
 
 export const metadata = { title: "教案" };
+export const maxDuration = 60; // 合作單位版的 AI 產生最多等 60 秒
 
 type L = {
   id: string; title: string; levels: string[]; difficulty: number | null; minutes: number; summary: string | null;
@@ -29,23 +32,6 @@ type F = {
   id: string; kind: string; storage_path: string; thumb_path: string | null; file_name: string | null;
   size_bytes: number | null; is_cover: boolean; uploaded_by: string | null;
 };
-
-// 多行文字：網址變成可點的連結
-function Text({ v }: { v: string | null }) {
-  if (!v) return <span className="muted">—</span>;
-  return (
-    <div className="lsn-text">
-      {v.split("\n").map((line, i) => {
-        const t = line.trim();
-        return (
-          <p key={i}>
-            {/^https?:\/\/\S+$/.test(t) ? <a href={t} target="_blank" rel="noopener noreferrer">{t}</a> : line || " "}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
 
 export default async function LessonPage({ params }: { params: Promise<{ id: string }> }) {
   const staff = await requireStaff();
@@ -76,10 +62,8 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   const models = files.filter((f) => f.kind === "model_io").map((f) => ({
     id: f.id, name: f.file_name ?? "model.io", size: f.size_bytes, canManage: manage(f),
   }));
-  const steps = stepsOf(l.timeline);
   const materials = materialsOf(l.materials);
-  const tags = l.lesson_tags.map((x) => x.tags);
-  const total = steps.reduce((n, s) => n + (s.min ?? 0), 0);
+  const tags = l.lesson_tags.map((x) => x.tags).filter((t) => TAG_KINDS.some((k) => k.value === t.kind));
   const st = LESSON_STATUS[l.status] ?? LESSON_STATUS.draft;
   const now = Date.now();
   const past = sessions.filter((s) => new Date(s.starts_at).getTime() < now);
@@ -95,17 +79,6 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         </h1>
         <div className="adm-actions lsn-noprint">
           <Link href="/admin/lessons" className="adm-link">← 教案庫</Link>
-          <details className="adm-pop lsn-export">
-            <summary className="btn btn-sm">📄 匯出 Word</summary>
-            <ul>
-              {(Object.keys(EXPORT_FORMATS) as (keyof typeof EXPORT_FORMATS)[]).map((f) => (
-                <li key={f}>
-                  <a href={`/admin/lessons/${id}/export/${f}`}>{EXPORT_FORMATS[f].label}</a>
-                  <small>{EXPORT_FORMATS[f].hint}</small>
-                </li>
-              ))}
-            </ul>
-          </details>
           <PrintButton />
           {editable && <Link href={`/admin/lessons/${id}/edit`} className="btn btn-sm primary">編輯</Link>}
         </div>
@@ -142,43 +115,6 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
 
       <LessonFiles lessonId={id} photos={photos} models={models} />
 
-      <section className="adm-panel">
-        <h2>學習目標</h2>
-        <Text v={l.goals} />
-      </section>
-
-      <section className="adm-panel">
-        <h2>教學流程 <small>共 {total || "—"} 分鐘</small></h2>
-        {l.refs && (
-          <div className="lsn-refs">
-            <strong>前導引導的參考資料</strong>
-            <Text v={l.refs} />
-          </div>
-        )}
-        {steps.length === 0 && <p className="adm-empty">還沒有填寫流程。</p>}
-        {PHASES.map((p) => {
-          const ps = steps.filter((s) => s.phase === p.value);
-          if (!ps.length) return null;
-          return (
-            <div key={p.value} className={`lsn-phase lsn-phase-${p.value}`}>
-              <h3>{p.label}</h3>
-              <ol className="lsn-timeline">
-                {ps.map((s, i) => (
-                  <li key={i}>
-                    <span className="lsn-min-badge">{s.min ? `${s.min} 分` : "—"}</span>
-                    <div>
-                      {s.title && <strong>{s.title}</strong>}
-                      {s.teacher && <div className="lsn-who"><em>老師</em><Text v={s.teacher} /></div>}
-                      {s.students && <div className="lsn-who"><em>孩子</em><Text v={s.students} /></div>}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          );
-        })}
-      </section>
-
       <div className="adm-cols">
         <section className="adm-panel">
           <h2>差異化</h2>
@@ -198,17 +134,20 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
       </div>
 
       <section className="adm-panel">
-        <h2>對外文字</h2>
-        <h3 className="lsn-sub">給家長的話</h3>
-        <Text v={l.parent_note} />
-        <h3 className="lsn-sub">活動簡介</h3>
-        <Text v={l.outline} />
-      </section>
-
-      <section className="adm-panel">
         <h2>常見卡關與解法</h2>
         <Text v={l.tips} />
       </section>
+
+      <CollabPack
+        lessonId={id}
+        minutes={l.minutes}
+        aiReady={aiConfigured()}
+        hasPhoto={photos.length > 0}
+        init={{
+          goals: l.goals ?? "", refs: l.refs ?? "", steps: stepsOf(l.timeline),
+          parent_note: l.parent_note ?? "", outline: l.outline ?? "",
+        }}
+      />
 
       <section className="adm-panel lsn-noprint">
         <h2>排課紀錄 <small>上過 {past.length} 堂・之後 {upcoming.length} 堂</small></h2>
