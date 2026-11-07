@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useState, useTransition } from "react";
 import { MAJOR_SHORT } from "@/lib/lessons";
 import { SECTIONS, fmtDay, who, type PlanComment, type PlanItem } from "@/lib/plans";
@@ -97,10 +98,8 @@ export default function ItemCard({
         <button type="button" className="btn btn-sm primary" onClick={save} disabled={busy}>{busy ? "儲存中…" : "儲存"}</button>
         <button type="button" className="btn btn-sm" onClick={() => { setEditing(false); setF(fromItem()); setMsg(null); }} disabled={busy}>取消</button>
         {item && canEditPlan && (
-          <button type="button" className="adm-link danger" disabled={busy}
-            onClick={() => confirm("確定刪除這一項？底下的留言也會一起刪除。") && start(async () => { const r = await deleteItem(item.id); setMsg(r.ok ? null : r.message); })}>
-            刪除這一項
-          </button>
+          <ConfirmButton label="刪除這一項" disabled={busy} message="確定刪除這一項？底下的留言也會一起刪除。"
+            onConfirm={() => start(async () => { const r = await deleteItem(item.id); setMsg(r.ok ? null : r.message); })} />
         )}
       </div>
       {msg && <p className="notice err wide" role="status">{msg}</p>}

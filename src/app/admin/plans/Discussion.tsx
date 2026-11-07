@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { who, type PlanComment } from "@/lib/plans";
 import { addComment, deleteComment, editComment, toggleDecision } from "./actions";
 
@@ -68,8 +69,7 @@ export default function Discussion({
           <button type="button" className="adm-link" onClick={() => { setEditing(c.id); setEditText(c.body); }}>編輯</button>
         )}
         {isAdmin && (
-          <button type="button" className="adm-link danger" disabled={busy}
-            onClick={() => confirm("確定刪除這則留言？回覆也會一起刪除。") && run(() => deleteComment(c.id))}>刪除</button>
+          <ConfirmButton label="刪除" disabled={busy} message="確定刪除這則留言？回覆也會一起刪除。" onConfirm={() => run(() => deleteComment(c.id))} />
         )}
       </div>
     </div>

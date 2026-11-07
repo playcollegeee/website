@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useRef, useState, useTransition } from "react";
 import { RATE, decodeMono16k, encodeWav, splitPoints } from "@/lib/audioChunks";
 import { fmtDay, who, type Person } from "@/lib/plans";
@@ -248,17 +249,20 @@ function MeetingCard({
                 </>
               )}
               <div className="adm-btns">
-                <button type="button" className="btn btn-sm primary" disabled={pending || (!dec.some((d) => d.on) && !tasks.some((t) => t.on))}
-                  onClick={() => {
-                    if (m.applied_at && !confirm("這場會議已經套用過，再套用一次會重複加入，確定嗎？")) return;
-                    run(() => applyMeeting({
-                      id: m.id,
-                      decisions: canEditPlan ? dec.filter((d) => d.on).map((d) => d.text) : [],
-                      tasks: tasks.filter((t) => t.on).map(({ title, assigneeId, due }) => ({ title, assigneeId, due })),
-                    }));
-                  }}>
-                  {pending ? "套用中…" : m.applied_at ? "再套用一次" : "套用到規劃"}
-                </button>
+                {(() => {
+                  const doApply = () => run(() => applyMeeting({
+                    id: m.id,
+                    decisions: canEditPlan ? dec.filter((d) => d.on).map((d) => d.text) : [],
+                    tasks: tasks.filter((t) => t.on).map(({ title, assigneeId, due }) => ({ title, assigneeId, due })),
+                  }));
+                  const off = pending || (!dec.some((d) => d.on) && !tasks.some((t) => t.on));
+                  return m.applied_at ? (
+                    <ConfirmButton className="btn btn-sm" label="再套用一次" disabled={off} confirmLabel="再套用"
+                      message="這場會議已經套用過，再套用一次會重複加入，確定嗎？" onConfirm={doApply} />
+                  ) : (
+                    <button type="button" className="btn btn-sm primary" disabled={off} onClick={doApply}>{pending ? "套用中…" : "套用到規劃"}</button>
+                  );
+                })()}
                 {!canEditPlan && <small className="muted">決議只有規劃負責人可以套用；你可以先套用待辦。</small>}
               </div>
             </div>
@@ -272,10 +276,9 @@ function MeetingCard({
           {transcript === null ? "📄 看逐字稿" : "收起逐字稿"}
         </button>
         {(isAdmin || m.created_by === me) && (
-          <button type="button" className="adm-link danger" disabled={pending}
-            onClick={() => confirm(`確定刪除「${m.title}」的會議紀錄與逐字稿？已套用到規劃的決議、待辦不會被刪除。`) && run(() => deleteMeeting(m.id))}>
-            刪除會議紀錄
-          </button>
+          <ConfirmButton label="刪除會議紀錄" disabled={pending}
+            message={`確定刪除「${m.title}」的會議紀錄與逐字稿？已套用到規劃的決議、待辦不會被刪除。`}
+            onConfirm={() => run(() => deleteMeeting(m.id))} />
         )}
       </div>
       {transcript !== null && <div className="pln-transcript pln-pre">{transcript || "（沒有內容）"}</div>}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useRouter } from "next/navigation";
 import { fmtBytes } from "@/lib/lessons";
 import { deleteLessonFile, setLessonCover, type FileResult } from "./fileActions";
@@ -42,8 +43,7 @@ export default function LessonFiles({
     start(() => router.refresh());
   }
 
-  function act(fn: (fd: FormData) => Promise<FileResult>, id: string, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+  function act(fn: (fd: FormData) => Promise<FileResult>, id: string) {
     const fd = new FormData();
     fd.set("id", id);
     setBusy("處理中…");
@@ -77,7 +77,7 @@ export default function LessonFiles({
                 {p.canManage && (
                   <span className="lsn-photo-acts lsn-noprint">
                     {!p.is_cover && <button type="button" className="adm-link" onClick={() => act(setLessonCover, p.id)}>設為封面</button>}
-                    <button type="button" className="adm-link danger" onClick={() => act(deleteLessonFile, p.id, "確定刪除這張照片？")}>刪除</button>
+                    <ConfirmButton label="刪除" message="確定刪除這張照片？" onConfirm={() => act(deleteLessonFile, p.id)} />
                   </span>
                 )}
               </li>
@@ -103,7 +103,7 @@ export default function LessonFiles({
                 <a href={`/admin/lessons/file/${m.id}`} className="lsn-model-link">🧱 {m.name}</a>
                 <small>{fmtBytes(m.size)}</small>
                 {m.canManage && (
-                  <button type="button" className="adm-link danger lsn-noprint" onClick={() => act(deleteLessonFile, m.id, `確定刪除 ${m.name}？`)}>刪除</button>
+                  <span className="lsn-noprint"><ConfirmButton label="刪除" message={`確定刪除 ${m.name}？`} onConfirm={() => act(deleteLessonFile, m.id)} /></span>
                 )}
               </li>
             ))}

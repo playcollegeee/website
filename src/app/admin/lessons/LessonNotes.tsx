@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { NOTE_KINDS, type LessonNote, type NoteKind } from "@/lib/lessons";
 import { addNote, deleteNote, updateNote } from "./noteActions";
 import Text from "./LessonText";
@@ -44,7 +45,6 @@ export default function LessonNotes({
       if (r.ok) setEditing(null);
     });
   const remove = (n: LessonNote) => {
-    if (!confirm(`確定刪除 ${who(n)} 寫的這筆${meta.label}？刪除後無法復原。`)) return;
     start(async () => {
       const r = await deleteNote(n.id);
       setMsg({ ok: r.ok, text: r.message });
@@ -81,7 +81,10 @@ export default function LessonNotes({
                   <span>{who(n)}・{fmt(n.created_at)}{n.updated_at.slice(0, 16) !== n.created_at.slice(0, 16) ? "（已修改）" : ""}</span>
                   <span className="lsn-noprint">
                     {canEdit(n) && <button type="button" className="adm-link" onClick={() => open(n)} disabled={busy}>編輯</button>}
-                    {isAdmin && <button type="button" className="adm-link danger" onClick={() => remove(n)} disabled={busy}>刪除</button>}
+                    {isAdmin && (
+                      <ConfirmButton label="刪除" disabled={busy} message={`確定刪除 ${who(n)} 寫的這筆${meta.label}？刪除後無法復原。`}
+                        onConfirm={() => remove(n)} />
+                    )}
                   </span>
                 </div>
               </>

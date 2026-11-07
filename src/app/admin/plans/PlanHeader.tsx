@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useState, useTransition } from "react";
 import { PLAN_STATUS, monthRange, type Plan } from "@/lib/plans";
 import { deletePlan, setPlanStatus, updatePlan } from "./actions";
@@ -32,11 +33,9 @@ export default function PlanHeader({ plan, canEdit, isAdmin, teachers }: { plan:
       </div>
       {canEdit && !editing && <button type="button" className="btn btn-sm" onClick={() => setEditing(true)}>編輯名稱、主題與日期</button>}
       {isAdmin && (
-        <button type="button" className="adm-link danger" disabled={busy}
-          onClick={() => {
-            if (!confirm(`確定刪除「${plan.title}」？規劃內容、留言、待辦都會一起刪除，無法復原。`)) return;
-            start(async () => { const r = await deletePlan(plan.id); if (r.ok) router.push("/admin/plans"); else setMsg(r.message); });
-          }}>刪除規劃</button>
+        <ConfirmButton label="刪除規劃" disabled={busy}
+          message={`確定刪除「${plan.title}」？規劃內容、留言、待辦都會一起刪除，無法復原。`}
+          onConfirm={() => start(async () => { const r = await deletePlan(plan.id); if (r.ok) router.push("/admin/plans"); else setMsg(r.message); })} />
       )}
       {editing && (
         <div className="adm-panel pln-info-edit">
