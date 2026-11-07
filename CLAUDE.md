@@ -56,6 +56,7 @@
 - 會議紀錄（2026-11-07，migration 0013，PR #16）：手機錄音一鍵匯入（使用者決定不在網頁錄音）。瀏覽器 `src/lib/audioChunks.ts` 解碼成 16 kHz 單聲道、在 80～90 秒間最安靜處切段、編 WAV（約 2.9 MB／段，低於 server action 4 MB）；`plans/meetingActions.ts` 逐段 `transcribePart` → `src/lib/stt.ts`（OpenAI `/v1/audio/transcriptions`，`OPENAI_API_KEY` 只放 Vercel，模型 `OPENAI_TRANSCRIBE_MODEL` 預設 gpt-4o-transcribe，單次上限 25 MB／約 25 分鐘），存 `meeting_parts`（錄音不保存）；中斷可「繼續」補缺的段。`summarizeMeeting` 用 Claude 整理摘要、決議、待辦、待討論（`meetings.ai_result`），老師勾選修改後 `applyMeeting` 寫入 plan_comments（決議）與 plan_tasks。需勾選已告知與會者。`LIMITS.stt`。本機測試用 `OPENAI_BASE_URL` 指向模擬伺服器
 - 卡片建議 13.56 MHz NTAG213／215；卡號統一去冒號轉大寫（`normalizeUid` 與 SQL 規則一致）
 - 伺服器地區：`vercel.json` 的 `regions` 設為 `bom1`（孟買），必須和 Supabase 同地區，否則每次查資料都要繞地球；搬資料庫時一起改
+- 刪除等需要確認的動作一律用 `admin/ConfirmButton.tsx`（頁面上「確定／取消」），不要用 `window.confirm`：Claude 內建瀏覽器不會跳出確認視窗，按了等於取消（2026-11-07 使用者回報刪除按不下去，PR #18）
 - 後台即時回饋：點名用 `sessions/RollButtons.tsx`、詢問狀態用 `leads/LeadStatusForm.tsx`（useOptimistic）；`admin/PendingFeedback.tsx` 讓所有表單送出時按鈕顯示處理中；`admin/loading.tsx` 換頁動畫；`audit()` 用 `after()` 在回應後寫入
 - Supabase 呼叫統一用 `src/lib/supabase.ts`（`sbGet`、`sbInsert`、`sbPatch`、`sbRpc`、`audit`）；每次寫入都呼叫 `audit()` 寫操作紀錄
 - 分享預覽圖：各路由資料夾的 `opengraph-image.jpg`（1200×630）
