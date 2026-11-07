@@ -962,3 +962,21 @@ a.lsn-chip:hover { border-color: var(--ink); }
 .lsn-collab-gen { margin-top: 8px; }
 .lsn-collab-redo { margin-top: 18px; border-top: 1px dashed var(--line, #ddd); padding-top: 10px; }
 .lsn-collab-redo > summary { cursor: pointer; font-weight: 700; color: var(--ink-soft); }
+
+/* 教案的參考資料／參考進行活動（2026-11-07） */
+.lsn-notes h2 small { font-weight: 400; color: var(--ink-soft); font-size: .8rem; margin-left: 6px; }
+.lsn-note-list { list-style: none; padding: 0; margin: 0 0 10px; }
+.lsn-note { border-bottom: 1px dashed #e5e0d4; padding: 10px 0; }
+.lsn-note:last-child { border-bottom: 0; }
+.lsn-note-url { margin: 4px 0 0; word-break: break-all; font-size: .9rem; }
+.lsn-note-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: .8rem; color: var(--ink-soft); }
+.lsn-note-meta button { margin-left: 10px; }
+.lsn-note-edit { display: grid; gap: 8px; margin: 6px 0; }
+.lsn-note-edit textarea, .lsn-note-edit input { width: 100%; }
+/* 合作單位教案生成：預設摺疊 */
+.lsn-collab-fold > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+.lsn-collab-fold > summary::-webkit-details-marker { display: none; }
+.lsn-collab-fold > summary h2 { margin: 0; }
+.lsn-collab-fold > summary::after { content: "▸ 展開"; margin-left: auto; font-size: .85rem; color: var(--ink-soft); }
+.lsn-collab-fold[open] > summary::after { content: "▾ 收合"; }
+.lsn-collab-fold[open] > summary { margin-bottom: 12px; }

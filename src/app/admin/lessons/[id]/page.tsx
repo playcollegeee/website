@@ -4,12 +4,13 @@ import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet, sbSignUrls } from "@/lib/supabase";
 import { fmtDate, fmtTime } from "@/lib/admin";
 import {
-  LESSON_BUCKET, LESSON_STATUS, TAG_KINDS, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
+  LESSON_BUCKET, LESSON_STATUS, NOTE_KINDS, TAG_KINDS, type LessonNote, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
 } from "@/lib/lessons";
 import { setLessonStatus } from "../actions";
 import PrintButton from "../PrintButton";
 import LessonFiles from "../LessonFiles";
 import CollabPack from "../CollabPack";
+import LessonNotes from "../LessonNotes";
 import Text from "../LessonText";
 import { aiConfigured } from "@/lib/ai";
 
@@ -37,7 +38,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [rows, sessions, files] = await Promise.all([
+  const [rows, sessions, files, notes] = await Promise.all([
     sbGet<L[]>(
       `lessons?id=eq.${id}&select=id,title,levels,difficulty,minutes,summary,goals,refs,timeline,challenge,support,materials,tips,xp,status,version,author_id,parent_note,outline,created_at,updated_at,` +
         `category:lesson_categories(major,name),author:teachers!lessons_author_id_fkey(name,nickname),editor:teachers!lessons_updated_by_fkey(name,nickname),` +
@@ -47,6 +48,10 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
     sbGet<F[]>(
       `lesson_files?lesson_id=eq.${id}&kind=in.(image,model_io)&select=id,kind,storage_path,thumb_path,file_name,size_bytes,is_cover,uploaded_by&order=sort`,
     ),
+    // 參考資料、參考進行活動（0010 還沒執行時先當作沒有資料）
+    sbGet<LessonNote[]>(
+      `lesson_notes?lesson_id=eq.${id}&select=id,kind,body,url,author_id,created_at,updated_at,author:teachers!lesson_notes_author_id_fkey(name,nickname)&order=created_at`,
+    ).catch(() => [] as LessonNote[]),
   ]);
   const l = rows[0];
   if (!l) notFound();
@@ -137,6 +142,17 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         <h2>常見卡關與解法</h2>
         <Text v={l.tips} />
       </section>
+
+      {NOTE_KINDS.map((k) => (
+        <LessonNotes
+          key={k.value}
+          lessonId={id}
+          kind={k.value}
+          notes={notes.filter((n) => n.kind === k.value)}
+          me={staff.id}
+          isAdmin={staff.is_admin}
+        />
+      ))}
 
       <CollabPack
         lessonId={id}

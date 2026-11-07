@@ -12,7 +12,7 @@ import Text from "./LessonText";
 const has = (c: Collab) => !!(c.goals.trim() || c.refs.trim() || c.steps.length || c.parent_note.trim() || c.outline.trim());
 const emptySteps = (): Step[] => [blankStep("intro"), blankStep("main"), blankStep("wrap")];
 
-// 合作單位版（親子館、幼兒園用）：學習目標、三段流程、給家長的話、活動簡介。
+// 合作單位教案生成（親子館、幼兒園用）：學習目標、三段流程、給家長的話、活動簡介。
 // 平常的教案不需要，所以放在教案頁，需要時再請 AI 產生、老師修改後儲存，也從這裡匯出 Word。
 export default function CollabPack({
   lessonId, minutes, init, aiReady, hasPhoto,
@@ -31,9 +31,10 @@ export default function CollabPack({
   const [aiBusy, startAi] = useTransition();
   const [saving, startSave] = useTransition();
   const filled = has(saved);
+  const [shown, setShown] = useState(false); // 預設摺疊
 
   function generate() {
-    if (filled && !draft && !confirm("重新產生會取代目前的合作單位版內容（儲存前都可以取消），確定嗎？")) return;
+    if (filled && !draft && !confirm("重新產生會取代目前的合作單位教案內容（儲存前都可以取消），確定嗎？")) return;
     setMsg(null);
     startAi(async () => {
       const r = await draftCollab({ lessonId, notes });
@@ -78,10 +79,9 @@ export default function CollabPack({
   if (draft) {
     const total = draft.steps.reduce((n, s) => n + (s.min ?? 0), 0);
     return (
-      <section className="adm-panel lsn-collab lsn-noprint">
-        <h2>🤝 合作單位版 <small>編輯中</small></h2>
+      <Fold shown setShown={setShown} filled={filled} editing>
         {msg && <p className={`notice ${msg.ok ? "ok" : "err"}`} role="status">{msg.text}</p>}
-        <div className="adm-form">
+        <div className="adm-form lsn-noprint">
           <div className="field">
             <label htmlFor="c-goals">學習目標</label>
             <textarea id="c-goals" rows={3} maxLength={2000} {...set("goals")} placeholder="孩子下課後能做到什麼（一行一個）" />
@@ -107,7 +107,7 @@ export default function CollabPack({
             <button type="button" className="btn" onClick={() => { setDraft(null); setMsg(null); }} disabled={saving}>取消</button>
           </div>
         </div>
-      </section>
+      </Fold>
     );
   }
 
@@ -121,7 +121,7 @@ export default function CollabPack({
       </div>
       <div className="adm-btns">
         <button type="button" className="btn btn-sm primary" onClick={generate} disabled={aiBusy}>
-          {aiBusy ? "AI 撰寫中…（約 20–40 秒）" : filled ? "✨ 重新產生" : "✨ 產生合作單位版"}
+          {aiBusy ? "AI 撰寫中…（約 20–40 秒）" : filled ? "✨ 重新產生" : "✨ 產生合作單位教案"}
         </button>
         {!filled && (
           <button type="button" className="btn btn-sm" onClick={() => setDraft({ ...saved, steps: emptySteps() })} disabled={aiBusy}>
@@ -137,24 +137,22 @@ export default function CollabPack({
 
   if (!filled) {
     return (
-      <section className="adm-panel lsn-collab lsn-noprint">
-        <h2>🤝 合作單位版 <small>親子館、幼兒園需要時再產生</small></h2>
+      <Fold shown={shown} setShown={setShown} filled={false}>
         <p className="hint">
           學習目標、三段教學流程（前導引導／主要活動／分享收尾）、給家長的話、活動簡介。
           AI 會依這個教案的內容先寫一份，你修改後儲存，就能匯出 Word 表格交給合作單位。
         </p>
         {generator}
         {msg && <p className={`notice ${msg.ok ? "ok" : "err"}`} role="status">{msg.text}</p>}
-      </section>
+      </Fold>
     );
   }
 
   // ---------- 已有內容：顯示 ----------
   const total = saved.steps.reduce((n, s) => n + (s.min ?? 0), 0);
   return (
-    <section className="adm-panel lsn-collab">
+    <Fold shown={shown} setShown={setShown} filled>
       <div className="lsn-collab-head">
-        <h2>🤝 合作單位版</h2>
         <div className="adm-actions lsn-noprint">
           <details className="adm-pop lsn-export">
             <summary className="btn btn-sm">📄 匯出 Word</summary>
@@ -215,6 +213,27 @@ export default function CollabPack({
         <summary>✨ 用 AI 重新產生</summary>
         {generator}
       </details>
-    </section>
+    </Fold>
+  );
+}
+
+// 外框：預設摺疊，需要時再打開（編輯中保持打開）
+function Fold({ children, filled, shown, setShown, editing }: {
+  children: React.ReactNode; filled: boolean; shown: boolean; setShown: (v: boolean) => void; editing?: boolean;
+}) {
+  return (
+    <details
+      className={`adm-panel lsn-collab lsn-collab-fold${filled ? "" : " lsn-noprint"}`}
+      open={shown}
+      onToggle={(e) => { if (!editing) setShown(e.currentTarget.open); }}
+    >
+      <summary>
+        <h2>🤝 合作單位教案生成</h2>
+        <small className="muted">
+          {editing ? "編輯中" : filled ? "已建立・學習目標、流程、給家長的話，可匯出 Word" : "親子館、幼兒園需要時再打開"}
+        </small>
+      </summary>
+      {children}
+    </details>
   );
 }
