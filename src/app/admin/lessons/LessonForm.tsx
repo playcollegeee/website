@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { LEVEL_NAME } from "@/lib/admin";
-import { DIFFICULTY, MAJOR_SHORT, TAG_KINDS, type Category, type Material, type Tag } from "@/lib/lessons";
+import {
+  DIFFICULTY, MAJOR_SHORT, NOTE_KINDS, TAG_KINDS, type Category, type LessonNote, type Material, type Tag,
+} from "@/lib/lessons";
 import { saveLesson } from "./actions";
 import { draftLesson, type Draft } from "./aiActions";
 
@@ -21,6 +23,7 @@ export type LessonInit = {
   xp: number;
   status: string;
   tags: Tag[];
+  notes?: LessonNote[]; // 編輯時顯示已經有的參考資料、參考進行活動（唯讀）
 };
 
 const LEVELS = Object.keys(LEVEL_NAME);
@@ -245,6 +248,40 @@ export default function LessonForm({
       <fieldset className="adm-panel">
         <legend>常見卡關與解法</legend>
         <textarea name="tips" rows={4} {...T("tips")} aria-label="常見卡關與解法" placeholder="孩子常卡在哪裡、怎麼引導（之後會從課後回饋累積）" className="lsn-full" />
+      </fieldset>
+
+      <fieldset className="adm-panel">
+        <legend>參考資料與參考進行活動</legend>
+        <p className="hint">
+          {init.id
+            ? "下面可以再新增一筆；已經有的內容（含其他老師分享的）在教案頁查看，自己寫的可以在教案頁編輯。"
+            : "選填。建立後也可以在教案頁繼續新增，其他老師也能分享自己的做法。"}
+        </p>
+        {NOTE_KINDS.map((k) => {
+          const have = (init.notes ?? []).filter((n) => n.kind === k.value);
+          return (
+            <div key={k.value} className="field">
+              <label htmlFor={`l-note-${k.value}`}>
+                {k.icon} {k.label} <small>{k.hint}{have.length ? `・目前已有 ${have.length} 筆` : ""}</small>
+              </label>
+              {have.length > 0 && (
+                <ul className="lsn-note-peek">
+                  {have.slice(0, 3).map((n) => (
+                    <li key={n.id}>
+                      <span>{n.body.split("\n")[0].slice(0, 60)}</span>
+                      <small className="muted">　{n.author ? n.author.nickname || n.author.name : "舊資料"}</small>
+                    </li>
+                  ))}
+                  {have.length > 3 && <li className="muted">…還有 {have.length - 3} 筆</li>}
+                </ul>
+              )}
+              <textarea
+                id={`l-note-${k.value}`} name={`note_${k.value}`} rows={k.value === "activity" ? 4 : 3} maxLength={3000}
+                placeholder={k.placeholder + "（網址可以直接貼，一行一個）"} className="lsn-full"
+              />
+            </div>
+          );
+        })}
       </fieldset>
 
       <fieldset className="adm-panel">

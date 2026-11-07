@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
-import { canEditLesson, materialsOf, type Category, type Tag } from "@/lib/lessons";
+import { canEditLesson, materialsOf, type Category, type LessonNote, type Tag } from "@/lib/lessons";
 import { aiConfigured } from "@/lib/ai";
 import LessonForm from "../../LessonForm";
 
@@ -20,13 +20,16 @@ export default async function EditLessonPage({ params }: { params: Promise<{ id:
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [rows, categories, tags, photos] = await Promise.all([
+  const [rows, categories, tags, photos, notes] = await Promise.all([
     sbGet<L[]>(
       `lessons?id=eq.${id}&select=id,title,category_id,levels,difficulty,minutes,summary,challenge,support,materials,tips,xp,status,author_id,lesson_tags(tags(id,kind,name))`,
     ),
     sbGet<Category[]>("lesson_categories?select=id,major,name,levels,sort,active&order=major,sort,name"),
     sbGet<Tag[]>("tags?select=id,kind,name&order=name"),
     sbGet<{ id: string }[]>(`lesson_files?lesson_id=eq.${id}&kind=eq.image&select=id&limit=1`),
+    sbGet<LessonNote[]>(
+      `lesson_notes?lesson_id=eq.${id}&select=id,kind,body,url,author_id,created_at,updated_at,author:teachers!lesson_notes_author_id_fkey(name,nickname)&order=created_at`,
+    ).catch(() => [] as LessonNote[]),
   ]);
   const l = rows[0];
   if (!l) notFound();
@@ -55,7 +58,7 @@ export default async function EditLessonPage({ params }: { params: Promise<{ id:
           id: l.id, title: l.title, category_id: l.category_id ?? "", levels: l.levels, difficulty: l.difficulty,
           minutes: l.minutes, summary: l.summary ?? "", challenge: l.challenge ?? "", support: l.support ?? "",
           materials: materialsOf(l.materials), tips: l.tips ?? "", xp: l.xp,
-          status: l.status, tags: l.lesson_tags.map((x) => x.tags),
+          status: l.status, tags: l.lesson_tags.map((x) => x.tags), notes,
         }}
       />
     </>

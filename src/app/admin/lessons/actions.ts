@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { actorOf, requireStaff, type Staff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbFetch, sbGet, sbInsert, sbPatch } from "@/lib/supabase";
 import { LEVEL_NAME, optStr, str } from "@/lib/admin";
-import { TAG_KINDS, canEditLesson, cleanTagName, parseMaterials, parseSteps, type Tag } from "@/lib/lessons";
+import { NOTE_KINDS, TAG_KINDS, canEditLesson, cleanTagName, parseMaterials, parseSteps, type Tag } from "@/lib/lessons";
 
 const int = (v: string, min: number, max: number): number | null => {
   const n = Number(v);
@@ -103,7 +103,20 @@ export async function saveLesson(fd: FormData) {
     if (!res.ok) throw new Error("儲存標籤失敗");
   }
 
-  await audit(actorOf(staff), editing ? "lesson.update" : "lesson.create", `lessons:${lessonId}`, { title, status: row.status });
+  // 表單裡新寫的「參考資料」「參考進行活動」：各新增一筆，作者是自己（之後在教案頁編輯）
+  const notes = NOTE_KINDS.map((k) => ({ kind: k.value, body: str(fd, `note_${k.value}`, 3000).trim() })).filter((n) => n.body);
+  if (notes.length) {
+    const res = await sbFetch("lesson_notes", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(notes.map((n) => ({ lesson_id: lessonId, kind: n.kind, body: n.body, author_id: staff.id, updated_by: staff.id }))),
+    });
+    if (!res.ok) throw new Error("儲存參考資料失敗（請確認 0010 已執行）");
+  }
+
+  await audit(actorOf(staff), editing ? "lesson.update" : "lesson.create", `lessons:${lessonId}`, {
+    title, status: row.status, notes: notes.length,
+  });
   revalidatePath("/admin/lessons");
   revalidatePath(`/admin/lessons/${lessonId}`);
   redirect(`/admin/lessons/${lessonId}`);
