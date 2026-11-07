@@ -1114,3 +1114,23 @@ fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
 .pln-card small { color: var(--ink-soft); }
 .pln-new > summary { cursor: pointer; list-style: none; }
 .pln-new > summary::-webkit-details-marker { display: none; }
+/* 會議紀錄 */
+.pln-meetings h4 { margin: 12px 0 4px; }
+.pln-meetings h4 small { font-weight: 400; color: var(--ink-soft); font-size: .8rem; margin-left: 4px; }
+.pln-meet-new { display: grid; gap: 8px; padding: 12px; background: #f3f8fd; border-radius: 10px; margin-bottom: 10px; }
+.pln-meet-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.pln-meet-new .btn { justify-self: start; }
+.pln-meet-phase { padding: 10px 12px; border-radius: 10px; background: #fffaf0; margin-bottom: 10px; }
+.pln-meet-phase.error { background: #fdeceb; }
+.pln-meet-phase.done { background: #e9f6f1; }
+.pln-meet-phase p { margin: 0 0 6px; }
+.pln-meet-phase progress { width: 100%; }
+.pln-meet { border-top: 1px dashed #e5e0d4; padding: 10px 0; }
+.pln-meet > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.pln-meet-todo { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.pln-meet-todo p { margin: 0; }
+.pln-apply-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; margin: 4px 0; }
+.pln-apply-row.task { grid-template-columns: auto 1fr 9em 10em; }
+@media (max-width: 700px) { .pln-apply-row.task { grid-template-columns: auto 1fr; } .pln-apply-row.task select, .pln-apply-row.task input[type=date] { grid-column: 2; } }
+.pln-meet-foot { display: flex; gap: 16px; margin-top: 8px; }
+.pln-transcript { max-height: 360px; overflow: auto; background: #fafaf6; border-radius: 8px; padding: 10px; font-size: .9rem; margin-top: 6px; }

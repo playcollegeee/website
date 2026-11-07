@@ -11,8 +11,11 @@ import ItemCard, { type LessonOpt } from "../ItemCard";
 import Discussion from "../Discussion";
 import Tasks from "../Tasks";
 import PlanHeader from "../PlanHeader";
+import Meetings, { type Meeting } from "../Meetings";
+import { sttConfigured } from "@/lib/stt";
 
 export const metadata = { title: "課程規劃" };
+export const maxDuration = 60; // 會議逐字稿轉文字、AI 整理最多等 60 秒
 
 type T = { id: string; name: string; nickname: string | null };
 const PERSON = "name,nickname";
@@ -21,7 +24,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [plans, items, comments, tasks, teachers, lessons] = await Promise.all([
+  const [plans, items, comments, tasks, teachers, lessons, meetings] = await Promise.all([
     sbGet<Plan[]>(`plans?id=eq.${id}&select=*,owner:teachers!plans_owner_id_fkey(${PERSON})`),
     sbGet<PlanItem[]>(
       `plan_items?plan_id=eq.${id}&select=*,lesson:lessons(id,title),teacher:teachers!plan_items_teacher_id_fkey(${PERSON})&order=day.nullslast,seq,created_at`,
@@ -32,6 +35,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     sbGet<{ id: string; title: string; category: { major: string } | null }[]>(
       "lessons?status=neq.archived&select=id,title,category:lesson_categories(major)&order=title",
     ),
+    // 會議紀錄（0013 還沒執行時當作沒有）
+    sbGet<Meeting[]>(
+      `meetings?plan_id=eq.${id}&select=id,title,held_on,status,parts_total,duration_sec,summary,ai_result,applied_at,created_by,created_at,creator:teachers!meetings_created_by_fkey(${PERSON}),parts:meeting_parts(count)&order=held_on.desc.nullslast,created_at.desc`,
+    ).catch(() => null),
   ]);
   const plan = plans[0];
   if (!plan) notFound();
@@ -109,6 +116,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               </details>
             ));
           })()}
+          {meetings !== null && (
+            <Meetings planId={plan.id} meetings={meetings} teachers={teachers} me={staff.id} isAdmin={staff.is_admin}
+              canEditPlan={editable} sttReady={sttConfigured()} />
+          )}
         </div>
 
         <aside className="pln-side">
