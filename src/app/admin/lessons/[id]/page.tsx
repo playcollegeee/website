@@ -9,6 +9,7 @@ import {
 import { setLessonStatus } from "../actions";
 import PrintButton from "../PrintButton";
 import LessonFiles from "../LessonFiles";
+import { EXPORT_FORMATS } from "@/lib/lessonExport";
 
 export const metadata = { title: "教案" };
 
@@ -16,6 +17,7 @@ type L = {
   id: string; title: string; levels: string[]; difficulty: number | null; minutes: number; summary: string | null;
   goals: string | null; refs: string | null; timeline: unknown; challenge: string | null; support: string | null;
   materials: unknown; tips: string | null; xp: number; status: string; version: number; author_id: string | null;
+  parent_note: string | null; outline: string | null;
   created_at: string; updated_at: string;
   category: { major: string; name: string } | null;
   author: { name: string; nickname: string | null } | null;
@@ -51,7 +53,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   if (!isUuid(id)) notFound();
   const [rows, sessions, files] = await Promise.all([
     sbGet<L[]>(
-      `lessons?id=eq.${id}&select=id,title,levels,difficulty,minutes,summary,goals,refs,timeline,challenge,support,materials,tips,xp,status,version,author_id,created_at,updated_at,` +
+      `lessons?id=eq.${id}&select=id,title,levels,difficulty,minutes,summary,goals,refs,timeline,challenge,support,materials,tips,xp,status,version,author_id,parent_note,outline,created_at,updated_at,` +
         `category:lesson_categories(major,name),author:teachers!lessons_author_id_fkey(name,nickname),editor:teachers!lessons_updated_by_fkey(name,nickname),` +
         `lesson_tags(tags(id,kind,name))`,
     ),
@@ -93,6 +95,17 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         </h1>
         <div className="adm-actions lsn-noprint">
           <Link href="/admin/lessons" className="adm-link">← 教案庫</Link>
+          <details className="adm-pop lsn-export">
+            <summary className="btn btn-sm">📄 匯出 Word</summary>
+            <ul>
+              {(Object.keys(EXPORT_FORMATS) as (keyof typeof EXPORT_FORMATS)[]).map((f) => (
+                <li key={f}>
+                  <a href={`/admin/lessons/${id}/export/${f}`}>{EXPORT_FORMATS[f].label}</a>
+                  <small>{EXPORT_FORMATS[f].hint}</small>
+                </li>
+              ))}
+            </ul>
+          </details>
           <PrintButton />
           {editable && <Link href={`/admin/lessons/${id}/edit`} className="btn btn-sm primary">編輯</Link>}
         </div>
@@ -183,6 +196,14 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
           ) : <p className="adm-empty">—</p>}
         </section>
       </div>
+
+      <section className="adm-panel">
+        <h2>對外文字</h2>
+        <h3 className="lsn-sub">給家長的話</h3>
+        <Text v={l.parent_note} />
+        <h3 className="lsn-sub">活動簡介</h3>
+        <Text v={l.outline} />
+      </section>
 
       <section className="adm-panel">
         <h2>常見卡關與解法</h2>

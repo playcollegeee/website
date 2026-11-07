@@ -80,6 +80,8 @@ export async function saveLesson(fd: FormData) {
     support: optStr(fd, "support", 2000),
     materials: parseMaterials(str(fd, "materials", 20000)),
     tips: optStr(fd, "tips", 3000),
+    parent_note: optStr(fd, "parent_note", 1000),
+    outline: optStr(fd, "outline", 1000),
     xp: int(str(fd, "xp", 3), 0, 100) ?? 10,
     status: ["ready", "archived"].includes(status) ? status : "draft",
     updated_by: staff.id,

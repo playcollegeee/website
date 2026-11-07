@@ -10,6 +10,7 @@ export const LIMITS = {
   trial: { limit: 5, windowSec: 10 * 60 }, // 試聽／諮詢表單 10 分鐘 5 次
   enroll: { limit: 5, windowSec: 30 * 60 }, // 線上報名 30 分鐘 5 次
   checkin: { limit: 120, windowSec: 60 }, // 讀卡站 1 分鐘 120 次（正常上課不會碰到）
+  ai: { limit: 30, windowSec: 60 * 60 }, // AI 產生教案初稿：每位老師 1 小時 30 次（控制費用）
 } as const;
 
 // 從請求標頭取出訪客 IP（Vercel 會放在 x-forwarded-for 第一個）
