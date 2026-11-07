@@ -980,3 +980,5 @@ a.lsn-chip:hover { border-color: var(--ink); }
 .lsn-collab-fold > summary::after { content: "▸ 展開"; margin-left: auto; font-size: .85rem; color: var(--ink-soft); }
 .lsn-collab-fold[open] > summary::after { content: "▾ 收合"; }
 .lsn-collab-fold[open] > summary { margin-bottom: 12px; }
+.lsn-note-peek { list-style: none; margin: 4px 0 8px; padding: 8px 12px; background: #faf7ef; border-radius: 8px; font-size: .88rem; }
+.lsn-note-peek li { padding: 2px 0; }
