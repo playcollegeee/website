@@ -3,6 +3,8 @@ import { requireStaff } from "@/lib/staff";
 import { sbGet } from "@/lib/supabase";
 import { OPEN_WINDOW_HOURS, fmtDate, fmtTime, taipeiDay, ymd } from "@/lib/admin";
 import PunchCard from "./timesheet/PunchCard";
+import Tasks from "./plans/Tasks";
+import type { PlanTask } from "@/lib/plans";
 
 export const metadata = { title: "今日課程" };
 
@@ -29,7 +31,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const next = ymd(new Date(new Date(end).getTime() + 3600_000));
 
   const since = new Date(Date.now() - OPEN_WINDOW_HOURS * 3600_000).toISOString();
-  const [sessions, scans, setup, pendingRegs, myShifts] = await Promise.all([
+  const [sessions, scans, setup, pendingRegs, myShifts, myTasks] = await Promise.all([
     sbGet<Sess[]>(
       `sessions?starts_at=gte.${start}&starts_at=lt.${end}&order=starts_at` +
         `&select=id,starts_at,ends_at,classes(id,name,room,teachers(name,nickname),enrollments(status)),attendance(status)`,
@@ -46,6 +48,10 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     sbGet<{ check_in_at: string; check_out_at: string | null; location: string | null }[]>(
       `teacher_attendance?teacher_id=eq.${staff.id}&order=check_in_at.desc&limit=30&select=check_in_at,check_out_at,location`,
     ).catch(() => []),
+    // 課程規劃裡指派給我的待辦
+    sbGet<PlanTask[]>(
+      `plan_tasks?assignee_id=eq.${staff.id}&done_at=is.null&select=*,plan:plans(id,title,kind)&order=due_date.nullslast&limit=20`,
+    ).catch(() => [] as PlanTask[]),
   ]);
   const openShift = myShifts.find((x) => !x.check_out_at && x.check_in_at >= since) ?? null;
   const places = [...new Set(["玩學院教室", ...myShifts.map((x) => x.location).filter((x): x is string => !!x)])];
@@ -83,6 +89,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         <p className="notice err">
           有 {pendingRegs.length} 筆線上報名等待審核。<Link href="/admin/registrations">前往審核 →</Link>
         </p>
+      )}
+
+      {myTasks.length > 0 && (
+        <div className="adm-panel">
+          <h2>📌 我的待辦 <small>{myTasks.length} 項</small></h2>
+          <Tasks tasks={myTasks} me={staff.id} isAdmin={staff.is_admin} showPlan />
+        </div>
       )}
 
       {todo.length > 0 && (
