@@ -34,7 +34,7 @@ export default function CollabPack({
   const [shown, setShown] = useState(false); // 預設摺疊
 
   function generate() {
-    if (filled && !draft && !confirm("重新產生會取代目前的合作單位教案內容（儲存前都可以取消），確定嗎？")) return;
+    // 重新產生的結果先進入編輯，按「儲存」才會取代，所以不需要另外確認
     setMsg(null);
     startAi(async () => {
       const r = await draftCollab({ lessonId, notes });

@@ -1138,3 +1138,7 @@ fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
 .pln-theme.none { color: #b08a2e; }
 .pln-theme.big { font-size: 1.05rem; margin: -4px 0 6px; }
 .pln-preview { background: #fffaf0; border-radius: 8px; padding: 8px 12px; }
+
+/* 頁面上的確認（ConfirmButton） */
+.adm-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; background: #fdeceb; border: 1px solid #f3c2bf; border-radius: 8px; font-size: .85rem; }
+.btn.danger { background: var(--red); color: #fff; border-color: var(--red); }

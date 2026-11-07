@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useState, useTransition } from "react";
 import { PLAN_KIND_LABEL, fmtDay, who, type PlanTask } from "@/lib/plans";
 import { addTask, deleteTask, toggleTask } from "./actions";
@@ -49,8 +50,7 @@ export default function Tasks({
         {!t.done_at && t.due_date && t.due_date < today && " ⚠️ 已過期"}
       </small>
       {!showPlan && (isAdmin || t.created_by === me) && (
-        <button type="button" className="adm-link danger" disabled={busy} aria-label="刪除待辦"
-          onClick={() => confirm("確定刪除這個待辦？") && run(() => deleteTask(t.id))}>✕</button>
+        <ConfirmButton label="✕" ariaLabel="刪除待辦" disabled={busy} message="刪除這個待辦？" confirmLabel="刪除" onConfirm={() => run(() => deleteTask(t.id))} />
       )}
     </li>
   );

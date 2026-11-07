@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import ConfirmButton from "@/app/admin/ConfirmButton";
 import { noteAuthor, type LessonNote } from "@/lib/lessons";
 import { addNote, addReply, deleteNote, updateNote } from "./noteActions";
 
@@ -57,9 +58,9 @@ export default function LessonIssues({
               <button type="button" className="adm-link" disabled={busy} onClick={() => { setMsg(null); setEditing(n.id); setEditText(n.body); }}>編輯</button>
             )}
             {isAdmin && (
-              <button type="button" className="adm-link danger" disabled={busy} onClick={() => {
-                if (confirm(isReply ? "確定刪除這則備註？" : "確定刪除這個問題？底下的備註也會一起刪除，無法復原。")) run(() => deleteNote(n.id));
-              }}>刪除</button>
+              <ConfirmButton label="刪除" disabled={busy}
+                message={isReply ? "確定刪除這則備註？" : "確定刪除這個問題？底下的備註也會一起刪除，無法復原。"}
+                onConfirm={() => run(() => deleteNote(n.id))} />
             )}
           </span>
         </span>
