@@ -119,3 +119,23 @@ export const canEditLesson = (staff: { id: string; is_admin: boolean }, authorId
 export const LESSON_BUCKET = "lesson-files";
 export const fmtBytes = (n: number | null) =>
   n === null ? "" : n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+
+// 教案下的「參考資料」「參考進行活動」（lesson_notes，migration 0010）
+// 所有老師可新增；只能編輯自己寫的；舊資料（沒有作者）與其他老師寫的只有管理員能編輯；刪除只有管理員。
+export const NOTE_KINDS = [
+  { value: "ref", label: "參考資料", icon: "📚", hint: "繪本、影片、圖片、書籍、網址", placeholder: "例：繪本《好餓的毛毛蟲》，可以用來引起動機" },
+  { value: "activity", label: "參考進行活動", icon: "🎬", hint: "你帶這堂課的做法、引導方式、變化玩法、遊戲", placeholder: "例：組好後玩「鱷魚吃青菜」：老師喊顏色，孩子找同色積木餵鱷魚，最後比誰餵最多" },
+] as const;
+export type NoteKind = (typeof NOTE_KINDS)[number]["value"];
+export type LessonNote = {
+  id: string;
+  kind: NoteKind;
+  body: string;
+  url: string | null;
+  author_id: string | null;
+  created_at: string;
+  updated_at: string;
+  author: { name: string; nickname: string | null } | null;
+};
+export const canEditNote = (n: { author_id: string | null }, s: { id: string; is_admin: boolean }) =>
+  s.is_admin || (!!n.author_id && n.author_id === s.id);
