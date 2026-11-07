@@ -6,6 +6,10 @@ import CourseQuiz from "@/components/CourseQuiz";
 import StackingLevels from "@/components/StackingLevels";
 import { featured, interestQuests, site, stats, valueProps } from "@/lib/content";
 import { getPublishedPhotos } from "@/lib/sitePhotos";
+import PhotoMarquee, { fillTo } from "@/components/PhotoMarquee";
+
+// 教室現場照片在這個數量以內用兩排固定排列，超過就改成兩排跑馬燈
+const GALLERY_STATIC_MAX = 6;
 
 const ribbonWords = ["先探索", "再發現", "逐步深入", "LEGO 機器人", "3D 造物", "美術創作", "動手做", "玩出興趣"];
 
@@ -174,19 +178,20 @@ export default async function HomePage() {
               <p className="eyebrow">成果與活動紀錄</p>
               <h2>孩子們最近做了什麼</h2>
             </div>
-            <div className="grid cols-3">
-              {highlightPhotos.map((h) => (
-                <article key={h.id} className={`card photo-card bar-${h.color}`}>
-                  <div className="photo">
-                    <Image src={h.image_url} alt={h.title} width={h.width} height={h.height} sizes="(max-width: 860px) 100vw, 360px" />
-                  </div>
-                  {h.tag && <span className="tag">{h.tag}</span>}
-                  <h3>{h.title}</h3>
-                  {h.body && <p>{h.body}</p>}
-                </article>
-              ))}
-            </div>
           </div>
+          {/* 單排跑馬燈：每張卡片約 8 秒移過一格，越多張一輪越久，速度不變 */}
+          <PhotoMarquee label="成果與活動紀錄" seconds={fillTo(highlightPhotos, 6).length * 8}>
+            {fillTo(highlightPhotos, 6).map((h, i) => (
+              <article key={`${h.id}-${i}`} className={`card photo-card bar-${h.color}`}>
+                <div className="photo">
+                  <Image src={h.image_url} alt={h.title} width={h.width} height={h.height} sizes="300px" />
+                </div>
+                {h.tag && <span className="tag">{h.tag}</span>}
+                <h3>{h.title}</h3>
+                {h.body && <p>{h.body}</p>}
+              </article>
+            ))}
+          </PhotoMarquee>
         </section>
       )}
 
@@ -198,15 +203,32 @@ export default async function HomePage() {
               <p className="eyebrow">教室現場</p>
               <h2>每一個作品，都是孩子自己動手完成的</h2>
             </div>
-            <div className="photo-wall">
-              {galleryPhotos.map((g) => (
-                <figure key={g.id} className="photo-item">
-                  <Image src={g.image_url} alt={g.title} width={g.width} height={g.height} sizes="(max-width: 860px) 50vw, 380px" />
-                  <figcaption>{g.title}</figcaption>
-                </figure>
-              ))}
-            </div>
+            {galleryPhotos.length <= GALLERY_STATIC_MAX && (
+              <div className="photo-wall">
+                {galleryPhotos.map((g) => (
+                  <figure key={g.id} className="photo-item">
+                    <Image src={g.image_url} alt={g.title} width={g.width} height={g.height} sizes="(max-width: 860px) 50vw, 380px" />
+                    <figcaption>{g.title}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            )}
           </div>
+          {/* 超過 6 張改成上下兩排跑馬燈，上排往左、下排往右 */}
+          {galleryPhotos.length > GALLERY_STATIC_MAX &&
+            [0, 1].map((row) => {
+              const items = fillTo(galleryPhotos.filter((_, i) => i % 2 === row), 6);
+              return (
+                <PhotoMarquee key={row} label={`教室現場第 ${row + 1} 排`} seconds={items.length * 7} reverse={row === 1}>
+                  {items.map((g, i) => (
+                    <figure key={`${g.id}-${i}`} className="photo-item">
+                      <Image src={g.image_url} alt={g.title} width={g.width} height={g.height} sizes="280px" />
+                      <figcaption>{g.title}</figcaption>
+                    </figure>
+                  ))}
+                </PhotoMarquee>
+              );
+            })}
         </section>
       )}
 

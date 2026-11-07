@@ -294,6 +294,23 @@ h3 { font-size: 20px; }
 }
 @media (max-width: 860px) { .photo-wall { grid-template-columns: 1fr 1fr; } }
 
+/* ---------- 照片跑馬燈（PhotoMarquee） ---------- */
+.pm { overflow: hidden; padding: 12px 0; mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
+.pm + .pm { padding-top: 4px; }
+.pm-track { display: flex; width: max-content; animation: pm-scroll var(--pm-dur, 48s) linear infinite; }
+.pm.reverse .pm-track { animation-direction: reverse; }
+.pm-copy { display: flex; gap: 18px; padding-right: 18px; align-items: stretch; }
+.pm:hover .pm-track, .pm:focus-within .pm-track { animation-play-state: paused; }
+@keyframes pm-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.pm .photo-card { width: 300px; flex: none; margin: 0; }
+.pm .photo-item { width: 280px; flex: none; }
+@media (max-width: 860px) { .pm .photo-card { width: 250px; } .pm .photo-item { width: 220px; } }
+@media (prefers-reduced-motion: reduce) {
+  .pm { overflow-x: auto; mask-image: none; }
+  .pm-track { animation: none; }
+  .pm-copy[aria-hidden] { display: none; }
+}
+
 /* ---------- 浮動預約按鈕 ---------- */
 .fab {
   position: fixed; right: 18px; bottom: 18px; z-index: 30; text-decoration: none; font-weight: 800;

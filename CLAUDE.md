@@ -36,7 +36,7 @@
 - Next.js 16（App Router）＋ TypeScript，純 CSS（`src/app/globals.css`），沒有 Tailwind
 - 特效全部自己寫、不加套件：`BrickPlayground`（首頁積木雨，凸點格線物理）、`StackingLevels`（捲動疊積木階梯）、`src/lib/confetti.ts`（彩色紙片）
 - 首頁角色試玩：`src/components/AvatarCreator.tsx`（2026-11-06 改成戰棋像素風：`public/avatar/` 的 64×64 PNG 圖層依序疊出角色，放大 5 倍用 `image-rendering: pixelated`；見習職業可捏膚色／髮型／髮色／表情，「完成期數」0–5 解鎖裝備；每條路線 6 種轉職只顯示剪影＋名稱 `sil_*.png`，不在官網露出造型。圖層目前是程式畫的參考稿，正式美術外包後直接替換同名檔案。規則為示意，純前端不存資料；設計見專案文件「玩學院角色養成_設計規劃」）
-- 官網照片：首頁「成果紀錄」「教室現場」讀 `site_photos`（`src/lib/sitePhotos.ts`，tag `site-photos` 快取一小時，讀不到資料表就用 `content.ts` 內建照片）；後台 `/admin/photos` 上傳到 Storage 公開 bucket `site-photos`（瀏覽器先縮圖 1600px WebP，`next.config.ts` 的 serverActions bodySizeLimit 4mb）；存檔呼叫 `updateTag("site-photos")`
+- 官網照片：首頁「成果紀錄」「教室現場」讀 `site_photos`（`src/lib/sitePhotos.ts`，tag `site-photos` 快取一小時，讀不到資料表就用 `content.ts` 內建照片）；後台 `/admin/photos` 上傳到 Storage 公開 bucket `site-photos`（瀏覽器先縮圖 1600px WebP，`next.config.ts` 的 serverActions bodySizeLimit 4mb）；存檔呼叫 `updateTag("site-photos")`。首頁顯示（2026-11-07）：成果紀錄是單排跑馬燈；教室現場 6 張以內兩排固定，超過 6 張自動改成上下兩排跑馬燈（`GALLERY_STATIC_MAX`）；共用 `src/components/PhotoMarquee.tsx`（純 CSS、滑鼠移上去暫停、減少動態效果時改成可左右滑動，照片太少用 `fillTo` 重複補滿）
 - 所有動畫都要尊重 `prefers-reduced-motion`
 - 資安（2026-11-06）：`next.config.ts` 有 CSP／Permissions-Policy／COOP（新增外部服務要把網域加進 CSP；定位只開給本站線上打卡）；公開表單、登入、讀卡站用 `src/lib/rateLimit.ts` 的 `allow()` 做次數限制（`rate_limits` 表，migration 0006，表不存在時放行）；`/api/health` 給監控用；`.github/workflows/uptime.yml` 每 30 分鐘監控、失敗開 Issue；`.github/dependabot.yml` 每週檢查套件。詳見專案文件「玩學院系統開發_資安與維運計畫」
 - 後台選單：`src/app/admin/layout.tsx` 的 `groups` 分五類（每天上課／學生與家長／課程／招生與官網／系統設定），`AdminNav.tsx` 桌機側邊欄、手機「☰ 選單」；新頁面要放進分類
