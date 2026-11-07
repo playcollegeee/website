@@ -2,8 +2,10 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/staff";
 import { sbGet } from "@/lib/supabase";
 import { LEVEL_NAME } from "@/lib/admin";
-import { MAJOR_SHORT, TAG_KINDS, levelsLabel, type Category, type Tag } from "@/lib/lessons";
-import { createCategory, createTag, deleteTag, mergeTag, renameTag, updateCategory } from "./actions";
+import { MAJOR_SHORT, PRESET_KIND_LABEL, TAG_KINDS, levelsLabel, type Category, type MaterialPreset, type Tag } from "@/lib/lessons";
+import {
+  createCategory, createPreset, createTag, deletePreset, deleteTag, mergeTag, renameTag, updateCategory, updatePreset,
+} from "./actions";
 
 export const metadata = { title: "課程分類與標籤" };
 
@@ -22,11 +24,12 @@ function LevelChecks({ chosen }: { chosen: string[] }) {
 
 export default async function LessonSettingsPage() {
   await requireStaff(true);
-  const [cats, tags, links, lessons] = await Promise.all([
+  const [cats, tags, links, lessons, presets] = await Promise.all([
     sbGet<(Category & { description: string | null })[]>("lesson_categories?select=id,major,name,levels,sort,active,description&order=major,sort,name"),
     sbGet<Tag[]>("tags?select=id,kind,name&order=name"),
     sbGet<{ tag_id: string }[]>("lesson_tags?select=tag_id"),
     sbGet<{ category_id: string | null }[]>("lessons?select=category_id"),
+    sbGet<MaterialPreset[]>("material_presets?select=id,name,kind,sort,active&order=sort,name").catch(() => [] as MaterialPreset[]),
   ]);
   const tagUse = new Map<string, number>();
   for (const l of links) tagUse.set(l.tag_id, (tagUse.get(l.tag_id) ?? 0) + 1);
@@ -81,6 +84,41 @@ export default async function LessonSettingsPage() {
             </details>
           </div>
         ))}
+      </section>
+
+      <section className="adm-panel">
+        <h2>器材盒組與常用材料 <small>{presets.length} 個</small></h2>
+        <p className="hint">老師在教案的「器材與材料」可以直接點選這些項目，也可以自己打字。排序數字小的在前面；取消「使用中」或刪除後就不會出現在點選清單（已寫進教案的不受影響）。</p>
+        <table className="adm-table lsn-preset-table">
+          <thead><tr><th>名稱</th><th>種類</th><th>排序</th><th>使用中</th><th></th></tr></thead>
+          <tbody>
+            {presets.map((p) => (
+              <tr key={p.id}>
+                <td colSpan={5}>
+                  <form action={updatePreset} className="adm-inline-form">
+                    <input type="hidden" name="id" value={p.id} />
+                    <input name="name" defaultValue={p.name} maxLength={80} required aria-label="名稱" />
+                    <select name="kind" defaultValue={p.kind} aria-label="種類">
+                      {Object.entries(PRESET_KIND_LABEL).map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+                    </select>
+                    <input name="sort" type="number" min={0} max={999} defaultValue={p.sort} aria-label="排序" className="lsn-sort" />
+                    <label className="adm-check"><input type="checkbox" name="active" defaultChecked={p.active} /> 使用中</label>
+                    <button className="btn btn-sm" type="submit">儲存</button>
+                    <button className="adm-link danger" type="submit" formAction={deletePreset}>刪除</button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <form action={createPreset} className="adm-inline-form">
+          <input name="name" maxLength={80} required placeholder="新增盒組或材料，例：SPIKE Essential(45345)" aria-label="新增項目名稱" />
+          <select name="kind" defaultValue="kit" aria-label="種類">
+            {Object.entries(PRESET_KIND_LABEL).map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+          </select>
+          <input name="sort" type="number" min={0} max={999} defaultValue={(presets.at(-1)?.sort ?? 0) + 10} aria-label="排序" className="lsn-sort" />
+          <button className="btn btn-sm" type="submit">新增</button>
+        </form>
       </section>
 
       <section className="adm-panel">

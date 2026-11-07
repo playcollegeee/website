@@ -982,3 +982,37 @@ a.lsn-chip:hover { border-color: var(--ink); }
 .lsn-collab-fold[open] > summary { margin-bottom: 12px; }
 .lsn-note-peek { list-style: none; margin: 4px 0 8px; padding: 8px 12px; background: #faf7ef; border-radius: 8px; font-size: .88rem; }
 .lsn-note-peek li { padding: 2px 0; }
+
+/* 器材盒組點選、AI 參考建議、課程遇到的問題（2026-11-07） */
+.lsn-presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.lsn-preset { border: 1px solid #ddd5c2; background: #fff; border-radius: 999px; padding: 4px 12px; font-size: .88rem; cursor: pointer; }
+.lsn-preset.kit { border-color: var(--blue); }
+.lsn-preset:hover:not(:disabled) { background: #f3f8fd; }
+.lsn-preset.on { background: #eef7f4; border-color: var(--green); color: #2f7a6b; cursor: default; }
+.lsn-sort { width: 5.5em; }
+.lsn-preset-table td { padding: 4px 0; }
+.lsn-ai { margin-top: 14px; padding: 12px 14px; background: #fffaf0; border: 1px dashed var(--yellow); border-radius: 10px; }
+.lsn-ai .lsn-ai-row { display: flex; gap: 8px; align-items: center; }
+.lsn-sugg { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 10px; }
+.lsn-sugg h4 { margin: 0 0 6px; }
+.lsn-sugg ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.lsn-sugg li { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; background: #fff; border: 1px solid #eee4cc; border-radius: 8px; padding: 8px 10px; }
+.lsn-sugg li p { margin: 2px 0 0; font-size: .88rem; color: var(--ink-soft); }
+.lsn-sugg li button { flex: none; }
+.lsn-issues { list-style: none; padding: 0; margin: 0 0 10px; }
+.lsn-issue { border-bottom: 1px dashed #e5e0d4; padding: 10px 0; }
+.lsn-issue-body .lsn-issue-text::before { content: "• "; color: var(--red); font-weight: 700; }
+.lsn-issue-text { white-space: pre-wrap; }
+.lsn-replies { list-style: none; margin: 6px 0 0 18px; padding: 0 0 0 10px; border-left: 3px solid #e3efe9; }
+.lsn-reply { padding: 4px 0; font-size: .92rem; }
+.lsn-reply-btn { margin: 4px 0 0 18px; font-size: .85rem; }
+.lsn-issue .lsn-note-meta, .lsn-reply .lsn-note-meta { margin-top: 2px; }
+.lsn-org { margin-top: 10px; }
+.lsn-org-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.lsn-org h4, .lsn-sugg h4 { margin: 6px 0; }
+.lsn-org ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.lsn-org li { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; background: #fff; border: 1px solid #eee4cc; border-radius: 8px; padding: 8px 10px; }
+.lsn-org li p { margin: 2px 0 0; font-size: .9rem; }
+.lsn-org li button { flex: none; }
+.lsn-pre { white-space: pre-wrap; }
+fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }

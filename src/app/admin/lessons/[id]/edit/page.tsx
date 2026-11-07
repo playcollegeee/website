@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
-import { canEditLesson, materialsOf, type Category, type LessonNote, type Tag } from "@/lib/lessons";
+import { NOTE_SELECT, canEditLesson, materialsOf, type Category, type LessonNote, type MaterialPreset, type Tag } from "@/lib/lessons";
 import { aiConfigured } from "@/lib/ai";
 import LessonForm from "../../LessonForm";
 
@@ -12,7 +12,7 @@ export const maxDuration = 60; // AI 產生初稿最多等 60 秒
 type L = {
   id: string; title: string; category_id: string | null; levels: string[]; difficulty: number | null; minutes: number;
   summary: string | null; challenge: string | null;
-  support: string | null; materials: unknown; tips: string | null; xp: number; status: string; author_id: string | null;
+  support: string | null; materials: unknown; xp: number; status: string; author_id: string | null;
   lesson_tags: { tags: Tag }[];
 };
 
@@ -20,16 +20,17 @@ export default async function EditLessonPage({ params }: { params: Promise<{ id:
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [rows, categories, tags, photos, notes] = await Promise.all([
+  const [rows, categories, tags, photos, notes, presets] = await Promise.all([
     sbGet<L[]>(
-      `lessons?id=eq.${id}&select=id,title,category_id,levels,difficulty,minutes,summary,challenge,support,materials,tips,xp,status,author_id,lesson_tags(tags(id,kind,name))`,
+      `lessons?id=eq.${id}&select=id,title,category_id,levels,difficulty,minutes,summary,challenge,support,materials,xp,status,author_id,lesson_tags(tags(id,kind,name))`,
     ),
     sbGet<Category[]>("lesson_categories?select=id,major,name,levels,sort,active&order=major,sort,name"),
     sbGet<Tag[]>("tags?select=id,kind,name&order=name"),
     sbGet<{ id: string }[]>(`lesson_files?lesson_id=eq.${id}&kind=eq.image&select=id&limit=1`),
     sbGet<LessonNote[]>(
-      `lesson_notes?lesson_id=eq.${id}&select=id,kind,body,url,author_id,created_at,updated_at,author:teachers!lesson_notes_author_id_fkey(name,nickname)&order=created_at`,
+      `lesson_notes?lesson_id=eq.${id}&kind=in.(ref,activity,issue)&select=${NOTE_SELECT}&order=created_at`,
     ).catch(() => [] as LessonNote[]),
+    sbGet<MaterialPreset[]>("material_presets?active=eq.true&select=id,name,kind,sort,active&order=sort,name").catch(() => [] as MaterialPreset[]),
   ]);
   const l = rows[0];
   if (!l) notFound();
@@ -52,12 +53,13 @@ export default async function EditLessonPage({ params }: { params: Promise<{ id:
       <LessonForm
         categories={categories}
         tags={tags}
+        presets={presets}
         aiReady={aiConfigured()}
         hasPhoto={photos.length > 0}
         init={{
           id: l.id, title: l.title, category_id: l.category_id ?? "", levels: l.levels, difficulty: l.difficulty,
           minutes: l.minutes, summary: l.summary ?? "", challenge: l.challenge ?? "", support: l.support ?? "",
-          materials: materialsOf(l.materials), tips: l.tips ?? "", xp: l.xp,
+          materials: materialsOf(l.materials), xp: l.xp,
           status: l.status, tags: l.lesson_tags.map((x) => x.tags), notes,
         }}
       />

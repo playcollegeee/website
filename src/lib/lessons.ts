@@ -127,9 +127,12 @@ export const NOTE_KINDS = [
   { value: "activity", label: "參考進行活動", icon: "🎬", hint: "你帶這堂課的做法、引導方式、變化玩法、遊戲", placeholder: "例：組好後玩「鱷魚吃青菜」：老師喊顏色，孩子找同色積木餵鱷魚，最後比誰餵最多" },
 ] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number]["value"];
+// issue＝課程遇到的問題（條列）、reply＝問題底下的備註（老師互相回饋解法），migration 0011
+export type AnyNoteKind = NoteKind | "issue" | "reply";
 export type LessonNote = {
   id: string;
-  kind: NoteKind;
+  kind: AnyNoteKind;
+  parent_id?: string | null;
   body: string;
   url: string | null;
   author_id: string | null;
@@ -139,3 +142,11 @@ export type LessonNote = {
 };
 export const canEditNote = (n: { author_id: string | null }, s: { id: string; is_admin: boolean }) =>
   s.is_admin || (!!n.author_id && n.author_id === s.id);
+
+export const NOTE_SELECT =
+  "id,kind,parent_id,body,url,author_id,created_at,updated_at,author:teachers!lesson_notes_author_id_fkey(name,nickname)";
+export const noteAuthor = (n: LessonNote) => (n.author ? n.author.nickname || n.author.name : "舊資料");
+
+// 器材與材料可以直接點選的盒組（material_presets，migration 0011；管理員在「課程分類與標籤」頁管理）
+export type MaterialPreset = { id: string; name: string; kind: "kit" | "material"; sort: number; active: boolean };
+export const PRESET_KIND_LABEL: Record<string, string> = { kit: "盒組", material: "其他材料" };

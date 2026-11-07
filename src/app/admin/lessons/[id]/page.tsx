@@ -4,13 +4,14 @@ import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet, sbSignUrls } from "@/lib/supabase";
 import { fmtDate, fmtTime } from "@/lib/admin";
 import {
-  LESSON_BUCKET, LESSON_STATUS, NOTE_KINDS, TAG_KINDS, type LessonNote, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
+  LESSON_BUCKET, LESSON_STATUS, NOTE_KINDS, NOTE_SELECT, TAG_KINDS, type LessonNote, canEditLesson, categoryLabel, levelsLabel, materialsOf, stars, stepsOf, type Tag,
 } from "@/lib/lessons";
 import { setLessonStatus } from "../actions";
 import PrintButton from "../PrintButton";
 import LessonFiles from "../LessonFiles";
 import CollabPack from "../CollabPack";
 import LessonNotes from "../LessonNotes";
+import LessonIssues from "../LessonIssues";
 import Text from "../LessonText";
 import { aiConfigured } from "@/lib/ai";
 
@@ -20,7 +21,7 @@ export const maxDuration = 60; // 合作單位版的 AI 產生最多等 60 秒
 type L = {
   id: string; title: string; levels: string[]; difficulty: number | null; minutes: number; summary: string | null;
   goals: string | null; refs: string | null; timeline: unknown; challenge: string | null; support: string | null;
-  materials: unknown; tips: string | null; xp: number; status: string; version: number; author_id: string | null;
+  materials: unknown; xp: number; status: string; version: number; author_id: string | null;
   parent_note: string | null; outline: string | null;
   created_at: string; updated_at: string;
   category: { major: string; name: string } | null;
@@ -40,7 +41,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   if (!isUuid(id)) notFound();
   const [rows, sessions, files, notes] = await Promise.all([
     sbGet<L[]>(
-      `lessons?id=eq.${id}&select=id,title,levels,difficulty,minutes,summary,goals,refs,timeline,challenge,support,materials,tips,xp,status,version,author_id,parent_note,outline,created_at,updated_at,` +
+      `lessons?id=eq.${id}&select=id,title,levels,difficulty,minutes,summary,goals,refs,timeline,challenge,support,materials,xp,status,version,author_id,parent_note,outline,created_at,updated_at,` +
         `category:lesson_categories(major,name),author:teachers!lessons_author_id_fkey(name,nickname),editor:teachers!lessons_updated_by_fkey(name,nickname),` +
         `lesson_tags(tags(id,kind,name))`,
     ),
@@ -50,7 +51,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
     ),
     // 參考資料、參考進行活動（0010 還沒執行時先當作沒有資料）
     sbGet<LessonNote[]>(
-      `lesson_notes?lesson_id=eq.${id}&select=id,kind,body,url,author_id,created_at,updated_at,author:teachers!lesson_notes_author_id_fkey(name,nickname)&order=created_at`,
+      `lesson_notes?lesson_id=eq.${id}&select=${NOTE_SELECT}&order=created_at`,
     ).catch(() => [] as LessonNote[]),
   ]);
   const l = rows[0];
@@ -120,6 +121,17 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
 
       <LessonFiles lessonId={id} photos={photos} models={models} />
 
+      {NOTE_KINDS.map((k) => (
+        <LessonNotes
+          key={k.value}
+          lessonId={id}
+          kind={k.value}
+          notes={notes.filter((n) => n.kind === k.value)}
+          me={staff.id}
+          isAdmin={staff.is_admin}
+        />
+      ))}
+
       <div className="adm-cols">
         <section className="adm-panel">
           <h2>差異化</h2>
@@ -138,21 +150,14 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         </section>
       </div>
 
-      <section className="adm-panel">
-        <h2>常見卡關與解法</h2>
-        <Text v={l.tips} />
-      </section>
+      <LessonIssues
+        lessonId={id}
+        issues={notes.filter((n) => n.kind === "issue")}
+        replies={notes.filter((n) => n.kind === "reply")}
+        me={staff.id}
+        isAdmin={staff.is_admin}
+      />
 
-      {NOTE_KINDS.map((k) => (
-        <LessonNotes
-          key={k.value}
-          lessonId={id}
-          kind={k.value}
-          notes={notes.filter((n) => n.kind === k.value)}
-          me={staff.id}
-          isAdmin={staff.is_admin}
-        />
-      ))}
 
       <CollabPack
         lessonId={id}
