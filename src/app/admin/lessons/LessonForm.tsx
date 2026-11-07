@@ -2,10 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { LEVEL_NAME } from "@/lib/admin";
-import {
-  DIFFICULTY, MAJOR_SHORT, PHASES, TAG_KINDS,
-  type Category, type Material, type Phase, type Step, type Tag,
-} from "@/lib/lessons";
+import { DIFFICULTY, MAJOR_SHORT, TAG_KINDS, type Category, type Material, type Tag } from "@/lib/lessons";
 import { saveLesson } from "./actions";
 import { draftLesson, type Draft } from "./aiActions";
 
@@ -17,15 +14,10 @@ export type LessonInit = {
   difficulty: number | null;
   minutes: number;
   summary: string;
-  goals: string;
-  refs: string;
-  steps: Step[];
   challenge: string;
   support: string;
   materials: Material[];
   tips: string;
-  parent_note: string;
-  outline: string;
   xp: number;
   status: string;
   tags: Tag[];
@@ -33,9 +25,8 @@ export type LessonInit = {
 
 const LEVELS = Object.keys(LEVEL_NAME);
 const MAJORS = ["lego", "3d", "art"];
-const blankStep = (phase: Phase): Step => ({ phase, min: null, title: "", teacher: "", students: "" });
-
-// 新增／編輯教案的表單（流程步驟、器材、標籤都在瀏覽器整理好，送出時變成 JSON 一起送）
+// 新增／編輯教案的表單：只放每堂課都用得到的欄位，讓老師好建立、好瀏覽。
+// 學習目標、三段流程、給家長的話、活動簡介改在教案頁的「合作單位版」需要時才產生（CollabPack）。
 export default function LessonForm({
   init, categories, tags, aiReady, hasPhoto,
 }: {
@@ -47,8 +38,7 @@ export default function LessonForm({
 }) {
   // 文字欄位用 state 管理，AI 初稿才能直接填進來
   const [text, setText] = useState({
-    title: init.title, summary: init.summary, goals: init.goals, refs: init.refs, challenge: init.challenge,
-    support: init.support, tips: init.tips, parent_note: init.parent_note, outline: init.outline,
+    title: init.title, summary: init.summary, challenge: init.challenge, support: init.support, tips: init.tips,
   });
   const T = (k: keyof typeof text) => ({
     value: text[k],
@@ -64,11 +54,8 @@ export default function LessonForm({
   const [aiBusy, startAi] = useTransition();
   const [categoryId, setCategoryId] = useState(init.category_id);
   const [levels, setLevels] = useState<string[]>(init.levels);
-  const [steps, setSteps] = useState<Step[]>(init.steps.length ? init.steps : [blankStep("intro"), blankStep("main"), blankStep("wrap")]);
   const [materials, setMaterials] = useState<Material[]>(init.materials.length ? init.materials : [{ name: "", qty: "" }]);
   const [minutes, setMinutes] = useState(init.minutes);
-
-  const total = steps.reduce((n, s) => n + (s.min ?? 0), 0);
 
   // 選了類別、還沒勾階段時，自動帶入類別的建議階段
   const pickCategory = (id: string) => {
@@ -77,42 +64,16 @@ export default function LessonForm({
     if (c && levels.length === 0) setLevels(c.levels);
   };
 
-  const updateStep = (i: number, patch: Partial<Step>) =>
-    setSteps((all) => all.map((s, j) => (j === i ? { ...s, ...patch } : s)));
-  const moveStep = (i: number, d: -1 | 1) =>
-    setSteps((all) => {
-      const j = i + d;
-      if (j < 0 || j >= all.length || all[j].phase !== all[i].phase) return all;
-      const next = [...all];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
-  const addStep = (phase: Phase) =>
-    setSteps((all) => {
-      // 插在同一段的最後面
-      let at = all.length;
-      for (let k = all.length - 1; k >= 0; k--) if (all[k].phase === phase) { at = k + 1; break; }
-      if (at === all.length) {
-        const order = PHASES.map((p) => p.value as Phase);
-        at = all.findIndex((s) => order.indexOf(s.phase) > order.indexOf(phase));
-        if (at < 0) at = all.length;
-      }
-      return [...all.slice(0, at), blankStep(phase), ...all.slice(at)];
-    });
-
   // 把 AI 初稿填進表單：keep=true 時只填空白的欄位
   function apply(d: Draft) {
     setText((t) => {
       const pick = (k: keyof typeof t, v: string) => (keep && t[k].trim() ? t[k] : v || t[k]);
       return {
         ...t,
-        summary: pick("summary", d.summary), goals: pick("goals", d.goals), refs: pick("refs", d.refs),
-        challenge: pick("challenge", d.challenge), support: pick("support", d.support),
-        parent_note: pick("parent_note", d.parent_note), outline: pick("outline", d.outline),
+        summary: pick("summary", d.summary), challenge: pick("challenge", d.challenge),
+        support: pick("support", d.support), tips: pick("tips", d.tips),
       };
     });
-    const hasSteps = steps.some((s) => s.title || s.teacher || s.students);
-    if (d.steps.length && !(keep && hasSteps)) setSteps(d.steps);
     const hasMats = materials.some((m) => m.name);
     if (d.materials.length && !(keep && hasMats)) setMaterials(d.materials);
     // 標籤：合併（不刪老師已選的）
@@ -138,7 +99,7 @@ export default function LessonForm({
       apply(r.draft);
       setAiMsg({
         ok: true,
-        text: `AI 初稿已填入${r.usedPhoto ? "（有參考成品照片）" : ""}。請逐段檢查：繪本書名是否真的存在、流程與時間是否合適、標籤是否正確，修改後再按儲存。`,
+        text: `AI 已幫忙填入${r.usedPhoto ? "（有參考成品照片）" : ""}。請檢查簡介、器材、標籤是否正確，修改後再按儲存。`,
       });
     });
   }
@@ -146,7 +107,6 @@ export default function LessonForm({
   return (
     <form action={saveLesson} className="adm-form lsn-form">
       {init.id && <input type="hidden" name="id" value={init.id} />}
-      <input type="hidden" name="timeline" value={JSON.stringify(steps)} />
       <input type="hidden" name="materials" value={JSON.stringify(materials)} />
 
       <fieldset className="adm-panel">
@@ -201,32 +161,28 @@ export default function LessonForm({
             <label htmlFor="l-sum">一句話簡介</label>
             <input id="l-sum" name="summary" maxLength={200} {...T("summary")} placeholder="例：用大小齒輪讓小車跑得更快，體驗變速的原理" />
           </div>
-          <div className="field adm-wide">
-            <label htmlFor="l-goals">學習目標</label>
-            <textarea id="l-goals" name="goals" rows={3} {...T("goals")} placeholder="孩子下課後能做到什麼（一行一個）" />
-          </div>
         </div>
       </fieldset>
 
       <fieldset className="adm-panel lsn-ai">
-        <legend>✨ AI 產生初稿</legend>
+        <legend>✨ AI 協助整理</legend>
         {aiReady ? (
           <>
             <p className="hint">
-              先填好上面的<strong>標題、類別、階段、時長</strong>，AI 會寫出學習目標、三段流程、差異化、器材、給家長的話、活動簡介與標籤，你再修改。
-              {hasPhoto ? "會參考這個教案的封面照片。" : init.id ? "上傳成品照片後再產生，AI 會依照片描述結構。" : "建立教案、上傳成品照片後再用一次，AI 會依照片描述結構。"}
+              填好<strong>標題、類別</strong>，可以把你的想法、上課筆記隨手貼在下面，AI 會整理出簡介、器材、挑戰題／簡化版、常見卡關，並建議標籤。
+              {hasPhoto ? "會參考這個教案的封面照片。" : init.id ? "上傳成品照片後再用，AI 會依照片判斷結構。" : "建立教案、上傳成品照片後再用一次，結果會更準。"}
             </p>
             <div className="field">
-              <label htmlFor="l-ai">給 AI 的補充（選填）</label>
-              <textarea id="l-ai" rows={2} value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} maxLength={1500}
-                placeholder="例：親子課 10 組；想用繪本《〇〇》；最後玩送貨遊戲；強調齒輪讓輪子轉更快" />
+              <label htmlFor="l-ai">你的想法或筆記（選填）</label>
+              <textarea id="l-ai" rows={3} value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} maxLength={1500}
+                placeholder="例：用 SPIKE 做變速小車，大齒輪帶小齒輪跑比較快；孩子常把齒輪裝太緊轉不動；做得快的可以加後輪避震" />
             </div>
             <div className="lsn-ai-row">
               <label className="adm-check">
                 <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} /> 保留我已經寫的內容（只填空白的欄位）
               </label>
               <button type="button" className="btn btn-sm primary" onClick={runAi} disabled={aiBusy || !text.title.trim() || !categoryId}>
-                {aiBusy ? "AI 撰寫中…（約 20–40 秒）" : "✨ 產生初稿"}
+                {aiBusy ? "AI 整理中…（約 20–40 秒）" : "✨ 協助整理"}
               </button>
             </div>
             {aiMsg && <p className={`notice ${aiMsg.ok ? "ok" : "err"}`} role="status">{aiMsg.text}</p>}
@@ -237,7 +193,7 @@ export default function LessonForm({
       </fieldset>
 
       <fieldset className="adm-panel">
-        <legend>學習收穫與標籤</legend>
+        <legend>分類標籤</legend>
         <p className="hint">打字會提示既有標籤；按 Enter 或逗號加入。盡量選既有的標籤，搜尋與排課才找得到。</p>
         <div className="lsn-tagkinds">
           {TAG_KINDS.map((k) => (
@@ -252,47 +208,6 @@ export default function LessonForm({
             />
           ))}
         </div>
-      </fieldset>
-
-      <fieldset className="adm-panel">
-        <legend>
-          教學流程 <small className={total > minutes ? "lsn-over" : ""}>已排 {total}／{minutes} 分鐘</small>
-        </legend>
-        <div className="field">
-          <label htmlFor="l-refs">前導引導的參考資料</label>
-          <textarea id="l-refs" name="refs" rows={2} {...T("refs")} placeholder="影片、圖片、繪本、網址（一行一個）" />
-        </div>
-        {PHASES.map((p) => (
-          <div key={p.value} className={`lsn-phase lsn-phase-${p.value}`}>
-            <h3>{p.label} <small>{p.hint}</small></h3>
-            {steps.map((s, i) =>
-              s.phase !== p.value ? null : (
-                <div key={i} className="lsn-step">
-                  <div className="lsn-step-top">
-                    <input
-                      type="number" min={1} max={480} placeholder="分" aria-label="分鐘" className="lsn-min"
-                      value={s.min ?? ""} onChange={(e) => updateStep(i, { min: e.target.value ? Number(e.target.value) : null })}
-                    />
-                    <input
-                      placeholder="這一段在做什麼（例：腳踏車為什麼要變速？）" aria-label="段落標題" maxLength={80}
-                      value={s.title} onChange={(e) => updateStep(i, { title: e.target.value })}
-                    />
-                    <span className="lsn-step-btns">
-                      <button type="button" className="adm-link" onClick={() => moveStep(i, -1)} aria-label="往上移">↑</button>
-                      <button type="button" className="adm-link" onClick={() => moveStep(i, 1)} aria-label="往下移">↓</button>
-                      <button type="button" className="adm-link danger" onClick={() => setSteps((all) => all.filter((_, j) => j !== i))} aria-label="刪除這一段">✕</button>
-                    </span>
-                  </div>
-                  <div className="lsn-step-body">
-                    <textarea rows={2} placeholder="老師做什麼、說什麼、關鍵提問" aria-label="老師" value={s.teacher} onChange={(e) => updateStep(i, { teacher: e.target.value })} />
-                    <textarea rows={2} placeholder="孩子做什麼" aria-label="孩子" value={s.students} onChange={(e) => updateStep(i, { students: e.target.value })} />
-                  </div>
-                </div>
-              ),
-            )}
-            <button type="button" className="adm-link" onClick={() => addStep(p.value)}>＋ 加一段{p.label}</button>
-          </div>
-        ))}
       </fieldset>
 
       <fieldset className="adm-panel">
@@ -325,20 +240,6 @@ export default function LessonForm({
           </div>
         ))}
         <button type="button" className="adm-link" onClick={() => setMaterials((all) => [...all, { name: "", qty: "" }])}>＋ 加一項器材</button>
-      </fieldset>
-
-      <fieldset className="adm-panel">
-        <legend>對外文字 <small>匯出親子館、托育中心表格時使用</small></legend>
-        <div className="field">
-          <label htmlFor="l-parent">給家長的話</label>
-          <textarea id="l-parent" name="parent_note" rows={3} maxLength={1000} {...T("parent_note")}
-            placeholder="例：平時玩積木時，可以讓孩子盡量發揮，不用限制組裝方向，有困難再引導協助即可。" />
-        </div>
-        <div className="field">
-          <label htmlFor="l-outline">活動簡介</label>
-          <textarea id="l-outline" name="outline" rows={3} maxLength={1000} {...T("outline")}
-            placeholder="對外宣傳、簡章用的一小段介紹，活潑有畫面" />
-        </div>
       </fieldset>
 
       <fieldset className="adm-panel">

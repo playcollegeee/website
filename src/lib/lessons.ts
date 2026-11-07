@@ -7,10 +7,10 @@ export const LESSON_STATUS: Record<string, { label: string; tag: string }> = {
   archived: { label: "已封存", tag: "tag-gray" },
 };
 
-// 標籤六大類（順序就是畫面上的顯示順序）
+// 標籤五大類（順序就是畫面上的顯示順序）。
+// 「技能」2026-11-07 拿掉（每堂課都會練，不另外標）；資料庫裡舊的技能標籤保留但不再顯示、編輯教案時會移除。
 export const TAG_KINDS = [
   { value: "theme", label: "主題", hint: "例：交通工具、太空、動物" },
-  { value: "skill", label: "技能", hint: "例：依圖拼裝、除錯、口語發表" },
   { value: "structure", label: "結構", hint: "例：齒輪傳動、槓桿、三角支撐" },
   { value: "code", label: "程式", hint: "例：迴圈、條件判斷、感測器" },
   { value: "technique", label: "技巧", hint: "例：布林運算、列印支撐、疊色" },

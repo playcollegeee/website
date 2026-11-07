@@ -39,7 +39,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
   const [categories, teachers, allTags, found] = await Promise.all([
     sbGet<Category[]>("lesson_categories?select=id,major,name,levels,sort,active&order=major,sort,name"),
     sbGet<{ id: string; name: string; nickname: string | null }[]>("teachers?active=eq.true&order=name&select=id,name,nickname"),
-    sbGet<Tag[]>("tags?select=id,kind,name&order=name"),
+    sbGet<Tag[]>("tags?kind=neq.skill&select=id,kind,name&order=name"),
     sbRpc<{ id: string }[]>("search_lessons", {
       p_q: q || null,
       p_major: major || null,
@@ -166,7 +166,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
         <ul className="lsn-cards">
           {rows.map((r) => {
             const st = LESSON_STATUS[r.status] ?? LESSON_STATUS.draft;
-            const tags = r.lesson_tags.map((x) => x.tags);
+            const tags = r.lesson_tags.map((x) => x.tags).filter((t) => TAG_KIND_LABEL[t.kind]); // 不顯示已拿掉的「技能」
             return (
               <li key={r.id} className={`lsn-card lsn-major-${r.category?.major ?? "none"}`}>
                 {(() => {

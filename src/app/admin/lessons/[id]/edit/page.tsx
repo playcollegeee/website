@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
-import { canEditLesson, materialsOf, stepsOf, type Category, type Tag } from "@/lib/lessons";
+import { canEditLesson, materialsOf, type Category, type Tag } from "@/lib/lessons";
 import { aiConfigured } from "@/lib/ai";
 import LessonForm from "../../LessonForm";
 
@@ -11,9 +11,8 @@ export const maxDuration = 60; // AI 產生初稿最多等 60 秒
 
 type L = {
   id: string; title: string; category_id: string | null; levels: string[]; difficulty: number | null; minutes: number;
-  summary: string | null; goals: string | null; refs: string | null; timeline: unknown; challenge: string | null;
+  summary: string | null; challenge: string | null;
   support: string | null; materials: unknown; tips: string | null; xp: number; status: string; author_id: string | null;
-  parent_note: string | null; outline: string | null;
   lesson_tags: { tags: Tag }[];
 };
 
@@ -23,7 +22,7 @@ export default async function EditLessonPage({ params }: { params: Promise<{ id:
   if (!isUuid(id)) notFound();
   const [rows, categories, tags, photos] = await Promise.all([
     sbGet<L[]>(
-      `lessons?id=eq.${id}&select=id,title,category_id,levels,difficulty,minutes,summary,goals,refs,timeline,challenge,support,materials,tips,xp,status,author_id,parent_note,outline,lesson_tags(tags(id,kind,name))`,
+      `lessons?id=eq.${id}&select=id,title,category_id,levels,difficulty,minutes,summary,challenge,support,materials,tips,xp,status,author_id,lesson_tags(tags(id,kind,name))`,
     ),
     sbGet<Category[]>("lesson_categories?select=id,major,name,levels,sort,active&order=major,sort,name"),
     sbGet<Tag[]>("tags?select=id,kind,name&order=name"),
@@ -54,10 +53,8 @@ export default async function EditLessonPage({ params }: { params: Promise<{ id:
         hasPhoto={photos.length > 0}
         init={{
           id: l.id, title: l.title, category_id: l.category_id ?? "", levels: l.levels, difficulty: l.difficulty,
-          minutes: l.minutes, summary: l.summary ?? "", goals: l.goals ?? "", refs: l.refs ?? "",
-          steps: stepsOf(l.timeline), challenge: l.challenge ?? "", support: l.support ?? "",
+          minutes: l.minutes, summary: l.summary ?? "", challenge: l.challenge ?? "", support: l.support ?? "",
           materials: materialsOf(l.materials), tips: l.tips ?? "", xp: l.xp,
-          parent_note: l.parent_note ?? "", outline: l.outline ?? "",
           status: l.status, tags: l.lesson_tags.map((x) => x.tags),
         }}
       />
