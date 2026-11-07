@@ -2,9 +2,11 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
 import type { Category, Tag } from "@/lib/lessons";
+import { aiConfigured } from "@/lib/ai";
 import LessonForm from "../LessonForm";
 
 export const metadata = { title: "新增教案" };
+export const maxDuration = 60; // AI 產生初稿最多等 60 秒
 
 export default async function NewLessonPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
   await requireStaff();
@@ -24,9 +26,11 @@ export default async function NewLessonPage({ searchParams }: { searchParams: Pr
       <LessonForm
         categories={categories}
         tags={tags}
+        aiReady={aiConfigured()}
+        hasPhoto={false}
         init={{
           title: "", category_id: cat?.id ?? "", levels: cat?.levels ?? [], difficulty: null, minutes: 90,
-          summary: "", goals: "", refs: "", steps: [], challenge: "", support: "", materials: [], tips: "",
+          summary: "", goals: "", refs: "", steps: [], challenge: "", support: "", materials: [], tips: "", parent_note: "", outline: "",
           xp: 10, status: "draft", tags: [],
         }}
       />
