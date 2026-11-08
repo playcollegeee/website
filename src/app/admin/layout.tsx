@@ -34,6 +34,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         .catch(() => 0)
     : 0;
 
+  // 活動報名：家長已回填末五碼、等待對帳的筆數（0016 還沒執行時當 0）
+  const toVerify = staff.is_admin
+    ? await sbFetch("activity_bookings?status=eq.pending&pay_last5=not.is.null&select=id", { method: "HEAD", headers: { Prefer: "count=exact" } })
+        .then((r) => (r.ok ? Number(r.headers.get("content-range")?.split("/")[1] ?? 0) : 0))
+        .catch(() => 0)
+    : 0;
+
   // 依用途分類：每天上課 → 學生與家長 → 課程 → 招生與官網 → 系統設定
   const groups: NavGroup[] = [
     {
@@ -66,7 +73,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             items: [
               { href: "/admin/leads", label: "官網詢問", icon: "💬", badge: newLeads },
               { href: "/admin/photos", label: "官網照片", icon: "🖼️" },
-              { href: "/admin/activities", label: "活動與工作坊", icon: "🎪" },
+              { href: "/admin/events", label: "活動報名", icon: "🎟️", badge: toVerify },
+              { href: "/admin/contacts", label: "活動名單", icon: "📇" },
+              { href: "/admin/activities", label: "活動卡片", icon: "🎪" },
             ],
           },
           {

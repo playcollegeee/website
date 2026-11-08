@@ -9,6 +9,9 @@ export const LIMITS = {
   loginEmail: { limit: 8, windowSec: 15 * 60 }, // 同一個帳號 15 分鐘最多試 8 次
   trial: { limit: 5, windowSec: 10 * 60 }, // 試聽／諮詢表單 10 分鐘 5 次
   enroll: { limit: 5, windowSec: 30 * 60 }, // 線上報名 30 分鐘 5 次
+  signup: { limit: 6, windowSec: 30 * 60 }, // 活動報名 30 分鐘 6 次
+  payReport: { limit: 10, windowSec: 10 * 60 }, // 回填匯款末五碼 10 分鐘 10 次
+  interest: { limit: 5, windowSec: 10 * 60 }, // 「我想上這堂」10 分鐘 5 次
   checkin: { limit: 120, windowSec: 60 }, // 讀卡站 1 分鐘 120 次（正常上課不會碰到）
   ai: { limit: 30, windowSec: 60 * 60 }, // AI 產生教案初稿：每位老師 1 小時 30 次（控制費用）
   stt: { limit: 400, windowSec: 60 * 60 }, // 會議錄音轉文字：每位老師 1 小時 400 段（約 10 小時錄音）

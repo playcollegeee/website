@@ -2,15 +2,18 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { AUDIENCE_GROUPS, AUDIENCE_LABEL, KIND_LABEL, getPublishedActivities, signupHref } from "@/lib/activities";
+import { fmtTimes, getOpenRuns, runTitle } from "@/lib/events";
 
 export const metadata: Metadata = {
   title: "活動與工作坊",
   description: "積木故事屋、樂高動滋動、3D 造物體驗工作坊、寒暑假營隊，以及給大人的課程與講座。",
 };
 
+export const dynamic = "force-dynamic"; // 正在報名的名額要即時
+
 // 活動內容在後台「活動與工作坊」管理
 export default async function WorkshopsPage() {
-  const all = await getPublishedActivities();
+  const [all, openRuns] = await Promise.all([getPublishedActivities(), getOpenRuns().catch(() => [])]);
   const groups = AUDIENCE_GROUPS.map((g) => ({ ...g, items: all.filter((a) => g.audiences.includes(a.audience)) })).filter(
     (g) => g.items.length > 0,
   );
@@ -22,17 +25,61 @@ export default async function WorkshopsPage() {
           <p className="eyebrow">活動與工作坊</p>
           <h1>從一次體驗開始</h1>
           <p className="lead">每月都有新主題。在一次活動裡，從想法、設計到完成作品，帶著成就感回家。</p>
-          {groups.length > 1 && (
-            <nav className="btn-row" aria-label="活動分類">
-              {groups.map((g, i) => (
+          <nav className="btn-row" aria-label="活動分類">
+            {openRuns.length > 0 && <a href="#open" className="btn primary">正在報名</a>}
+            {groups.length > 1 &&
+              groups.map((g, i) => (
                 <a key={g.title} href={`#group-${i}`} className="btn">
                   {g.title}
                 </a>
               ))}
-            </nav>
-          )}
+            <Link href="/workshops/all" className="btn">工作坊總覽</Link>
+          </nav>
         </div>
       </section>
+
+      {openRuns.length > 0 && (
+        <section id="open" className="bg-blue">
+          <div className="container">
+            <div className="section-head">
+              <h2>正在報名</h2>
+              <p className="lead">名額有限，報名後依指示匯款，並私訊粉專「已報名」。</p>
+            </div>
+            <div className="grid cols-2">
+              {openRuns.map(({ run, theme, slots }) => {
+                const cover = run.cover_url || theme.cover_url;
+                return (
+                  <article key={run.id} className="card act-card">
+                    {cover && (
+                      <div className="card-img wk-cover">
+                        <Image src={cover} alt={`${theme.title}活動照片`} width={800} height={600} sizes="(max-width: 860px) 100vw, 560px" />
+                      </div>
+                    )}
+                    <h3>{runTitle(run, theme)}</h3>
+                    {theme.audience_text && (
+                      <p>
+                        <strong>適合對象：</strong>
+                        {theme.audience_text}
+                      </p>
+                    )}
+                    <ul className="wk-slots">
+                      {slots.map((s) => (
+                        <li key={s.id}>
+                          <strong>{s.label}</strong> {fmtTimes(s.times)}
+                          <span className={`su-left ${s.left <= 0 ? "full" : ""}`}>{s.left <= 0 ? "額滿・可候補" : s.left <= 3 ? `剩 ${s.left}` : "可報名"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="btn-row act-cta">
+                      <Link href={`/signup/${run.id}`} className="btn primary">我要報名</Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {groups.map((g, gi) => (
         <section key={g.title} id={`group-${gi}`} className={gi % 2 === 0 ? "bg-yellow" : ""}>
@@ -110,10 +157,13 @@ export default async function WorkshopsPage() {
 
       <section>
         <div className="container">
-          <h2>想知道下一場在什麼時候？</h2>
-          <p className="lead">留下聯絡方式，新活動公布時我們會第一時間通知你。</p>
+          <h2>想上以前開過的工作坊？</h2>
+          <p className="lead">看看所有開過的主題，按「我想上這堂」，湊到 3 人就開課。</p>
           <div className="btn-row">
-            <Link href="/contact?type=workshop" className="btn primary">
+            <Link href="/workshops/all" className="btn primary">
+              工作坊總覽
+            </Link>
+            <Link href="/contact?type=workshop" className="btn">
               留下聯絡方式
             </Link>
           </div>
