@@ -11,10 +11,12 @@ export default function TrialForm({
   defaultType = "trial",
   defaultLevel = "",
   defaultMajors = [],
+  defaultMessage = "",
 }: {
   defaultType?: string;
   defaultLevel?: string;
   defaultMajors?: string[];
+  defaultMessage?: string;
 }) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
@@ -82,7 +84,7 @@ export default function TrialForm({
           <input id="email" name="email" type="email" maxLength={120} autoComplete="email" />
         </div>
         <div className="field">
-          <label htmlFor="childLevel">孩子目前的年級</label>
+          <label htmlFor="childLevel">孩子目前的年級（大人自己參加可不選）</label>
           <select id="childLevel" name="childLevel" defaultValue={defaultLevel}>
             <option value="">請選擇</option>
             {levels.map((l) => (
@@ -104,7 +106,7 @@ export default function TrialForm({
       </fieldset>
       <div className="field">
         <label htmlFor="message">想跟我們說的話</label>
-        <textarea id="message" name="message" rows={4} maxLength={1000} placeholder="例如：孩子喜歡什麼、方便的上課時段、學校合作需求…" />
+        <textarea id="message" name="message" rows={4} maxLength={1000} defaultValue={defaultMessage} placeholder="例如：孩子喜歡什麼、方便的上課時段、學校合作需求…" />
       </div>
       <div className="honeypot" aria-hidden="true">
         <label htmlFor="website">請勿填寫</label>

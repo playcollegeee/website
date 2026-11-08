@@ -9,8 +9,11 @@ export const metadata: Metadata = {
 
 const allowed = ["trial", "workshop", "school", "other"];
 
-export default async function ContactPage({ searchParams }: { searchParams: Promise<{ type?: string; level?: string; major?: string }> }) {
-  const { type, level, major } = await searchParams;
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ type?: string; level?: string; major?: string; activity?: string }> }) {
+  const { type, level, major, activity } = await searchParams;
+  // 從「活動與工作坊」按「詢問與報名」過來時，先把活動名稱填進留言（只取純文字、限制長度）
+  const act = typeof activity === "string" ? activity.replace(/[<>\n\r]/g, "").slice(0, 60) : "";
+  const defaultMessage = act ? `我想報名／詢問「${act}」\n參加人數：大人　位、孩子　位（孩子年齡：　）\n` : "";
   const defaultType = type && allowed.includes(type) ? type : "trial";
   const defaultLevel = level && /^[a-z]{4,12}$/.test(level) ? level : "";
   const defaultMajors = major && ["lego", "3d", "art"].includes(major) ? [major] : [];
@@ -40,7 +43,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </div>
         </div>
         <div className="card">
-          <TrialForm defaultType={defaultType} defaultLevel={defaultLevel} defaultMajors={defaultMajors} />
+          <TrialForm defaultType={defaultType} defaultLevel={defaultLevel} defaultMajors={defaultMajors} defaultMessage={defaultMessage} />
         </div>
       </div>
     </section>
