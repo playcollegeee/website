@@ -12,10 +12,11 @@ const fmt = (iso: string) => {
 
 // 留言串：一層回覆；留言可標成「決議」（限可修改規劃的人）；只能改自己的、刪除限管理員
 export default function Discussion({
-  planId, itemId, comments, me, isAdmin, canDecide, compact,
+  planId, itemId, ideaId, comments, me, isAdmin, canDecide, compact,
 }: {
   planId: string;
   itemId?: string;
+  ideaId?: string;
   comments: PlanComment[]; // 這個討論串的所有留言（含回覆）
   me: string;
   isAdmin: boolean;
@@ -97,12 +98,12 @@ export default function Discussion({
       ))}
       <div className="pln-c-new">
         <textarea rows={compact ? 1 : 2} maxLength={3000} value={body} onChange={(e) => setBody(e.target.value)}
-          placeholder={itemId ? "針對這一項留言…" : "說說你的想法、提出問題或建議…"} aria-label="新留言"
+          placeholder={ideaId ? "對這個點子的意見…" : itemId ? "針對這一項留言…" : "說說你的想法、提出問題或建議…"} aria-label="新留言"
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && body.trim()) run(() => addComment({ planId, itemId, body }), () => setBody(""));
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && body.trim()) run(() => addComment({ planId, itemId, ideaId, body }), () => setBody(""));
           }} />
         <button type="button" className="btn btn-sm primary" disabled={busy || !body.trim()}
-          onClick={() => run(() => addComment({ planId, itemId, body }), () => setBody(""))}>
+          onClick={() => run(() => addComment({ planId, itemId, ideaId, body }), () => setBody(""))}>
           {busy ? "送出中…" : "送出"}
         </button>
       </div>

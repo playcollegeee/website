@@ -15,6 +15,7 @@ const isDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{
 // AI 整理的結果（先給老師看，按「套用」才寫進規劃的決議與待辦）
 export type MeetingAi = {
   summary: string;
+  agenda_results?: { index: number; conclusion: string }[];
   decisions: string[];
   tasks: { title: string; assignee: string; due: string }[];
   open_questions: string[];
@@ -51,6 +52,149 @@ export async function createMeeting(input: {
     await audit(actorOf(staff), "meeting.create", `meetings:${m.id}`, { plan: input.planId, parts });
     revalidatePath(`/admin/plans/${input.planId}`);
     return { ok: true, message: "已建立", id: m.id };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 0. 先安排會議（還沒錄音）：可以先擬議程；所有老師都可以安排
+export async function planMeeting(input: { planId: string; title: string; heldOn: string }): Promise<Result & { id?: string }> {
+  try {
+    const staff = await requireStaff();
+    if (!isUuid(input.planId)) return { ok: false, message: "資料不正確" };
+    const p = await sbGet<{ id: string }[]>(`plans?id=eq.${input.planId}&select=id`);
+    if (!p[0]) return { ok: false, message: "找不到這份規劃" };
+    const heldOn = isDate(input.heldOn) ? input.heldOn : null;
+    const title = String(input.title ?? "").trim().slice(0, 80) || `會議${heldOn ? " " + heldOn.slice(5).replace("-", "/") : ""}`;
+    const m = await sbInsert<{ id: string }>("meetings", {
+      plan_id: input.planId, title, held_on: heldOn, status: "planned", parts_total: 0, created_by: staff.id,
+    });
+    await audit(actorOf(staff), "meeting.plan", `meetings:${m.id}`, { plan: input.planId });
+    revalidatePath(`/admin/plans/${input.planId}`);
+    return { ok: true, message: "已安排會議，可以開始擬議程", id: m.id };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 已安排的會議開完後，把錄音接上去
+export async function attachRecording(input: { meetingId: string; partsTotal: number; durationSec: number; consent: boolean }): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    if (!sttConfigured()) return { ok: false, message: "還沒設定語音轉文字的金鑰，請管理員到 Vercel 設定 OPENAI_API_KEY" };
+    if (!input.consent) return { ok: false, message: "請先確認已告知與會老師要錄音" };
+    const m = await loadMeeting(input.meetingId);
+    if (m.status !== "planned") return { ok: false, message: "這場會議已經匯入過錄音" };
+    const parts = Math.floor(input.partsTotal);
+    if (!(parts >= 1 && parts <= 400)) return { ok: false, message: "錄音太長（最多約 10 小時）" };
+    await sbPatch(`meetings?id=eq.${m.id}&status=eq.planned`, {
+      status: "transcribing", parts_total: parts, duration_sec: Math.round(input.durationSec) || null,
+      consent_note: `已告知與會者（${staff.name} 確認）`, updated_at: new Date().toISOString(),
+    });
+    await audit(actorOf(staff), "meeting.attach_audio", `meetings:${m.id}`, { parts });
+    return { ok: true, message: "ok" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// ---------- 議程 ----------
+// 所有老師都能新增議題；修改、刪除、排序：新增的人、該議題負責人、會議安排人、規劃負責人或管理員
+type AgendaRow = { id: string; meeting_id: string; seq: number; owner_id: string | null; created_by: string | null };
+async function agendaCtx(id: string) {
+  if (!isUuid(id)) throw new Error("資料不正確");
+  const a = (await sbGet<AgendaRow[]>(`meeting_agenda?id=eq.${id}&select=id,meeting_id,seq,owner_id,created_by`))[0];
+  if (!a) throw new Error("找不到這個議題，可能已被刪除");
+  const m = await loadMeeting(a.meeting_id);
+  return { a, m };
+}
+async function canTouchAgenda(a: AgendaRow, m: M, staff: { id: string; is_admin: boolean }) {
+  if (staff.is_admin || a.created_by === staff.id || a.owner_id === staff.id || m.created_by === staff.id) return true;
+  if (!m.plan_id) return false;
+  const plan = (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0];
+  return !!plan && canEditPlan(plan, staff);
+}
+const agendaFields = async (input: { title: string; ownerId: string; minutes: string | number; notes: string }) => {
+  const title = String(input.title ?? "").trim().slice(0, 200);
+  if (!title) throw new Error("請填寫議題");
+  let ownerId: string | null = null;
+  if (input.ownerId) {
+    if (!isUuid(input.ownerId)) throw new Error("老師資料不正確");
+    const t = await sbGet<{ id: string }[]>(`teachers?id=eq.${input.ownerId}&active=eq.true&select=id`);
+    if (!t[0]) throw new Error("找不到這位老師");
+    ownerId = input.ownerId;
+  }
+  const n = Number(input.minutes);
+  return {
+    title, owner_id: ownerId, minutes: Number.isInteger(n) && n >= 1 && n <= 240 ? n : null,
+    notes: String(input.notes ?? "").trim().slice(0, 2000) || null,
+  };
+};
+
+export async function addAgenda(input: { meetingId: string; title: string; ownerId: string; minutes: string | number; notes: string }): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const m = await loadMeeting(input.meetingId);
+    const f = await agendaFields(input);
+    const last = await sbGet<{ seq: number }[]>(`meeting_agenda?meeting_id=eq.${m.id}&select=seq&order=seq.desc&limit=1`);
+    const a = await sbInsert<{ id: string }>("meeting_agenda", { ...f, meeting_id: m.id, seq: (last[0]?.seq ?? 0) + 10, created_by: staff.id });
+    await audit(actorOf(staff), "meeting.agenda_add", `meeting_agenda:${a.id}`, { meeting: m.id });
+    refresh(m);
+    return { ok: true, message: "已加入議程" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function updateAgenda(input: { id: string; title: string; ownerId: string; minutes: string | number; notes: string; result?: string }): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const { a, m } = await agendaCtx(input.id);
+    if (!(await canTouchAgenda(a, m, staff))) return { ok: false, message: "只有新增的人、議題負責人、會議安排人或規劃負責人可以修改" };
+    const f = await agendaFields(input);
+    const patch: Record<string, unknown> = { ...f, updated_at: new Date().toISOString() };
+    if (input.result !== undefined) patch.result = String(input.result).trim().slice(0, 2000) || null;
+    await sbPatch(`meeting_agenda?id=eq.${a.id}`, patch);
+    await audit(actorOf(staff), "meeting.agenda_edit", `meeting_agenda:${a.id}`, {});
+    refresh(m);
+    return { ok: true, message: "已儲存" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function deleteAgenda(id: string): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const { a, m } = await agendaCtx(id);
+    if (!(await canTouchAgenda(a, m, staff))) return { ok: false, message: "只有新增的人、議題負責人、會議安排人或規劃負責人可以刪除" };
+    await sbDelete(`meeting_agenda?id=eq.${a.id}`);
+    await audit(actorOf(staff), "meeting.agenda_delete", `meeting_agenda:${a.id}`, {});
+    refresh(m);
+    return { ok: true, message: "已刪除" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 上下移動：和相鄰的議題交換順序
+export async function moveAgenda(id: string, dir: -1 | 1): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const { a, m } = await agendaCtx(id);
+    if (!(await canTouchAgenda(a, m, staff))) return { ok: false, message: "沒有權限調整順序" };
+    const all = await sbGet<{ id: string; seq: number }[]>(`meeting_agenda?meeting_id=eq.${m.id}&select=id,seq&order=seq,created_at`);
+    const i = all.findIndex((x) => x.id === a.id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= all.length) return { ok: true, message: "" };
+    // 重新編號，避免 seq 重複
+    const order = all.map((x) => x.id);
+    [order[i], order[j]] = [order[j], order[i]];
+    for (let k = 0; k < order.length; k++) {
+      if (all.find((x) => x.id === order[k])!.seq !== (k + 1) * 10) await sbPatch(`meeting_agenda?id=eq.${order[k]}`, { seq: (k + 1) * 10 });
+    }
+    refresh(m);
+    return { ok: true, message: "" };
   } catch (e) {
     return fail(e);
   }
@@ -122,8 +266,18 @@ const SCHEMA = {
       },
     },
     open_questions: { type: "array", items: { type: "string" }, description: "還沒有結論、下次要再討論的事" },
+    agenda_results: {
+      type: "array",
+      description: "依議程編號逐項的結論（沒有議程就回空陣列）",
+      items: {
+        type: "object",
+        properties: { index: { type: "integer", description: "議程編號（從 1 開始）" }, conclusion: { type: "string", description: "這一項的結論，1–3 句" } },
+        required: ["index", "conclusion"],
+        additionalProperties: false,
+      },
+    },
   },
-  required: ["summary", "decisions", "tasks", "open_questions"],
+  required: ["summary", "decisions", "tasks", "open_questions", "agenda_results"],
   additionalProperties: false,
 };
 
@@ -147,12 +301,14 @@ export async function summarizeMeeting(id: string): Promise<Result> {
       m.plan_id ? sbGet<{ kind: string; title: string; theme: string | null; start_date: string | null }[]>(`plans?id=eq.${m.plan_id}&select=kind,title,theme,start_date`) : Promise.resolve([]),
     ]);
     const today = new Date().toISOString().slice(0, 10);
+    // 有事先擬議程的話，請 AI 依議程逐項整理結論
+    const agenda = await sbGet<{ id: string; title: string }[]>(`meeting_agenda?meeting_id=eq.${id}&select=id,title&order=seq,created_at`).catch(() => []);
     const raw = await askForJson<MeetingAi>({
       system: SYSTEM,
       content: [{
         type: "text",
         text: `會議：${m.title}（今天 ${today}）
-${plan[0] ? `討論的規劃：${PLAN_KIND_LABEL[plan[0].kind]}「${plan[0].title}${plan[0].theme ? `・${plan[0].theme}` : "（主題討論中）"}」${plan[0].start_date ? `，${plan[0].start_date} 開始` : ""}\n` : ""}老師名單：${teachers.map((t) => (t.nickname ? `${t.nickname}（${t.name}）` : t.name)).join("、")}
+${agenda.length ? `這次會議的議程（請在 agenda_results 依編號寫出每一項的結論；沒有討論到的寫「未討論」）：\n${agenda.map((a, i) => `${i + 1}. ${a.title}`).join("\n")}\n` : ""}${plan[0] ? `討論的規劃：${PLAN_KIND_LABEL[plan[0].kind]}「${plan[0].title}${plan[0].theme ? `・${plan[0].theme}` : "（主題討論中）"}」${plan[0].start_date ? `，${plan[0].start_date} 開始` : ""}\n` : ""}老師名單：${teachers.map((t) => (t.nickname ? `${t.nickname}（${t.name}）` : t.name)).join("、")}
 
 逐字稿：
 ${transcript.slice(0, 60000)}
@@ -173,7 +329,14 @@ ${transcript.slice(0, 60000)}
         due: isDate(t?.due) ? t.due : "",
       })).filter((t) => t.title),
       open_questions: clean(raw.open_questions, 30),
+      agenda_results: (Array.isArray(raw.agenda_results) ? raw.agenda_results : [])
+        .map((r) => ({ index: Number(r?.index), conclusion: String(r?.conclusion ?? "").trim().slice(0, 1000) }))
+        .filter((r) => Number.isInteger(r.index) && r.index >= 1 && r.index <= agenda.length && r.conclusion),
     };
+    // 把每一項的結論寫回議程（老師之後可以修改）
+    for (const r of ai.agenda_results ?? []) {
+      await sbPatch(`meeting_agenda?id=eq.${agenda[r.index - 1].id}`, { result: r.conclusion, updated_at: new Date().toISOString() });
+    }
     await sbPatch(`meetings?id=eq.${id}`, { status: "ready", summary: ai.summary, ai_result: ai, updated_at: new Date().toISOString() });
     await audit(actorOf(staff), "meeting.summarize", `meetings:${id}`, { model: AI_MODEL, stt: STT_MODEL, chars: transcript.length });
     refresh(m);

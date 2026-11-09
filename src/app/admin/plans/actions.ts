@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { actorOf, requireStaff, type Staff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbGet, sbInsert, sbPatch } from "@/lib/supabase";
-import { PLAN_KINDS, PLAN_STATUS, SECTIONS, autoTitle, campType, canEditPlan, monthRange, MAJOR_LESSONS } from "@/lib/plans";
+import { PLAN_KINDS, PLAN_STATUS, SECTIONS, VOTES_PER_PLAN, autoTitle, campType, canEditPlan, monthRange, MAJOR_LESSONS } from "@/lib/plans";
 
 type Result = { ok: boolean; message: string };
 const fail = (e: unknown): Result => ({ ok: false, message: e instanceof Error ? e.message : "儲存失敗，請再試一次" });
@@ -208,14 +208,21 @@ export async function deleteItem(id: string): Promise<Result> {
 
 // ---------- 留言、決議 ----------
 // 所有老師都能留言、回覆；只能改自己的；刪除只有管理員；標成「決議」限可修改規劃的人
-export async function addComment(input: { planId: string; itemId?: string; parentId?: string; body: string }): Promise<Result> {
+export async function addComment(input: { planId: string; itemId?: string; ideaId?: string; parentId?: string; body: string }): Promise<Result> {
   try {
     const staff = await requireStaff();
     const plan = await loadPlan(input.planId);
     const body = text(input.body, 3000);
     if (!body) return { ok: false, message: "請輸入留言" };
     let itemId: string | null = null;
+    let ideaId: string | null = null;
     let parentId: string | null = null;
+    if (input.ideaId) {
+      if (!isUuid(input.ideaId)) return { ok: false, message: "資料不正確" };
+      const idea = await sbGet<{ plan_id: string }[]>(`plan_ideas?id=eq.${input.ideaId}&select=plan_id`);
+      if (idea[0]?.plan_id !== plan.id) return { ok: false, message: "找不到這個點子" };
+      ideaId = input.ideaId;
+    }
     if (input.itemId) {
       if (!isUuid(input.itemId)) return { ok: false, message: "資料不正確" };
       const it = await sbGet<{ plan_id: string }[]>(`plan_items?id=eq.${input.itemId}&select=plan_id`);
@@ -224,15 +231,16 @@ export async function addComment(input: { planId: string; itemId?: string; paren
     }
     if (input.parentId) {
       if (!isUuid(input.parentId)) return { ok: false, message: "資料不正確" };
-      const c = await sbGet<{ plan_id: string; item_id: string | null; parent_id: string | null }[]>(
-        `plan_comments?id=eq.${input.parentId}&select=plan_id,item_id,parent_id`,
+      const c = await sbGet<{ plan_id: string; item_id: string | null; idea_id: string | null; parent_id: string | null }[]>(
+        `plan_comments?id=eq.${input.parentId}&select=plan_id,item_id,idea_id,parent_id`,
       );
       if (c[0]?.plan_id !== plan.id) return { ok: false, message: "找不到要回覆的留言" };
       parentId = c[0].parent_id ?? input.parentId; // 只有一層回覆
       itemId = c[0].item_id;
+      ideaId = c[0].idea_id;
     }
     const c = await sbInsert<{ id: string }>("plan_comments", {
-      plan_id: plan.id, item_id: itemId, parent_id: parentId, body, author_id: staff.id,
+      plan_id: plan.id, item_id: itemId, ...(ideaId ? { idea_id: ideaId } : {}), parent_id: parentId, body, author_id: staff.id,
     });
     await audit(actorOf(staff), "plan.comment", `plan_comments:${c.id}`, { plan: plan.id });
     refresh(plan.id);
@@ -357,6 +365,111 @@ export async function deleteTask(id: string): Promise<Result> {
     refresh(t.plan_id);
     revalidatePath("/admin");
     return { ok: true, message: "已刪除" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// ---------- 點子牆與投票 ----------
+// 所有老師都能提點子（可匿名）、投票（每份規劃每人最多 VOTES_PER_PLAN 票）、留意見
+// 修改、刪除：提案人或管理員；採用／不採用：規劃負責人、建立者、管理員（採用「主題」會直接填入規劃主題）
+export async function addIdea(input: { planId: string; kind: string; title: string; detail: string; anonymous: boolean }): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const plan = await loadPlan(input.planId);
+    const title = text(input.title, 80);
+    if (!title) return { ok: false, message: "請寫下你的點子" };
+    const kind = ["theme", "activity", "other"].includes(input.kind) ? input.kind : "other";
+    const i = await sbInsert<{ id: string }>("plan_ideas", {
+      plan_id: plan.id, kind, title, detail: text(input.detail, 1000) || null, anonymous: !!input.anonymous, author_id: staff.id,
+    });
+    await audit(actorOf(staff), "plan.idea_add", `plan_ideas:${i.id}`, { plan: plan.id, kind });
+    refresh(plan.id);
+    return { ok: true, message: "已貼上點子牆" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+type IdeaRow = { id: string; plan_id: string; author_id: string | null; kind: string; title: string; status: string };
+async function loadIdea(id: string) {
+  if (!isUuid(id)) throw new Error("資料不正確");
+  const i = (await sbGet<IdeaRow[]>(`plan_ideas?id=eq.${id}&select=id,plan_id,author_id,kind,title,status`))[0];
+  if (!i) throw new Error("找不到這個點子，可能已被刪除");
+  return i;
+}
+
+export async function editIdea(input: { id: string; kind: string; title: string; detail: string; anonymous: boolean }): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const i = await loadIdea(input.id);
+    if (!(staff.is_admin || i.author_id === staff.id)) return { ok: false, message: "只能修改自己提的點子" };
+    const title = text(input.title, 80);
+    if (!title) return { ok: false, message: "請寫下你的點子" };
+    await sbPatch(`plan_ideas?id=eq.${i.id}`, {
+      kind: ["theme", "activity", "other"].includes(input.kind) ? input.kind : "other",
+      title, detail: text(input.detail, 1000) || null, anonymous: !!input.anonymous, updated_at: new Date().toISOString(),
+    });
+    await audit(actorOf(staff), "plan.idea_edit", `plan_ideas:${i.id}`, {});
+    refresh(i.plan_id);
+    return { ok: true, message: "已儲存" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function deleteIdea(id: string): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const i = await loadIdea(id);
+    if (!(staff.is_admin || i.author_id === staff.id)) return { ok: false, message: "只有提案人或管理員可以刪除" };
+    await sbDelete(`plan_ideas?id=eq.${i.id}`);
+    await audit(actorOf(staff), "plan.idea_delete", `plan_ideas:${i.id}`, {});
+    refresh(i.plan_id);
+    return { ok: true, message: "已刪除" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 投票／收回（再按一次收回）
+export async function toggleVote(ideaId: string): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const i = await loadIdea(ideaId);
+    if (i.status !== "open") return { ok: false, message: "這個點子已經有結果，不能再投票" };
+    const mine = await sbGet<{ idea_id: string }[]>(
+      `plan_votes?teacher_id=eq.${staff.id}&select=idea_id,plan_ideas!inner(plan_id)&plan_ideas.plan_id=eq.${i.plan_id}`,
+    );
+    if (mine.some((v) => v.idea_id === i.id)) {
+      await sbDelete(`plan_votes?idea_id=eq.${i.id}&teacher_id=eq.${staff.id}`);
+      refresh(i.plan_id);
+      return { ok: true, message: "已收回這一票" };
+    }
+    if (mine.length >= VOTES_PER_PLAN) return { ok: false, message: `每份規劃每人最多 ${VOTES_PER_PLAN} 票，請先收回一票` };
+    await sbInsert("plan_votes", { idea_id: i.id, teacher_id: staff.id });
+    await audit(actorOf(staff), "plan.idea_vote", `plan_ideas:${i.id}`, {});
+    refresh(i.plan_id);
+    return { ok: true, message: "已投票" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 採用／不採用／重新開放；採用「主題」時直接填入規劃主題
+export async function setIdeaStatus(id: string, status: "open" | "adopted" | "dropped"): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const i = await loadIdea(id);
+    await mustEdit(i.plan_id, staff);
+    if (!["open", "adopted", "dropped"].includes(status)) return { ok: false, message: "狀態不正確" };
+    await sbPatch(`plan_ideas?id=eq.${i.id}`, { status, updated_at: new Date().toISOString() });
+    if (status === "adopted" && i.kind === "theme") {
+      await sbPatch(`plans?id=eq.${i.plan_id}`, { theme: i.title.slice(0, 80), updated_by: staff.id, updated_at: new Date().toISOString() });
+    }
+    await audit(actorOf(staff), `plan.idea_${status}`, `plan_ideas:${i.id}`, { theme: status === "adopted" && i.kind === "theme" });
+    refresh(i.plan_id);
+    return { ok: true, message: status === "adopted" ? (i.kind === "theme" ? `已採用，主題設為「${i.title}」` : "已採用") : status === "dropped" ? "已標為不採用" : "已重新開放投票" };
   } catch (e) {
     return fail(e);
   }
