@@ -4,9 +4,12 @@ import { useRouter } from "next/navigation";
 import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useRef, useState, useTransition } from "react";
 import { RATE, decodeMono16k, encodeWav, splitPoints } from "@/lib/audioChunks";
-import { fmtDay, who, type Person } from "@/lib/plans";
+import { fmtDay, who, type AgendaItem, type Person, type PlanTask } from "@/lib/plans";
+import Agenda from "./Agenda";
+import Tasks from "./Tasks";
 import {
-  applyMeeting, createMeeting, deleteMeeting, getTranscript, meetingProgress, saveMeetingSummary, summarizeMeeting, transcribePart,
+  applyMeeting, attachRecording, createMeeting, deleteMeeting, getTranscript, meetingProgress, planMeeting, saveMeetingSummary,
+  summarizeMeeting, transcribePart,
   type MeetingAi,
 } from "./meetingActions";
 
@@ -23,9 +26,10 @@ const today = () => new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 1
 
 // 匯入手機錄音 → 瀏覽器切段 → 一段一段轉文字 → AI 整理摘要、決議、待辦 → 老師挑選後套用到規劃
 export default function Meetings({
-  planId, meetings, teachers, me, isAdmin, canEditPlan, sttReady,
+  planId, meetings, agenda, openTasks, teachers, me, isAdmin, canEditPlan, sttReady,
 }: {
-  planId: string; meetings: Meeting[]; teachers: T[]; me: string; isAdmin: boolean; canEditPlan: boolean; sttReady: boolean;
+  planId: string; meetings: Meeting[]; agenda: AgendaItem[]; openTasks: PlanTask[]; teachers: T[]; me: string; isAdmin: boolean;
+  canEditPlan: boolean; sttReady: boolean;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -33,10 +37,14 @@ export default function Meetings({
   const [consent, setConsent] = useState(false);
   const [phase, setPhase] = useState<Phase>({ step: "idle" });
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const [pTitle, setPTitle] = useState("");
+  const [pDate, setPDate] = useState(today());
+  const [pMsg, setPMsg] = useState<string | null>(null);
+  const [planning, startPlan] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const busy = ["decoding", "sending", "summarizing"].includes(phase.step);
 
-  async function run(file: File, existingId?: string) {
+  async function run(file: File, existingId?: string, plannedId?: string) {
     let lock: { release: () => Promise<void> } | null = null;
     const guard = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     window.addEventListener("beforeunload", guard);
@@ -59,6 +67,11 @@ export default function Meetings({
         if (!p.ok) throw new Error(p.message ?? "讀取進度失敗");
         if (p.total !== points.length) throw new Error("這不是同一個錄音檔（長度不同），請選原本匯入的那個檔案");
         done = new Set(p.done);
+      } else if (plannedId) {
+        // 事先安排好的會議：把錄音接上去
+        const r = await attachRecording({ meetingId: plannedId, partsTotal: points.length, durationSec: duration, consent: true });
+        if (!r.ok) throw new Error(r.message);
+        id = plannedId;
       } else {
         const r = await createMeeting({ planId, title: title || `會議 ${fmtDay(heldOn)}`, heldOn, partsTotal: points.length, durationSec: duration, consent });
         if (!r.ok || !r.id) throw new Error(r.message);
@@ -96,21 +109,38 @@ export default function Meetings({
     }
   }
 
-  const pick = (existingId?: string) => {
+  const pick = (existingId?: string, plannedId?: string) => {
     const input = fileRef.current;
     if (!input) return;
-    input.onchange = () => { const f = input.files?.[0]; if (f) void run(f, existingId); };
+    input.onchange = () => { const f = input.files?.[0]; if (f) void run(f, existingId, plannedId); };
     input.click();
   };
 
   return (
     <section className="adm-panel pln-meetings">
-      <h2>🎙️ 會議紀錄 <small>手機錄音匯入，AI 整理摘要、決議、待辦</small></h2>
+      <h2>🗓️ 會議 <small>開會前擬議程、檢查上次待辦；開完會匯入手機錄音，AI 整理摘要、決議、待辦</small></h2>
       <input ref={fileRef} type="file" accept="audio/*,.m4a,.mp3,.wav,.aac,.amr,.3gp,.ogg,.webm" hidden />
+      <div className="pln-meet-plan">
+        <strong>📅 安排下一次會議</strong>
+        <div className="pln-meet-row">
+          <input value={pTitle} onChange={(e) => setPTitle(e.target.value)} maxLength={80} placeholder="會議名稱（選填，例：第一次主題討論）" aria-label="會議名稱" />
+          <input type="date" value={pDate} onChange={(e) => setPDate(e.target.value)} aria-label="開會日期" />
+          <button type="button" className="btn btn-sm primary" disabled={planning}
+            onClick={() => startPlan(async () => {
+              const r = await planMeeting({ planId, title: pTitle, heldOn: pDate });
+              setPMsg(r.ok ? null : r.message);
+              if (r.ok) { setPTitle(""); router.refresh(); }
+            })}>
+            {planning ? "安排中…" : "安排並擬議程"}
+          </button>
+        </div>
+        {pMsg && <p className="notice err">{pMsg}</p>}
+      </div>
       {!sttReady ? (
-        <p className="hint">還沒設定語音轉文字的金鑰（管理員到 Vercel 設定 OPENAI_API_KEY 後就能使用）。</p>
+        <p className="hint">還沒設定語音轉文字的金鑰（管理員到 Vercel 設定 OPENAI_API_KEY 後就能匯入錄音）。</p>
       ) : (
-        <div className="pln-meet-new">
+        <details className="pln-meet-new">
+          <summary>沒有事先安排？直接匯入錄音</summary>
           <div className="pln-meet-row">
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder={`會議名稱（預設：會議 ${fmtDay(heldOn)}）`} aria-label="會議名稱" disabled={busy} />
             <input type="date" value={heldOn} onChange={(e) => setHeldOn(e.target.value)} aria-label="開會日期" disabled={busy} />
@@ -126,7 +156,7 @@ export default function Meetings({
             手機用內建的「錄音」App 錄好，傳到電腦或直接在手機選檔（m4a、mp3、wav 都可以）。錄音只用來轉成文字，不會保存在網站上。
             長的會議建議用電腦匯入；處理時請不要關掉這個分頁。
           </p>
-        </div>
+        </details>
       )}
       {phase.step !== "idle" && (
         <div className={`pln-meet-phase ${phase.step}`} role="status">
@@ -142,18 +172,22 @@ export default function Meetings({
         </div>
       )}
 
-      {meetings.length === 0 && <p className="muted">還沒有會議紀錄。</p>}
+      {meetings.length === 0 && <p className="muted">還沒有會議。</p>}
       {meetings.map((m) => (
         <MeetingCard key={`${m.id}-${m.status}-${m.applied_at ?? ""}`} m={m} teachers={teachers} me={me} isAdmin={isAdmin}
-          canEditPlan={canEditPlan} busy={busy} onResume={() => pick(m.id)} />
+          canEditPlan={canEditPlan} busy={busy} sttReady={sttReady} onResume={() => pick(m.id)} onAttach={() => pick(undefined, m.id)}
+          agenda={agenda.filter((a) => a.meeting_id === m.id)} openTasks={openTasks} />
       ))}
     </section>
   );
 }
 
 function MeetingCard({
-  m, teachers, me, isAdmin, canEditPlan, busy, onResume,
-}: { m: Meeting; teachers: T[]; me: string; isAdmin: boolean; canEditPlan: boolean; busy: boolean; onResume: () => void }) {
+  m, teachers, me, isAdmin, canEditPlan, busy, sttReady, onResume, onAttach, agenda, openTasks,
+}: {
+  m: Meeting; teachers: T[]; me: string; isAdmin: boolean; canEditPlan: boolean; busy: boolean; sttReady: boolean;
+  onResume: () => void; onAttach: () => void; agenda: AgendaItem[]; openTasks: PlanTask[];
+}) {
   const router = useRouter();
   const ai = m.ai_result;
   const findTeacher = (n: string) => {
@@ -170,20 +204,47 @@ function MeetingCard({
   const [pending, start] = useTransition();
   const done = m.parts?.[0]?.count ?? 0;
   const canEditSum = m.created_by === me || canEditPlan;
+  const [consent, setConsent] = useState(false);
+  const planned = m.status === "planned";
   const run = (fn: () => Promise<{ ok: boolean; message: string }>, after?: () => void) =>
     start(async () => { const r = await fn(); setMsg({ ok: r.ok, text: r.message }); if (r.ok) { after?.(); router.refresh(); } });
 
   return (
-    <details className="pln-meet" open={m.status === "ready" && !m.applied_at}>
+    <details className={`pln-meet${planned ? " planned" : ""}`} open={planned || (m.status === "ready" && !m.applied_at)}>
       <summary>
         <strong>{m.title}</strong>
         <small className="muted">
-          {m.held_on ? fmtDay(m.held_on) : ""} {mins(m.duration_sec)}・{who(m.creator ?? null)} 匯入
-          {m.status === "ready" ? (m.applied_at ? "・✅ 已套用到規劃" : "・📝 待確認") : m.status === "summarizing" ? "・AI 整理中" : `・轉文字 ${done}／${m.parts_total}`}
+          {m.held_on ? fmtDay(m.held_on) : ""} {mins(m.duration_sec)}・{who(m.creator ?? null)} {planned ? "安排" : "匯入"}
+          {planned ? "・📅 待開會" : m.status === "ready" ? (m.applied_at ? "・✅ 已套用到規劃" : "・📝 待確認") : m.status === "summarizing" ? "・AI 整理中" : `・轉文字 ${done}／${m.parts_total}`}
         </small>
       </summary>
 
-      {m.status !== "ready" && (
+      <Agenda meetingId={m.id} items={agenda} teachers={teachers} me={me} isAdmin={isAdmin}
+        canManage={m.created_by === me || canEditPlan} showResults={m.status === "ready"} />
+
+      {planned && (
+        <>
+          <div className="pln-meet-carry">
+            <h4>📌 上次的待辦 <small>開會時先檢查進度，完成的直接打勾</small></h4>
+            <Tasks tasks={openTasks} me={me} isAdmin={isAdmin} canEditPlan={canEditPlan} />
+          </div>
+          <div className="pln-meet-attach">
+            <h4>🎙️ 開完會後</h4>
+            {sttReady ? (
+              <>
+                <label className="adm-check">
+                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} disabled={busy} />
+                  開會錄音前已告知與會老師，大家都同意錄音
+                </label>
+                <button type="button" className="btn btn-sm primary" disabled={busy || !consent} onClick={onAttach}>📁 匯入這場會議的錄音</button>
+                <p className="hint">AI 會依上面的議程逐項整理結論，再整理摘要、決議、待辦。</p>
+              </>
+            ) : <p className="hint">還沒設定語音轉文字的金鑰。</p>}
+          </div>
+        </>
+      )}
+
+      {!planned && m.status !== "ready" && (
         <div className="pln-meet-todo">
           {done < m.parts_total ? (
             <>

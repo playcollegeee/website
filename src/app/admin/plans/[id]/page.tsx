@@ -5,8 +5,9 @@ import { isUuid, sbGet } from "@/lib/supabase";
 import {
   CAMP_SLOTS, LIST_SECTIONS, MAJOR_LESSONS, MAJOR_SECTIONS, PLAN_KINDS, PLAN_STATUS_LABEL, SECTIONS,
   campDays, canEditPlan, fmtDay, fmtRange, who,
-  type Plan, type PlanComment, type PlanItem, type PlanTask,
+  type AgendaItem, type Plan, type PlanComment, type PlanIdea, type PlanItem, type PlanTask,
 } from "@/lib/plans";
+import IdeaBoard from "../IdeaBoard";
 import ItemCard, { type LessonOpt } from "../ItemCard";
 import Discussion from "../Discussion";
 import Tasks from "../Tasks";
@@ -24,7 +25,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [plans, items, comments, tasks, teachers, lessons, meetings] = await Promise.all([
+  const [plans, items, comments, tasks, teachers, lessons, meetings, ideas] = await Promise.all([
     sbGet<Plan[]>(`plans?id=eq.${id}&select=*,owner:teachers!plans_owner_id_fkey(${PERSON})`),
     sbGet<PlanItem[]>(
       `plan_items?plan_id=eq.${id}&select=*,lesson:lessons(id,title),teacher:teachers!plan_items_teacher_id_fkey(${PERSON})&order=day.nullslast,seq,created_at`,
@@ -39,9 +40,21 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     sbGet<Meeting[]>(
       `meetings?plan_id=eq.${id}&select=id,title,held_on,status,parts_total,duration_sec,summary,ai_result,applied_at,created_by,created_at,creator:teachers!meetings_created_by_fkey(${PERSON}),parts:meeting_parts(count)&order=held_on.desc.nullslast,created_at.desc`,
     ).catch(() => null),
+    // 點子牆（0017 還沒執行時當作沒有）
+    sbGet<PlanIdea[]>(
+      `plan_ideas?plan_id=eq.${id}&select=*,author:teachers!plan_ideas_author_id_fkey(${PERSON}),votes:plan_votes(teacher_id)&order=created_at`,
+    ).catch(() => null),
   ]);
   const plan = plans[0];
   if (!plan) notFound();
+  // 匿名點子：伺服器端先拿掉作者，只告訴本人「這是你的」
+  const ideasSafe = ideas?.map((x) => (x.anonymous ? { ...x, author: null, author_id: x.author_id === staff.id ? staff.id : null } : x)) ?? null;
+  const meetingIds = (meetings ?? []).map((m) => m.id);
+  const agenda = meetingIds.length
+    ? await sbGet<AgendaItem[]>(
+      `meeting_agenda?meeting_id=in.(${meetingIds.join(",")})&select=*,owner:teachers!meeting_agenda_owner_id_fkey(${PERSON})&order=seq,created_at`,
+    ).catch(() => [] as AgendaItem[])
+    : [];
   const editable = canEditPlan(plan, staff);
   const kind = PLAN_KINDS.find((k) => k.value === plan.kind)!;
   const lessonOpts: LessonOpt[] = lessons.map((l) => ({ id: l.id, title: l.title, major: l.category?.major ?? null }));
@@ -78,6 +91,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
       <div className="pln-layout">
         <div className="pln-main">
+          {ideasSafe !== null && (
+            <IdeaBoard planId={plan.id} ideas={ideasSafe} comments={comments.filter((c) => c.idea_id)} me={staff.id}
+              isAdmin={staff.is_admin} canEditPlan={editable} hasTheme={!!plan.theme} />
+          )}
           {plan.kind === "season" && MAJOR_SECTIONS.map((sec) => (
             <details key={sec} className="adm-panel pln-sec" open={items.some((x) => x.section === sec)}>
               <summary><h2>{SECTIONS[sec].label} <small>已安排 {items.filter((x) => x.section === sec && (x.title || x.lesson_id)).length}／{MAJOR_LESSONS}</small></h2></summary>
@@ -120,8 +137,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             ));
           })()}
           {meetings !== null && (
-            <Meetings planId={plan.id} meetings={meetings} teachers={teachers} me={staff.id} isAdmin={staff.is_admin}
-              canEditPlan={editable} sttReady={sttConfigured()} />
+            <Meetings planId={plan.id} meetings={meetings} agenda={agenda} openTasks={tasks.filter((t) => !t.done_at)}
+              teachers={teachers} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} sttReady={sttConfigured()} />
           )}
         </div>
 
@@ -146,8 +163,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <Tasks planId={plan.id} tasks={tasks} teachers={teachers} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} />
           </section>
           <section className="adm-panel">
-            <h2>💬 討論 <small>{comments.filter((c) => !c.item_id).length} 則</small></h2>
-            <Discussion planId={plan.id} comments={comments.filter((c) => !c.item_id)} me={staff.id} isAdmin={staff.is_admin} canDecide={editable} />
+            <h2>💬 討論 <small>{comments.filter((c) => !c.item_id && !c.idea_id).length} 則</small></h2>
+            <Discussion planId={plan.id} comments={comments.filter((c) => !c.item_id && !c.idea_id)} me={staff.id} isAdmin={staff.is_admin} canDecide={editable} />
           </section>
         </aside>
       </div>

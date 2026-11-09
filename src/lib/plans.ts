@@ -50,7 +50,7 @@ export type PlanItem = {
   teacher?: Person;
 };
 export type PlanComment = {
-  id: string; plan_id: string; item_id: string | null; parent_id: string | null; body: string; is_decision: boolean;
+  id: string; plan_id: string; item_id: string | null; idea_id?: string | null; parent_id: string | null; body: string; is_decision: boolean;
   decided_at: string | null; author_id: string | null; created_at: string; updated_at: string; author?: Person;
 };
 export type PlanTask = {
@@ -112,3 +112,20 @@ export function monthRange(ym: string): { start: string; end: string } | null {
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, "0")}` };
 }
+
+// 點子牆（migration 0015）：每份規劃每人最多 3 票（2026-11-10 使用者選用「點子牆＋投票」）
+export const VOTES_PER_PLAN = 3;
+export const IDEA_KINDS = [
+  { value: "theme", label: "主題" },
+  { value: "activity", label: "活動點子" },
+  { value: "other", label: "其他" },
+] as const;
+export const IDEA_KIND_LABEL: Record<string, string> = Object.fromEntries(IDEA_KINDS.map((k) => [k.value, k.label]));
+export type PlanIdea = {
+  id: string; plan_id: string; kind: string; title: string; detail: string | null; anonymous: boolean; status: string;
+  author_id: string | null; created_at: string; author?: Person; votes?: { teacher_id: string }[];
+};
+export type AgendaItem = {
+  id: string; meeting_id: string; seq: number; title: string; owner_id: string | null; minutes: number | null;
+  notes: string | null; result: string | null; created_by: string | null; owner?: Person;
+};
