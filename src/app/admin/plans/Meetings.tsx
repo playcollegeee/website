@@ -140,7 +140,7 @@ export default function Meetings({
         <p className="hint">還沒設定語音轉文字的金鑰（管理員到 Vercel 設定 OPENAI_API_KEY 後就能匯入錄音）。</p>
       ) : (
         <details className="pln-meet-new">
-          <summary>沒有事先安排？直接匯入錄音</summary>
+          <summary>匯入會議錄音檔</summary>
           <div className="pln-meet-row">
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder={`會議名稱（預設：會議 ${fmtDay(heldOn)}）`} aria-label="會議名稱" disabled={busy} />
             <input type="date" value={heldOn} onChange={(e) => setHeldOn(e.target.value)} aria-label="開會日期" disabled={busy} />
