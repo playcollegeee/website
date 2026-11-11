@@ -4,7 +4,7 @@ import AvatarCreator from "@/components/AvatarCreator";
 import BrickPlayground from "@/components/BrickPlayground";
 import CourseQuiz from "@/components/CourseQuiz";
 import StackingLevels from "@/components/StackingLevels";
-import { featured, interestQuests, site, stats, valueProps } from "@/lib/content";
+import { featured, heroPhoto, interestQuests, site, stats, valueProps } from "@/lib/content";
 import { getPublishedPhotos } from "@/lib/sitePhotos";
 import PhotoMarquee, { fillTo } from "@/components/PhotoMarquee";
 
@@ -53,7 +53,14 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
-          <BrickPlayground />
+          <div className="hero-side">
+            {/* 手機：先看到孩子上課的照片，積木遊樂區排在後面 */}
+            <figure className="hero-photo">
+              <Image src={heroPhoto.src} alt={heroPhoto.alt} width={heroPhoto.w} height={heroPhoto.h} sizes="(max-width: 860px) 100vw, 1px" priority />
+              <figcaption>{heroPhoto.alt}</figcaption>
+            </figure>
+            <BrickPlayground />
+          </div>
         </div>
       </section>
 
@@ -182,7 +189,8 @@ export default async function HomePage() {
           {/* 單排跑馬燈：每張卡片約 8 秒移過一格，越多張一輪越久，速度不變 */}
           <PhotoMarquee label="成果與活動紀錄" seconds={fillTo(highlightPhotos, 6).length * 8}>
             {fillTo(highlightPhotos, 6).map((h, i) => (
-              <article key={`${h.id}-${i}`} className={`card photo-card bar-${h.color}`}>
+              // 為了補滿畫面而重複的卡片，讀屏軟體略過，只念一次
+              <article key={`${h.id}-${i}`} className={`card photo-card bar-${h.color}`} aria-hidden={i >= highlightPhotos.length ? true : undefined}>
                 <div className="photo">
                   <Image src={h.image_url} alt={h.title} width={h.width} height={h.height} sizes="300px" />
                 </div>
@@ -217,11 +225,12 @@ export default async function HomePage() {
           {/* 超過 6 張改成上下兩排跑馬燈，上排往左、下排往右 */}
           {galleryPhotos.length > GALLERY_STATIC_MAX &&
             [0, 1].map((row) => {
-              const items = fillTo(galleryPhotos.filter((_, i) => i % 2 === row), 6);
+              const rowPhotos = galleryPhotos.filter((_, i) => i % 2 === row);
+              const items = fillTo(rowPhotos, 6);
               return (
                 <PhotoMarquee key={row} label={`教室現場第 ${row + 1} 排`} seconds={items.length * 7} reverse={row === 1}>
                   {items.map((g, i) => (
-                    <figure key={`${g.id}-${i}`} className="photo-item">
+                    <figure key={`${g.id}-${i}`} className="photo-item" aria-hidden={i >= rowPhotos.length ? true : undefined}>
                       <Image src={g.image_url} alt={g.title} width={g.width} height={g.height} sizes="280px" />
                       <figcaption>{g.title}</figcaption>
                     </figure>

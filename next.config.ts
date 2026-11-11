@@ -33,6 +33,8 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           { key: "Content-Security-Policy", value: csp },
+          // 瀏覽器兩年內一律用 https 連線（不含子網域，信箱主機不受影響）
+          { key: "Strict-Transport-Security", value: "max-age=63072000" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

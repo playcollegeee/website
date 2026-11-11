@@ -39,7 +39,16 @@ export default function CoursesPage() {
               <p className="eyebrow">主修 {i + 1}・{m.from}</p>
               <h2>{m.name}</h2>
               <p className="lead">{m.intro}</p>
-              {m.image && <Image src={m.image} alt={`${m.short}作品範例`} width={640} height={478} style={{ maxWidth: 420, marginTop: 16 }} />}
+              {m.image && (
+                <Image
+                  src={m.image}
+                  alt={m.imageAlt ?? `${m.short}作品範例`}
+                  width={m.imageW ?? 640}
+                  height={m.imageH ?? 478}
+                  sizes="(max-width: 860px) 100vw, 420px"
+                  style={{ width: "100%", maxWidth: 420, marginTop: 16, borderRadius: 16 }}
+                />
+              )}
             </div>
             <div className={`card bar-${m.color}`}>
               <h3>會學到什麼</h3>
@@ -50,10 +59,16 @@ export default function CoursesPage() {
               </ul>
               <h3 style={{ marginTop: 20 }}>各階段的學習路徑</h3>
               <table className="path">
+                <thead>
+                  <tr>
+                    <th scope="col">階段</th>
+                    <th scope="col">學習重點</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {m.path.map((p) => (
                     <tr key={p.level}>
-                      <td>{p.level}</td>
+                      <td>{p.level}班</td>
                       <td>{p.text}</td>
                     </tr>
                   ))}

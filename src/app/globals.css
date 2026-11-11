@@ -25,7 +25,7 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--paper);
-  font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  font-family: "Noto Sans TC Variable", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   overflow-x: clip;
@@ -44,25 +44,37 @@ a { color: inherit; }
   border-bottom: 1px solid var(--line);
 }
 .header-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; gap: 16px; }
-.brand img { height: 52px; width: auto; }
+.brand img { height: 60px; width: auto; }
 .nav { display: flex; gap: 4px; flex-wrap: wrap; }
 .nav a {
-  text-decoration: none; font-weight: 600; padding: 8px 14px; border-radius: 999px; font-size: 15px;
+  text-decoration: none; font-weight: 600; padding: 10px 14px; border-radius: 999px; font-size: 15px;
 }
 .nav a:hover { background: var(--yellow-soft); }
 .nav a.cta { background: var(--red); color: #fff; }
 .nav a.cta:hover { background: #d94a47; }
 
+.header-mobile { display: none; }
+.nav a[aria-current="page"] { background: var(--yellow-soft); }
+
 @media (max-width: 760px) {
-  /* 手機：頁首不黏在畫面上（省空間，預約改由右下角按鈕），選單一排可左右滑 */
-  .header { position: static; }
-  .header-inner { height: auto; padding: 8px 0 6px; flex-direction: column; align-items: stretch; gap: 4px; }
-  .brand { align-self: center; }
-  .brand img { height: 40px; }
-  .nav { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; margin: 0 -20px; padding: 0 20px 4px; }
-  .nav::-webkit-scrollbar { display: none; }
-  .nav a { padding: 6px 12px; font-size: 14px; white-space: nowrap; flex: none; }
-  .nav a.cta { margin-left: auto; }
+  /* 手機：頁首不黏在畫面上；logo 靠左，右邊是「預約試聽」與「☰ 選單」，選單點開才展開 */
+  .header { position: relative; backdrop-filter: none; background: var(--paper); }
+  .header-inner { height: 68px; gap: 10px; }
+  .brand img { height: 52px; }
+  .header-mobile { display: flex; align-items: center; gap: 8px; }
+  .header-cta, .menu-btn {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+    font: inherit; font-size: 15px; font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer;
+  }
+  .header-cta { background: var(--red); color: #fff; }
+  .menu-btn { background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+  .nav {
+    display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 25; flex-direction: column; flex-wrap: nowrap; gap: 0;
+    background: var(--paper); border-bottom: 2px solid var(--ink); padding: 6px 20px 14px; box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  }
+  .nav.open { display: flex; }
+  .nav a { display: flex; align-items: center; min-height: 48px; padding: 0 12px; font-size: 17px; border-radius: 12px; border-bottom: 1px solid var(--line); }
+  .nav a.cta { justify-content: center; margin-top: 10px; border-bottom: 0; border-radius: 999px; }
   .announce { font-size: 13px; }
   .announce-inner { flex-wrap: nowrap; gap: 8px; padding: 6px 0; }
   .announce-inner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -150,6 +162,7 @@ h3 { font-size: 20px; }
 /* ---------- Path table ---------- */
 .path { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
 .path td { padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+.path th { padding: 6px 10px; text-align: left; font-size: 13px; color: var(--ink-soft); font-weight: 700; }
 .path td:first-child { font-weight: 700; white-space: nowrap; width: 64px; }
 
 /* ---------- Avatar teaser ---------- */
@@ -196,7 +209,7 @@ h3 { font-size: 20px; }
 .stat:nth-child(2) .stat-value { color: var(--green); }
 .stat:nth-child(3) .stat-value { color: var(--blue); }
 .stat-label { color: var(--ink-soft); font-size: 15px; margin-top: 6px; }
-@media (max-width: 700px) { .stat { padding: 14px 6px; } .stat-value { font-size: 28px; } .stat-label { font-size: 12px; line-height: 1.4; } }
+@media (max-width: 700px) { .stat { padding: 14px 6px; } .stat-value { font-size: 28px; } .stat-label { font-size: 13px; line-height: 1.4; } }
 
 /* ---------- 價值主張 ---------- */
 .value { padding: 8px 4px; }
@@ -379,7 +392,7 @@ h3 { font-size: 20px; }
 .stack-brick:nth-child(5) { margin-bottom: 144px; }
 .stack-brick .studs { position: absolute; top: -9px; left: 14px; right: 14px; display: flex; justify-content: space-between; }
 .stack-brick .studs i { width: 22%; height: 12px; border-radius: 4px 4px 0 0; background: inherit; filter: brightness(1.08); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12); }
-.stack-brick .step { font-size: 12px; font-weight: 800; opacity: 0.75; }
+.stack-brick .step { font-size: 13px; font-weight: 800; opacity: 0.75; }
 .stack-brick h3 { margin: 2px 0; font-size: 21px; }
 .stack-brick .grades { font-weight: 700; font-size: 14px; display: block; }
 .stack-brick p { font-size: 14px; margin: 8px 0 0; opacity: 0.9; }
@@ -699,7 +712,7 @@ button[data-pending]::after { content: " …"; }
   text-align: left; border: 2px solid var(--line); border-top: 6px solid var(--c); border-radius: 14px; background: #fff;
   padding: 10px 12px; cursor: pointer; font: inherit; display: grid; gap: 2px;
 }
-.ac-track small { color: var(--ink-soft); font-size: 12px; }
+.ac-track small { color: var(--ink-soft); font-size: 13px; }
 .ac-track.on { border-color: var(--ink); border-top-color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
 .ac-name { display: flex; gap: 10px; align-items: center; font-weight: 700; margin-bottom: 10px; }
 .ac-name input { flex: 1; max-width: 220px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 10px; font: inherit; }
@@ -718,7 +731,7 @@ button[data-pending]::after { content: " …"; }
 .ac-bar span { display: block; height: 100%; background: var(--ac); transition: width 0.3s; }
 .ac-gear { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .ac-gear li { border: 2px dashed var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; color: var(--ink-soft); }
-.ac-gear li small { float: right; }
+.ac-gear li small { float: right; font-size: 13px; }
 .ac-gear li.got { border-style: solid; border-color: var(--ac); color: var(--ink); font-weight: 700; background: var(--ac-soft); }
 .ac-gear li:last-child { grid-column: 1 / -1; }
 .ac-pop { animation: ac-pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both; transform-box: fill-box; transform-origin: center; }
@@ -743,7 +756,7 @@ button[data-pending]::after { content: " …"; }
 .ac-jobs li { display: grid; justify-items: center; gap: 2px; padding: 8px 6px; border-radius: 12px; background: linear-gradient(180deg, #ece9f4, #d9d4e8); border: 2px solid var(--line); text-align: center; }
 .ac-jobs img { width: 72px; height: 72px; image-rendering: pixelated; }
 .ac-jobs strong { font-size: 14px; }
-.ac-jobs small { color: var(--ink-soft); font-size: 12px; }
+.ac-jobs small { color: var(--ink-soft); font-size: 13px; }
 @media (max-width: 860px) {
   .ac { grid-template-columns: 1fr; }
   .ac-stage { position: static; padding: 14px; }
@@ -1361,4 +1374,33 @@ details.pln-meet-new > summary { cursor: pointer; font-weight: 700; }
   .announce-inner { flex-wrap: nowrap; gap: 8px; padding: 6px 0; justify-content: space-between; }
   .announce-inner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .announce a { white-space: nowrap; flex: none; }
+}
+
+/* ---------- 2026-11-11 官網檢視：手機首屏照片、點擊區、角色試玩摺疊 ---------- */
+/* 首屏照片：手機先看到孩子上課的樣子，積木遊樂區排在後面、矮一點 */
+.hero-photo { display: none; margin: 0; }
+.hero-photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 24px; border: 2px solid var(--line); box-shadow: var(--shadow); }
+.hero-photo figcaption { font-size: 13px; color: var(--ink-soft); margin-top: 6px; text-align: center; }
+.hero-side { min-width: 0; display: grid; gap: 16px; }
+@media (max-width: 860px) {
+  .hero { padding: 28px 0 40px; }
+  .hero-grid { gap: 24px; }
+  .hero-photo { display: block; }
+  .hero-side .brick-playground { height: 220px; }
+}
+/* 角色試玩：手機先只顯示角色與「完成一期」，捏角色的選項點開才出現 */
+.ac-more { display: none; }
+@media (max-width: 860px) {
+  .ac-more { display: flex; width: 100%; justify-content: center; }
+  .ac-panel.folded { display: none; }
+}
+/* 手指點擊區至少 44px（手機與平板） */
+@media (max-width: 860px) {
+  .btn-sm { min-height: 44px; }
+  .ac-swatch { width: 44px; height: 44px; }
+  .ac-chip { min-height: 44px; padding: 4px 16px; font-size: 15px; }
+  .ac-lessons .btn { min-width: 44px; }
+  .announce a { display: inline-flex; align-items: center; min-height: 32px; padding: 0 4px; }
+  .footer a { display: inline-flex; align-items: center; min-height: 44px; }
+  .footer .social { gap: 20px; }
 }
