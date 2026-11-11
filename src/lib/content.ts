@@ -6,7 +6,7 @@ export const site = {
   nameEn: "Play Collegeee",
   // 品牌標語（2026-11-10 定案，不要自行改寫）：版面夠用完整版，空間小用精簡版
   tagline: "帶著孩子在玩樂當中，發現屬於自己的超能力，遇見那個閃閃發亮的自己",
-  taglineShort: "透過玩，發現超能力。遇見閃閃發亮的自己",
+  taglineShort: "透過玩，發現超能力，遇見閃閃發亮的自己",
   city: "台中",
   email: "playcollegeee@gmail.com",
   line: "", // TODO: LINE 官方帳號連結
