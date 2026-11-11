@@ -37,7 +37,7 @@ export default async function HomePage() {
           <div>
             <p className="eyebrow">台中・兒童 STEAM 探索學院</p>
             <h1>
-              透過<span>玩</span>，發現超能力。
+              透過<span>玩</span>，發現超能力，
               <br />
               遇見閃閃發亮的自己
             </h1>
