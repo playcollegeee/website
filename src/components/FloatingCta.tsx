@@ -15,7 +15,8 @@ export default function FloatingCta() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/enroll")) return null;
+  // 本身就是表單的頁面不顯示
+  if (["/admin", "/enroll", "/contact", "/signup"].some((p) => pathname?.startsWith(p))) return null;
   return (
     <Link href="/contact?type=trial" className={`fab${show ? "" : " hide"}`} aria-label="預約試聽" tabIndex={show ? undefined : -1}>
       <span aria-hidden="true">✦</span> 預約試聽
