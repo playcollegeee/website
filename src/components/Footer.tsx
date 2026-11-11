@@ -9,7 +9,8 @@ export default function Footer() {
       <div className="container footer-inner">
         <div>
           <Image src="/brand/logo-horizontal.png" alt="玩學院" width={720} height={270} />
-          <p style={{ margin: "8px 0 0" }}>
+          <p className="footer-slogan">{site.taglineShort}</p>
+          <p style={{ margin: "4px 0 0" }}>
             {site.name} {site.nameEn}｜{site.city}
           </p>
         </div>

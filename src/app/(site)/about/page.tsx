@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "關於玩學院",
-  description: "玩學院希望透過「玩」幫助孩子發現自己的興趣、能力與優勢。",
+  description: "帶著孩子在玩樂當中，發現屬於自己的超能力，遇見那個閃閃發亮的自己。",
 };
 
 const values = [
@@ -20,6 +21,7 @@ export default function AboutPage() {
         <div className="container">
           <p className="eyebrow">關於玩學院</p>
           <h1>教育不只有考試和成績</h1>
+          <p className="slogan">{site.tagline}</p>
           <p className="lead">
             玩學院希望讓孩子有機會接觸不同領域，在實作、嘗試、失敗與修正之間，慢慢找到自己真正喜歡的事物，並且累積作品與學習歷程。
           </p>

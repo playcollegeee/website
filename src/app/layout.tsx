@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     default: `${site.name} ${site.nameEn}｜台中兒童 LEGO 機器人、3D 列印與美術創作`,
     template: `%s｜${site.name}`,
   },
-  description: `${site.name}透過「玩」幫助孩子發現興趣與能力：LEGO 樂高機器人、3D 列印造物、美術創作與多元探索課程。${site.tagline}`,
+  description: `${site.taglineShort}。${site.name} ${site.nameEn}：台中兒童 STEAM 教室，LEGO 樂高機器人、3D 列印造物、美術創作與多元探索課程。`,
   openGraph: {
     siteName: `${site.name} ${site.nameEn}`,
     locale: "zh_TW",

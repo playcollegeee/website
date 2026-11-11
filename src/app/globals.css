@@ -54,9 +54,19 @@ a { color: inherit; }
 .nav a.cta:hover { background: #d94a47; }
 
 @media (max-width: 760px) {
-  .header-inner { height: auto; padding: 10px 0; flex-direction: column; }
-  .nav { justify-content: center; }
-  .nav a { padding: 6px 10px; font-size: 14px; }
+  /* 手機：頁首不黏在畫面上（省空間，預約改由右下角按鈕），選單一排可左右滑 */
+  .header { position: static; }
+  .header-inner { height: auto; padding: 8px 0 6px; flex-direction: column; align-items: stretch; gap: 4px; }
+  .brand { align-self: center; }
+  .brand img { height: 40px; }
+  .nav { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; margin: 0 -20px; padding: 0 20px 4px; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { padding: 6px 12px; font-size: 14px; white-space: nowrap; flex: none; }
+  .nav a.cta { margin-left: auto; }
+  .announce { font-size: 13px; }
+  .announce-inner { flex-wrap: nowrap; gap: 8px; padding: 6px 0; }
+  .announce-inner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .announce a { white-space: nowrap; }
 }
 
 /* ---------- Sections ---------- */
@@ -165,7 +175,7 @@ h3 { font-size: 20px; }
 /* ---------- Footer ---------- */
 .footer { border-top: 1px solid var(--line); padding: 40px 0; font-size: 14px; color: var(--ink-soft); }
 .footer-inner { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: center; }
-.footer img { height: 36px; width: auto; }
+.footer img { height: 44px; width: auto; }
 .blocks { display: flex; gap: 6px; }
 .blocks span { width: 18px; height: 10px; border-radius: 3px; }
 
@@ -186,7 +196,7 @@ h3 { font-size: 20px; }
 .stat:nth-child(2) .stat-value { color: var(--green); }
 .stat:nth-child(3) .stat-value { color: var(--blue); }
 .stat-label { color: var(--ink-soft); font-size: 15px; margin-top: 6px; }
-@media (max-width: 700px) { .stats { grid-template-columns: 1fr; } .stat + .stat { border-left: 0; border-top: 2px solid var(--line); } }
+@media (max-width: 700px) { .stat { padding: 14px 6px; } .stat-value { font-size: 28px; } .stat-label { font-size: 12px; line-height: 1.4; } }
 
 /* ---------- 價值主張 ---------- */
 .value { padding: 8px 4px; }
@@ -274,6 +284,9 @@ h3 { font-size: 20px; }
 .chip:hover:not(:disabled) { border-color: var(--ink); }
 .chip.on { background: var(--yellow); border-color: var(--ink); }
 .chip:disabled { cursor: not-allowed; }
+.quiz-result.empty { border: 2px dashed var(--line); box-shadow: none; display: grid; place-items: center; text-align: center; background: rgba(255, 255, 255, 0.6); }
+.quiz-result.empty .hint { font-size: 16px; }
+@media (max-width: 960px) { .quiz-result.empty { display: none; } }
 .quiz-result h3 { font-size: 24px; }
 .quiz-result p { color: var(--ink-soft); }
 @media (max-width: 960px) { .quiz { grid-template-columns: 1fr; } }
@@ -330,6 +343,9 @@ h3 { font-size: 20px; }
   box-shadow: 0 4px 0 var(--ink);
 }
 .fab:hover { transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); }
+.fab.hide { opacity: 0; pointer-events: none; transform: translateY(12px); }
+.fab { transition: opacity 0.25s, transform 0.25s; }
+@media (max-width: 700px) { .fab { right: 12px; bottom: 12px; padding: 10px 16px; font-size: 15px; } }
 
 /* ---------- 頁尾社群 ---------- */
 .social { display: flex; gap: 14px; }
@@ -1335,4 +1351,14 @@ details.pln-meet-new > summary { cursor: pointer; font-weight: 700; }
 .pln-meet-attach .btn { justify-self: start; }
 @media (max-width: 640px) {
   .pln-meet-plan .pln-meet-row, .pln-agenda-form { grid-template-columns: 1fr; }
+}
+
+/* ---------- 品牌標語 ---------- */
+.slogan { font-size: clamp(18px, 2.4vw, 24px); font-weight: 800; color: var(--ink); margin: 4px 0 16px; padding-left: 14px; border-left: 6px solid var(--yellow); }
+.footer-slogan { margin: 8px 0 0; font-weight: 800; }
+@media (max-width: 760px) {
+  /* 手機公告列：一行就好，太長用「…」 */
+  .announce-inner { flex-wrap: nowrap; gap: 8px; padding: 6px 0; justify-content: space-between; }
+  .announce-inner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .announce a { white-space: nowrap; flex: none; }
 }

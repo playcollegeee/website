@@ -67,7 +67,7 @@ export default function CourseQuiz() {
         </div>
       </div>
 
-      <div ref={resultRef} className={`quiz-result${done ? " pop-in" : ""}`} key={done ? `${level}-${major}` : "empty"} aria-live="polite">
+      <div ref={resultRef} className={`quiz-result${done ? " pop-in" : " empty"}`} key={done ? `${level}-${major}` : "empty"} aria-live="polite">
         {done && lv ? (
           <>
             <p className="eyebrow">推薦給你的孩子</p>
@@ -98,7 +98,7 @@ export default function CourseQuiz() {
             </div>
           </>
         ) : (
-          <p className="hint">回答兩個問題，馬上告訴你適合的班級與主修。</p>
+          <p className="hint">🎯<br />選好左邊兩題，<br />推薦的班級會出現在這裡</p>
         )}
       </div>
     </div>

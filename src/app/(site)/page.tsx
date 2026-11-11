@@ -37,11 +37,10 @@ export default async function HomePage() {
           <div>
             <p className="eyebrow">台中・兒童 STEAM 探索學院</p>
             <h1>
-              透過<span>玩</span>，
+              透過<span>玩</span>，發現超能力。
               <br />
-              找到孩子喜歡的事
+              遇見閃閃發亮的自己
             </h1>
-            <p className="lead">{site.tagline}</p>
             <p className="lead">
               LEGO 樂高機器人、3D 列印造物、美術創作，從幼兒園到國高中，孩子可以一路探索、一路深入，累積屬於自己的作品。
             </p>
@@ -111,6 +110,7 @@ export default async function HomePage() {
           <div className="section-head">
             <p className="eyebrow">為什麼選玩學院</p>
             <h2>讓興趣成為孩子持續學習的動力</h2>
+            <p className="slogan">{site.tagline}</p>
           </div>
           <div className="grid cols-3">
             {valueProps.map((v, i) => (
