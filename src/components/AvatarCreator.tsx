@@ -100,6 +100,7 @@ function layersFor(track: Track, term: number, skin: string, hair: string, hairC
 
 export default function AvatarCreator() {
   const [track, setTrack] = useState<Track>("eng");
+  const [openPanel, setOpenPanel] = useState(false); // 手機版：角色設定是否展開
   const [skin, setSkin] = useState("s2");
   const [hair, setHair] = useState("spiky");
   const [hairColor, setHairColor] = useState("h1");
@@ -233,7 +234,11 @@ export default function AvatarCreator() {
         </div>
       </div>
 
-      <div className="ac-panel">
+      {/* 手機：捏角色的選項先收起來，首頁才不會太長 */}
+      <button type="button" className="btn ac-more" aria-expanded={openPanel} aria-controls="ac-panel" onClick={() => setOpenPanel((v) => !v)}>
+        {openPanel ? "收起角色設定 ▲" : "換路線、捏自己的角色 ▼"}
+      </button>
+      <div id="ac-panel" className={`ac-panel${openPanel ? "" : " folded"}`}>
         <fieldset className="ac-field">
           <legend>1. 選一條職業路線</legend>
           <div className="ac-tracks">

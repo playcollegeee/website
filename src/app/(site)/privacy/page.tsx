@@ -78,7 +78,10 @@ export default function PrivacyPage() {
         </p>
 
         <h2>八、Cookie</h2>
-        <p>本網站目前不使用廣告或追蹤用 Cookie。日後若加入網站流量分析，會先更新本政策。</p>
+        <p>
+          本網站不使用廣告或追蹤用 Cookie。我們使用 Vercel Web Analytics 統計各頁面的瀏覽次數，用來改善網站；這項服務不使用
+          Cookie，也不會辨識或追蹤個別訪客。
+        </p>
 
         <h2>九、政策更新</h2>
         <p>本政策如有修改，會公告在這個頁面。最後更新日期：{updated}。</p>

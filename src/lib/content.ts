@@ -40,6 +40,9 @@ export type Major = {
   topics: string[];
   path: { level: string; text: string }[];
   image?: string;
+  imageW?: number;
+  imageH?: number;
+  imageAlt?: string;
   color: Level["color"];
 };
 
@@ -51,7 +54,7 @@ export const majors: Major[] = [
     short: "樂高主修",
     intro: "從積木故事、齒輪機構到感測器與程式，孩子一步步把想法變成會動的作品。",
     from: "玩寶班起",
-    topics: ["積木建構與空間概念", "齒輪、滑輪、連桿等動力機械", "LEGO SPIKE Prime／EV3 機器人", "感測器、馬達與控制", "圖像化程式與 Python", "機器人任務、競賽與自主專題"],
+    topics: ["積木建構與空間概念", "齒輪、滑輪、連桿等動力機械", "LEGO SPIKE Prime／EV3 機器人", "感測器、馬達與控制", "圖像化程式，玩家班進階到 Python", "機器人任務、競賽與自主專題"],
     path: [
       { level: "玩寶", text: "積木操作、故事建構、簡單機械體驗" },
       { level: "玩童", text: "基礎建構、機械概念、簡單邏輯與任務" },
@@ -60,6 +63,9 @@ export const majors: Major[] = [
       { level: "玩家", text: "進階機器人、Python、競賽或自主專題" },
     ],
     image: "/images/catapult.webp",
+    imageW: 640,
+    imageH: 478,
+    imageAlt: "樂高主修作品範例：投石機",
     color: "red",
   },
   {
@@ -74,6 +80,10 @@ export const majors: Major[] = [
       { level: "玩創", text: "進階建模、功能性零件、機構與跨領域整合" },
       { level: "玩家", text: "完整設計流程、自主專題、互動裝置及作品集" },
     ],
+    image: "/images/city-modeling.webp",
+    imageW: 1100,
+    imageH: 825,
+    imageAlt: "3D 造物主修上課情形：用電腦做 3D 建模",
     color: "green",
   },
   {
@@ -145,7 +155,8 @@ export const schoolServices = [
 
 // 頂部公告列：有新活動時改這裡；text 留空就不顯示
 export const announcement = {
-  text: "積木故事屋每月新主題開放報名・歡迎預約試聽",
+  // 手機只顯示一行，重點放前面
+  text: "新朋友入門課「積木故事屋」：3–6 歲親子，每月新主題",
   href: "/contact",
   cta: "立即預約",
 };
@@ -156,6 +167,9 @@ export const valueProps = [
   { title: "再深入", text: "五個成長階段、清楚的進階路徑，找到興趣後可以一路往上學。", color: "green" },
   { title: "看得見成長", text: "每一期都有作品與學習紀錄，未來還有專屬角色記錄孩子的每一步。", color: "blue" },
 ] as const;
+
+// 首屏照片（手機版顯示在大標下方）
+export const heroPhoto = { src: "/images/story-ship.webp", alt: "積木故事屋：老師帶孩子一起完成作品", w: 1100, h: 825 };
 
 // 主打課程卡
 export const featured = {
