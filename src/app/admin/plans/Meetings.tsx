@@ -173,7 +173,7 @@ export default function Meetings({
         </div>
       )}
 
-      {meetings.length === 0 && <p className="muted">還沒有會議。</p>}
+      {meetings.length === 0 && <p className="muted">還沒有會議。先在上面「安排下一次會議」，每場會議都有自己的「🧩 討論白板」。</p>}
       {meetings.map((m) => (
         <MeetingCard key={`${m.id}-${m.status}-${m.applied_at ?? ""}`} m={m} teachers={teachers} me={me} isAdmin={isAdmin}
           canEditPlan={canEditPlan} busy={busy} sttReady={sttReady} onResume={() => pick(m.id)} onAttach={() => pick(undefined, m.id)}
@@ -218,7 +218,13 @@ function MeetingCard({
           {m.held_on ? fmtDay(m.held_on) : ""} {mins(m.duration_sec)}・{who(m.creator ?? null)} {planned ? "安排" : "匯入"}
           {planned ? "・📅 待開會" : m.status === "ready" ? (m.applied_at ? "・✅ 已套用到規劃" : "・📝 待確認") : m.status === "summarizing" ? "・AI 整理中" : `・轉文字 ${done}／${m.parts_total}`}
         </small>
+        <Link className="adm-link pln-board-link" href={`/admin/meetings/${m.id}/board`}>🧩 討論白板</Link>
       </summary>
+
+      <div className="pln-meet-board">
+        <Link className="btn btn-sm primary" href={`/admin/meetings/${m.id}/board`}>🧩 開啟討論白板</Link>
+        <small className="muted">開會時大家一起貼便利貼、分區整理，畫面約 2 秒同步一次</small>
+      </div>
 
       <Agenda meetingId={m.id} items={agenda} teachers={teachers} me={me} isAdmin={isAdmin}
         canManage={m.created_by === me || canEditPlan} showResults={m.status === "ready"} />
@@ -333,7 +339,6 @@ function MeetingCard({
       )}
 
       <div className="pln-meet-foot">
-        <Link className="btn btn-sm" href={`/admin/meetings/${m.id}/board`}>🧩 討論白板</Link>
         <button type="button" className="adm-link" disabled={pending}
           onClick={() => transcript === null ? start(async () => { const r = await getTranscript(m.id); setTranscript(r.ok ? r.text : r.message ?? ""); }) : setTranscript(null)}>
           {transcript === null ? "📄 看逐字稿" : "收起逐字稿"}

@@ -1197,6 +1197,8 @@ fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
 .pln-apply-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; margin: 4px 0; }
 .pln-apply-row.task { grid-template-columns: auto 1fr 9em 10em; }
 @media (max-width: 700px) { .pln-apply-row.task { grid-template-columns: auto 1fr; } .pln-apply-row.task select, .pln-apply-row.task input[type=date] { grid-column: 2; } }
+.pln-meet > summary .pln-board-link { margin-left: auto; }
+.pln-meet-board { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 8px 0 10px; padding: 10px 12px; border-radius: 10px; background: #fff7d6; }
 .pln-meet-foot { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 8px; }
 .pln-transcript { max-height: 360px; overflow: auto; background: #fafaf6; border-radius: 8px; padding: 10px; font-size: .9rem; margin-top: 6px; }
 .pln-theme { font-size: .9rem; color: #2f7a6b; }
@@ -1368,7 +1370,9 @@ fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
 .pln-vote:disabled { cursor: not-allowed; opacity: 0.6; }
 .pln-idea-form { display: grid; gap: 6px; }
 .pln-idea-form.new { padding: 12px; background: #f7f5ef; border-radius: 10px; }
-.pln-idea-form input, .pln-idea-form textarea, .pln-idea-form select { width: 100%; }
+.pln-idea-form input:not([type="checkbox"]), .pln-idea-form textarea, .pln-idea-form select { width: 100%; }
+.pln-idea-form .adm-check { justify-content: flex-start; font-weight: 600; }
+.pln-idea-form .adm-check input { width: 20px; height: 20px; flex: none; }
 
 /* 會議議程 */
 .pln-meet-plan { display: grid; gap: 8px; padding: 12px; background: #fffaf0; border-radius: 10px; margin-bottom: 10px; }
