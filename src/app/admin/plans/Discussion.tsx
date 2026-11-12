@@ -12,9 +12,10 @@ const fmt = (iso: string) => {
 
 // 留言串：一層回覆；留言可標成「決議」（限可修改規劃的人）；只能改自己的、刪除限管理員
 export default function Discussion({
-  planId, itemId, ideaId, comments, me, isAdmin, canDecide, compact,
+  planId, itemId, ideaId, comments, me, isAdmin, canDecide, compact, meetingId,
 }: {
   planId: string;
+  meetingId?: string; // 在會議室的留言與決議記成這場會議的
   itemId?: string;
   ideaId?: string;
   comments: PlanComment[]; // 這個討論串的所有留言（含回覆）
@@ -62,7 +63,7 @@ export default function Discussion({
       <div className="pln-c-tools">
         {!isReply && <button type="button" className="adm-link" onClick={() => { setReplyTo(c.id); setReply(""); }}>回覆</button>}
         {canDecide && (
-          <button type="button" className="adm-link" disabled={busy} onClick={() => run(() => toggleDecision(c.id))}>
+          <button type="button" className="adm-link" disabled={busy} onClick={() => run(() => toggleDecision(c.id, meetingId))}>
             {c.is_decision ? "取消決議" : "標為決議"}
           </button>
         )}
@@ -89,7 +90,7 @@ export default function Discussion({
                 placeholder={`回覆 ${who(c.author ?? null)}`} aria-label="回覆" />
               <div className="adm-btns">
                 <button type="button" className="btn btn-sm primary" disabled={busy || !reply.trim()}
-                  onClick={() => run(() => addComment({ planId, parentId: c.id, body: reply }), () => setReplyTo(null))}>送出</button>
+                  onClick={() => run(() => addComment({ planId, parentId: c.id, body: reply, meetingId }), () => setReplyTo(null))}>送出</button>
                 <button type="button" className="btn btn-sm" onClick={() => setReplyTo(null)}>取消</button>
               </div>
             </div>
@@ -100,10 +101,10 @@ export default function Discussion({
         <textarea rows={compact ? 1 : 2} maxLength={3000} value={body} onChange={(e) => setBody(e.target.value)}
           placeholder={ideaId ? "對這個點子的意見…" : itemId ? "針對這一項留言…" : "說說你的想法、提出問題或建議…"} aria-label="新留言"
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && body.trim()) run(() => addComment({ planId, itemId, ideaId, body }), () => setBody(""));
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && body.trim()) run(() => addComment({ planId, itemId, ideaId, body, meetingId }), () => setBody(""));
           }} />
         <button type="button" className="btn btn-sm primary" disabled={busy || !body.trim()}
-          onClick={() => run(() => addComment({ planId, itemId, ideaId, body }), () => setBody(""))}>
+          onClick={() => run(() => addComment({ planId, itemId, ideaId, body, meetingId }), () => setBody(""))}>
           {busy ? "送出中…" : "送出"}
         </button>
       </div>

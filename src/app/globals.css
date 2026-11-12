@@ -1533,3 +1533,51 @@ details.pln-meet-new > summary { cursor: pointer; font-weight: 700; }
   .bd-vp { height: 70vh; }
   .bd-page h1 { font-size: 20px; }
 }
+
+/* ---------- 會議室（0019） ---------- */
+.pln-zone { margin: 4px 0 10px; font-size: 20px; }
+.pln-meet-start { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 10px; }
+.pln-meet-start .pln-meet-new { flex: 1 1 260px; margin: 0; }
+.pln-meet-next { border: 2px solid #f3e3b5; background: #fffaf0; border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+.pln-meet-next-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.pln-meet-next-head h3 { margin: 0; font-size: 18px; }
+.pln-meet-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.pln-meet-list li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 10px; border-top: 1px dashed #e5e0d4; }
+.pln-meet-list li .adm-link { margin-left: auto; }
+.pln-room-hint { margin: 0; padding: 10px 12px; background: #f3f8fd; border-radius: 12px; font-size: 14px; }
+.room-head { display: grid; gap: 4px; margin-bottom: 12px; }
+.room-title { margin: 0; font-size: 26px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+.room-title .adm-link { font-size: 14px; font-weight: 600; }
+.room-title-edit { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.room-title-edit input { padding: 8px 10px; border: 2px solid var(--line); border-radius: 10px; font: inherit; }
+.room-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+.room-main, .room-side { display: grid; gap: 14px; min-width: 0; }
+.room-main > .adm-panel, .room-side > .adm-panel { margin: 0; }
+.room-side h2 { font-size: 18px; }
+.room-side h2 small, .room-sec h2 small { font-weight: 400; color: var(--ink-soft); font-size: .8rem; margin-left: 6px; }
+.room-sec > summary { cursor: pointer; list-style: revert; }
+.room-sec > summary h2 { display: inline; font-size: 20px; }
+.room-sec[open] > summary { margin-bottom: 10px; }
+.room-schedule .pln-sec { border-width: 1px; }
+.room-board h2 { margin: 0 0 8px; font-size: 20px; }
+.room-board .bd-vp { height: max(440px, 62vh); }
+.room-new { background: #e9f6f1; border-radius: 6px; padding: 2px 4px; }
+.room .pln-idea-grid { grid-template-columns: 1fr; }
+.bd.full { position: fixed; inset: 0; z-index: 900; background: var(--paper, #fbfaf6); padding: 12px; grid-template-rows: auto 1fr auto; }
+.bd.full .bd-vp { height: auto; min-height: 0; }
+@media (max-width: 1100px) {
+  .room-layout { grid-template-columns: 1fr; }
+  /* 手機、平板：議程 → 待辦與決議 → 白板 → 其他 */
+  .room-layout { display: flex; flex-direction: column; align-items: stretch; }
+  .room-main, .room-side { display: contents; }
+  .room-main > :nth-child(1) { order: 1; }
+  .room-side > :nth-child(1) { order: 2; }
+  .room-side > :nth-child(2) { order: 3; }
+  .room-side > :nth-child(3) { order: 4; }
+  .room-board { order: 5; }
+  .room-schedule { order: 6; }
+  .room-side > :nth-child(4) { order: 7; }
+  .room-side > :nth-child(5) { order: 8; }
+  .room-main > :last-child { order: 9; }
+}
+.room-sec > .pln-agenda > h4 { display: none; } /* 會議室的議程標題已在摺疊列上 */

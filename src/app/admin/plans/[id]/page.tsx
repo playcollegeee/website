@@ -3,13 +3,11 @@ import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
 import {
-  CAMP_SLOTS, LIST_SECTIONS, MAJOR_LESSONS, MAJOR_SECTIONS, PLAN_KINDS, PLAN_STATUS_LABEL, SECTIONS,
-  campDays, canEditPlan, fmtDay, fmtRange, who,
+  PLAN_KINDS, PLAN_STATUS_LABEL, SECTIONS, canEditPlan, fmtDay, fmtRange, who,
   type AgendaItem, type Plan, type PlanComment, type PlanIdea, type PlanItem, type PlanTask,
 } from "@/lib/plans";
-import IdeaBoard from "../IdeaBoard";
-import ItemCard, { type LessonOpt } from "../ItemCard";
-import Discussion from "../Discussion";
+import { type LessonOpt } from "../ItemCard";
+import PlanSchedule from "../PlanSchedule";
 import Tasks from "../Tasks";
 import PlanHeader from "../PlanHeader";
 import Meetings, { type Meeting } from "../Meetings";
@@ -58,8 +56,6 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const editable = canEditPlan(plan, staff);
   const kind = PLAN_KINDS.find((k) => k.value === plan.kind)!;
   const lessonOpts: LessonOpt[] = lessons.map((l) => ({ id: l.id, title: l.title, major: l.category?.major ?? null }));
-  const cOf = (itemId: string) => comments.filter((c) => c.item_id === itemId);
-  const common = { planId: plan.id, canEditPlan: editable, me: staff.id, isAdmin: staff.is_admin, lessons: lessonOpts, teachers };
   const decisions = comments.filter((c) => c.is_decision);
   const itemTitle = (itemId: string | null) => {
     const it = items.find((x) => x.id === itemId);
@@ -91,53 +87,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
       <div className="pln-layout">
         <div className="pln-main">
-          {ideasSafe !== null && (
-            <IdeaBoard planId={plan.id} ideas={ideasSafe} comments={comments.filter((c) => c.idea_id)} me={staff.id}
-              isAdmin={staff.is_admin} canEditPlan={editable} hasTheme={!!plan.theme} />
-          )}
-          {plan.kind === "season" && MAJOR_SECTIONS.map((sec) => (
-            <details key={sec} className="adm-panel pln-sec" open={items.some((x) => x.section === sec)}>
-              <summary><h2>{SECTIONS[sec].label} <small>已安排 {items.filter((x) => x.section === sec && (x.title || x.lesson_id)).length}／{MAJOR_LESSONS}</small></h2></summary>
-              {Array.from({ length: MAJOR_LESSONS }, (_, i) => i + 1).map((n) => {
-                const it = items.find((x) => x.section === sec && x.seq === n);
-                return <ItemCard key={`${sec}-${n}-${it?.updated_at ?? ""}`} {...common} section={sec} seq={n} label={`第 ${n} 堂`} item={it} comments={it ? cOf(it.id) : []} />;
-              })}
-            </details>
-          ))}
-
-          {LIST_SECTIONS[plan.kind as "season" | "month" | "camp"].map((sec) => {
-            const list = items.filter((x) => x.section === sec);
-            return (
-              <section key={sec} className="adm-panel pln-sec">
-                <h2>{SECTIONS[sec].label} <small>{list.length} 場</small></h2>
-                {list.length === 0 && <p className="muted">還沒有安排。</p>}
-                {list.map((it) => <ItemCard key={`${it.id}-${it.updated_at}`} {...common} section={sec} item={it} comments={cOf(it.id)} />)}
-                <ItemCard {...common} section={sec} isNew comments={[]} />
-              </section>
-            );
-          })}
-
-          {plan.kind === "camp" && (() => {
-            const weeks = campDays(plan.start_date, plan.end_date);
-            if (!weeks.length) return <p className="notice err">請先按「編輯名稱、主題與日期」設定營隊的開始與結束日期，系統會排出每週每天的上午、下午。</p>;
-            return weeks.map((w) => (
-              <details key={w.week} className="adm-panel pln-sec" open>
-                <summary><h2>第 {w.week} 週 <small>{fmtDay(w.days[0])} ～ {fmtDay(w.days[w.days.length - 1])}</small></h2></summary>
-                {w.days.map((d) => (
-                  <div key={d} className="pln-day">
-                    <h3>{fmtDay(d)}</h3>
-                    {CAMP_SLOTS.map((s) => {
-                      const it = items.find((x) => x.section === "camp" && x.day === d && x.slot === s.value);
-                      return <ItemCard key={`${d}-${s.value}-${it?.updated_at ?? ""}`} {...common} section="camp" day={d} slot={s.value}
-                        label={`${s.label} ${s.time}`} item={it} comments={it ? cOf(it.id) : []} />;
-                    })}
-                  </div>
-                ))}
-              </details>
-            ));
-          })()}
+          <h2 className="pln-zone">📅 時程安排</h2>
+          <PlanSchedule plan={plan} items={items} comments={comments} teachers={teachers} lessons={lessonOpts}
+            me={staff.id} isAdmin={staff.is_admin} editable={editable} />
           {meetings !== null && (
-            <Meetings planId={plan.id} meetings={meetings} agenda={agenda} openTasks={tasks.filter((t) => !t.done_at)}
+            <Meetings planId={plan.id} meetings={meetings} agenda={agenda}
               teachers={teachers} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} sttReady={sttConfigured()} />
           )}
         </div>
@@ -146,7 +100,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           <section className="adm-panel">
             <h2>✅ 決議 <small>{decisions.length} 項</small></h2>
             {decisions.length === 0 ? (
-              <p className="muted">討論有結論時，負責老師在留言按「標為決議」，就會整理在這裡。</p>
+              <p className="muted">開會時在會議室把討論標為決議，或匯入錄音請 AI 整理，就會列在這裡。</p>
             ) : (
               <ol className="pln-decisions">
                 {decisions.map((c) => (
@@ -162,10 +116,18 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <h2>📌 待辦 <small>{tasks.filter((t) => !t.done_at).length} 項未完成</small></h2>
             <Tasks planId={plan.id} tasks={tasks} teachers={teachers} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} />
           </section>
-          <section className="adm-panel">
-            <h2>💬 討論 <small>{comments.filter((c) => !c.item_id && !c.idea_id).length} 則</small></h2>
-            <Discussion planId={plan.id} comments={comments.filter((c) => !c.item_id && !c.idea_id)} me={staff.id} isAdmin={staff.is_admin} canDecide={editable} />
-          </section>
+          {(() => {
+            // 點子牆與討論移到會議室；這裡只留一行，帶到最新一場會議
+            const nIdeas = ideasSafe?.length ?? 0;
+            const nTalk = comments.filter((c) => !c.item_id && !c.idea_id).length;
+            const latest = (meetings ?? []).find((m) => m.status === "planned") ?? (meetings ?? [])[0];
+            return (
+              <p className="pln-room-hint">
+                💡 點子 {nIdeas} 則・💬 討論 {nTalk} 則
+                {latest ? <> → <Link href={`/admin/meetings/${latest.id}`}>到{latest.title}的會議室</Link></> : "（安排會議後，在會議室一起討論）"}
+              </p>
+            );
+          })()}
         </aside>
       </div>
     </>

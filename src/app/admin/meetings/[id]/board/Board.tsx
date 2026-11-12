@@ -43,6 +43,7 @@ export default function Board({
   const [color, setColor] = useState<BoardColor>("yellow");
   const [list, setList] = useState(false);
   const [notice, setNotice] = useState("");
+  const [full, setFull] = useState(false); // 全螢幕：白板蓋滿整個畫面，按 Esc 或「離開全螢幕」回來
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -281,8 +282,8 @@ export default function Board({
   // 第一次載入後，把所有東西放進畫面
   const fitted = useRef(false);
   useEffect(() => {
-    if (loaded && !fitted.current && !list) { fitted.current = true; fitAll(); }
-  }, [loaded, list, fitAll]);
+    if (loaded && !fitted.current && !list) { fitted.current = true; requestAnimationFrame(fitAll); }
+  }, [loaded, list, full, fitAll]);
 
   // 滑鼠滾輪：平移；按住 Ctrl（或觸控板捏合）：縮放
   useEffect(() => {
@@ -474,7 +475,7 @@ export default function Board({
   );
 
   return (
-    <div className="bd">
+    <div className={`bd${full ? " full" : ""}`} onKeyDown={(e) => { if (e.key === "Escape" && full && !editing) setFull(false); }}>
       <div className="bd-bar">
         <div className="bd-tools">
           <span className="bd-swatches" role="group" aria-label="新便利貼的顏色">
@@ -494,6 +495,9 @@ export default function Board({
               <button type="button" className="btn btn-sm" onClick={fitAll}>全部看到</button>
             </span>
           )}
+          <button type="button" className="btn btn-sm" aria-pressed={full} onClick={() => { setFull((x) => !x); if (!full) setList(false); fitted.current = false; }}>
+            {full ? "↙ 離開全螢幕" : "⛶ 全螢幕"}
+          </button>
           <button type="button" className="btn btn-sm" aria-pressed={list} onClick={() => { setList((x) => !x); fitted.current = false; }}>
             {list ? "🧩 白板模式" : "📋 條列模式"}
           </button>

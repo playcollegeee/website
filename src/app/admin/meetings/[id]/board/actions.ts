@@ -37,7 +37,7 @@ export async function setHelpers(meetingId: string, teacherIds: string[]): Promi
       if (!res.ok) throw new Error(`儲存失敗（${res.status}）`);
     }
     await audit(actorOf(staff), "meeting.helpers", `meetings:${meetingId}`, { helpers: ids });
-    revalidatePath(`/admin/meetings/${meetingId}/board`);
+    revalidatePath(`/admin/meetings/${meetingId}`);
     return { ok: true, message: ids.length ? "已更新小幫手老師" : "已清除小幫手老師" };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "儲存失敗" };

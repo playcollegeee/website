@@ -12,7 +12,17 @@ const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slic
 const refresh = (planId: string) => {
   revalidatePath(`/admin/plans/${planId}`);
   revalidatePath("/admin/plans");
+  revalidatePath("/admin/meetings/[id]", "page"); // 會議室也顯示同一份規劃的資料
 };
+
+// 在會議室裡新增的留言、決議、待辦，記下是哪一場會議（0019）；會議要屬於同一份規劃
+async function meetingOf(meetingId: string | undefined, planId: string) {
+  if (!meetingId) return null;
+  if (!isUuid(meetingId)) throw new Error("資料不正確");
+  const m = await sbGet<{ plan_id: string | null }[]>(`meetings?id=eq.${meetingId}&select=plan_id`);
+  if (m[0]?.plan_id !== planId) throw new Error("找不到這場會議");
+  return meetingId;
+}
 
 async function loadPlan(id: string) {
   if (!isUuid(id)) throw new Error("資料不正確");
@@ -208,10 +218,11 @@ export async function deleteItem(id: string): Promise<Result> {
 
 // ---------- 留言、決議 ----------
 // 所有老師都能留言、回覆；只能改自己的；刪除只有管理員；標成「決議」限可修改規劃的人
-export async function addComment(input: { planId: string; itemId?: string; ideaId?: string; parentId?: string; body: string }): Promise<Result> {
+export async function addComment(input: { planId: string; itemId?: string; ideaId?: string; parentId?: string; body: string; meetingId?: string }): Promise<Result> {
   try {
     const staff = await requireStaff();
     const plan = await loadPlan(input.planId);
+    const meetingId = await meetingOf(input.meetingId, plan.id);
     const body = text(input.body, 3000);
     if (!body) return { ok: false, message: "請輸入留言" };
     let itemId: string | null = null;
@@ -240,7 +251,8 @@ export async function addComment(input: { planId: string; itemId?: string; ideaI
       ideaId = c[0].idea_id;
     }
     const c = await sbInsert<{ id: string }>("plan_comments", {
-      plan_id: plan.id, item_id: itemId, ...(ideaId ? { idea_id: ideaId } : {}), parent_id: parentId, body, author_id: staff.id,
+      plan_id: plan.id, item_id: itemId, ...(ideaId ? { idea_id: ideaId } : {}), ...(meetingId ? { meeting_id: meetingId } : {}),
+      parent_id: parentId, body, author_id: staff.id,
     });
     await audit(actorOf(staff), "plan.comment", `plan_comments:${c.id}`, { plan: plan.id });
     refresh(plan.id);
@@ -289,15 +301,18 @@ export async function deleteComment(id: string): Promise<Result> {
   }
 }
 
-export async function toggleDecision(id: string): Promise<Result> {
+export async function toggleDecision(id: string, meetingId?: string): Promise<Result> {
   try {
     const staff = await requireStaff();
     const c = await loadComment(id);
     await mustEdit(c.plan_id, staff);
     const on = !c.is_decision;
+    // 在會議室標成決議：這則留言還沒記會議時，記成這場會議的決議
+    const mid = on ? await meetingOf(meetingId, c.plan_id) : null;
     await sbPatch(`plan_comments?id=eq.${id}`, {
       is_decision: on, decided_by: on ? staff.id : null, decided_at: on ? new Date().toISOString() : null,
     });
+    if (mid) await sbPatch(`plan_comments?id=eq.${id}&meeting_id=is.null`, { meeting_id: mid });
     await audit(actorOf(staff), on ? "plan.decision_on" : "plan.decision_off", `plan_comments:${id}`, {});
     refresh(c.plan_id);
     return { ok: true, message: on ? "已標為決議" : "已取消決議" };
@@ -308,15 +323,16 @@ export async function toggleDecision(id: string): Promise<Result> {
 
 // ---------- 待辦 ----------
 // 所有老師都能新增待辦、指派給任何老師；被指派的人、建立者、可修改規劃的人能勾完成；刪除限建立者與管理員
-export async function addTask(input: { planId: string; title: string; assigneeId: string; due: string }): Promise<Result> {
+export async function addTask(input: { planId: string; title: string; assigneeId: string; due: string; meetingId?: string }): Promise<Result> {
   try {
     const staff = await requireStaff();
     const plan = await loadPlan(input.planId);
+    const meetingId = await meetingOf(input.meetingId, plan.id);
     const title = text(input.title, 300);
     if (!title) return { ok: false, message: "請填寫待辦事項" };
     const t = await sbInsert<{ id: string }>("plan_tasks", {
       plan_id: plan.id, title, assignee_id: await teacherOk(input.assigneeId || null),
-      due_date: isDate(input.due) ? input.due : null, created_by: staff.id,
+      due_date: isDate(input.due) ? input.due : null, created_by: staff.id, ...(meetingId ? { meeting_id: meetingId } : {}),
     });
     await audit(actorOf(staff), "plan.task_add", `plan_tasks:${t.id}`, { plan: plan.id, assignee: input.assigneeId || null });
     refresh(plan.id);

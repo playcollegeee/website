@@ -11,6 +11,13 @@ export async function proxy(req: NextRequest) {
     url.search = `?next=${encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search)}`;
     return NextResponse.redirect(url);
   }
+  // 舊的白板網址（2026-11-12 白板併入會議室）
+  const old = req.nextUrl.pathname.match(/^\/admin\/meetings\/([0-9a-f-]{36})\/board\/?$/i);
+  if (old) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/admin/meetings/${old[1]}`;
+    return NextResponse.redirect(url, 308);
+  }
   const res = NextResponse.next();
   res.headers.set("X-Robots-Tag", "noindex, nofollow");
   res.headers.set("Cache-Control", "no-store");
