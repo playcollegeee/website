@@ -475,7 +475,7 @@ h3 { font-size: 20px; }
 
 /* ---------- 老師登入 ---------- */
 /* ---------- 老師登入（積木光圈＋毛玻璃卡片） ---------- */
-.login { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #fffdf7; overflow: hidden; }
+.login { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #fdfbf2; overflow: hidden; }
 .gate-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .login-card {
   position: relative; width: min(400px, 100%); padding: 30px 28px 24px; border-radius: 22px;
@@ -504,6 +504,27 @@ h3 { font-size: 20px; }
 .lg-submit:disabled { opacity: 0.7; cursor: progress; }
 .lg-help { margin: 0; font-size: 13px; color: var(--ink-soft); text-align: center; }
 @media (prefers-reduced-motion: reduce) { .login-card { animation: none; } }
+
+/* 登入成功：學院圖示打開（零件位置依原始 LOGO-05.png 370×420 換算成百分比） */
+.lg-door { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(253, 251, 242, 0); animation: lg-door-bg 0.35s ease-out forwards; overflow: hidden; }
+@keyframes lg-door-bg { to { background: rgba(253, 251, 242, 0.96); } }
+.lg-icon { position: relative; width: min(56vw, 300px); aspect-ratio: 370 / 420; animation: lg-icon-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes lg-icon-in { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.lg-icon img { position: absolute; display: block; transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1); }
+.d-roof { left: 4.86%; top: 3.1%; width: 91.08%; height: 34.52%; }
+.d-p1 { left: 7.3%; top: 41.9%; width: 18.92%; height: 35.48%; }
+.d-p2 { left: 34.59%; top: 41.9%; width: 18.92%; height: 35.48%; }
+.d-cap { left: 66.76%; top: 42.14%; width: 21.62%; height: 9.05%; }
+.d-box { left: 61.62%; top: 53.81%; width: 31.89%; height: 23.57%; }
+.d-base { left: 4.86%; top: 81.9%; width: 91.08%; height: 13.33%; }
+.lg-door-light { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: #fff; transform: scale(0); transition: transform 0.9s 0.15s cubic-bezier(0.55, 0, 0.3, 1); }
+.lg-door.open .lg-door-light { transform: scale(80); }
+.lg-door.open .d-roof { transform: translateY(-110vh) rotate(-10deg); }
+.lg-door.open .d-p1 { transform: translateX(-80vw) rotate(-14deg); transition-delay: 0.08s; }
+.lg-door.open .d-p2 { transform: translateX(-60vw) rotate(-8deg); transition-delay: 0.12s; }
+.lg-door.open .d-cap { transform: translateX(70vw) rotate(12deg); transition-delay: 0.08s; }
+.lg-door.open .d-box { transform: translateX(80vw) rotate(10deg); transition-delay: 0.12s; }
+.lg-door.open .d-base { transform: translateY(80vh); transition-delay: 0.05s; }
 
 /* ---------- 後台框架 ---------- */
 .adm { min-height: 100vh; background: #f7f5ee; }

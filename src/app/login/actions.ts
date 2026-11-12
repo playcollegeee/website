@@ -14,7 +14,8 @@ function safeNext(v: FormDataEntryValue | null): string {
   return s.startsWith("/admin") && !s.startsWith("//") ? s : "/admin";
 }
 
-export type LoginState = { error: string; email: string };
+// to：登入成功後要去的頁面（由畫面先播完開門動畫再前往）
+export type LoginState = { error: string; email: string; to?: string };
 
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -60,7 +61,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     maxAge: STAFF_MAX_AGE,
   });
   await audit(`teacher:${t.id}`, "staff.login", `teachers:${t.id}`);
-  redirect(safeNext(formData.get("next")));
+  return { error: "", email, to: safeNext(formData.get("next")) };
 }
 
 export async function logout() {
