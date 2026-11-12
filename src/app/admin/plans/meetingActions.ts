@@ -28,7 +28,23 @@ async function loadMeeting(id: string) {
   if (!m) throw new Error("找不到這場會議，可能已被刪除");
   return m;
 }
-const refresh = (m: { plan_id: string | null }) => { if (m.plan_id) revalidatePath(`/admin/plans/${m.plan_id}`); };
+const refresh = (m: { plan_id: string | null }) => {
+  if (m.plan_id) revalidatePath(`/admin/plans/${m.plan_id}`);
+  revalidatePath("/admin/meetings/[id]", "page");
+};
+const today = () => new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+
+// 這份規劃的下一次會議編號（0019 的 seq；還沒執行 0019 時用會議數量推算）
+async function nextSeq(planId: string): Promise<{ seq: number; hasSeq: boolean }> {
+  const rows = await sbGet<{ seq: number | null }[]>(`meetings?plan_id=eq.${planId}&select=seq&order=seq.desc.nullslast&limit=1`).catch(() => null);
+  if (rows) {
+    const all = await sbGet<{ id: string }[]>(`meetings?plan_id=eq.${planId}&select=id`);
+    return { seq: Math.max(rows[0]?.seq ?? 0, all.length) + 1, hasSeq: true };
+  }
+  const all = await sbGet<{ id: string }[]>(`meetings?plan_id=eq.${planId}&select=id`);
+  return { seq: all.length + 1, hasSeq: false };
+}
+const seqTitle = (n: number) => `第 ${n} 次會議`;
 
 // 1. 建立會議（錄音已在瀏覽器切好段，告訴伺服器總共幾段）
 export async function createMeeting(input: {
@@ -43,9 +59,11 @@ export async function createMeeting(input: {
     if (!p[0]) return { ok: false, message: "找不到這份規劃" };
     const parts = Math.floor(input.partsTotal);
     if (!(parts >= 1 && parts <= 400)) return { ok: false, message: "錄音太長（最多約 10 小時）" };
-    const title = String(input.title ?? "").trim().slice(0, 80) || "會議紀錄";
+    const n = await nextSeq(input.planId);
+    const title = String(input.title ?? "").trim().slice(0, 80) || seqTitle(n.seq);
     const m = await sbInsert<{ id: string }>("meetings", {
-      plan_id: input.planId, title, held_on: isDate(input.heldOn) ? input.heldOn : null,
+      ...(n.hasSeq ? { seq: n.seq } : {}),
+      plan_id: input.planId, title, held_on: isDate(input.heldOn) ? input.heldOn : today(),
       parts_total: parts, duration_sec: Math.round(input.durationSec) || null, status: "transcribing",
       consent_note: `已告知與會者（${staff.name} 確認）`, created_by: staff.id,
     });
@@ -58,20 +76,22 @@ export async function createMeeting(input: {
 }
 
 // 0. 先安排會議（還沒錄音）：可以先擬議程；所有老師都可以安排
-export async function planMeeting(input: { planId: string; title: string; heldOn: string }): Promise<Result & { id?: string }> {
+export async function planMeeting(input: { planId: string; title?: string; heldOn?: string }): Promise<Result & { id?: string }> {
   try {
     const staff = await requireStaff();
     if (!isUuid(input.planId)) return { ok: false, message: "資料不正確" };
     const p = await sbGet<{ id: string }[]>(`plans?id=eq.${input.planId}&select=id`);
     if (!p[0]) return { ok: false, message: "找不到這份規劃" };
-    const heldOn = isDate(input.heldOn) ? input.heldOn : null;
-    const title = String(input.title ?? "").trim().slice(0, 80) || `會議${heldOn ? " " + heldOn.slice(5).replace("-", "/") : ""}`;
+    const heldOn = isDate(input.heldOn) ? input.heldOn : today();
+    const n = await nextSeq(input.planId);
+    const title = String(input.title ?? "").trim().slice(0, 80) || seqTitle(n.seq);
     const m = await sbInsert<{ id: string }>("meetings", {
+      ...(n.hasSeq ? { seq: n.seq } : {}),
       plan_id: input.planId, title, held_on: heldOn, status: "planned", parts_total: 0, created_by: staff.id,
     });
     await audit(actorOf(staff), "meeting.plan", `meetings:${m.id}`, { plan: input.planId });
     revalidatePath(`/admin/plans/${input.planId}`);
-    return { ok: true, message: "已安排會議，可以開始擬議程", id: m.id };
+    return { ok: true, message: `已安排${title}，可以開始擬議程`, id: m.id };
   } catch (e) {
     return fail(e);
   }
@@ -382,6 +402,7 @@ export async function applyMeeting(input: {
         method: "POST", headers: { Prefer: "return=minimal" },
         body: JSON.stringify(decisions.map((d) => ({
           plan_id: m.plan_id, body: `〔${m.title}〕${d}`, author_id: staff.id, is_decision: true, decided_by: staff.id, decided_at: now,
+          meeting_id: m.id,
         }))),
       });
       if (!r.ok) throw new Error("寫入決議失敗");
@@ -389,6 +410,7 @@ export async function applyMeeting(input: {
     const tasks = (input.tasks ?? []).map((t) => ({
       plan_id: m.plan_id, title: String(t.title ?? "").trim().slice(0, 300),
       assignee_id: teacherIds.has(t.assigneeId) ? t.assigneeId : null, due_date: isDate(t.due) ? t.due : null, created_by: staff.id,
+      meeting_id: m.id,
     })).filter((t) => t.title).slice(0, 30);
     if (tasks.length) {
       const r = await sbFetch("plan_tasks", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(tasks) });
@@ -399,6 +421,27 @@ export async function applyMeeting(input: {
     refresh(m);
     revalidatePath("/admin");
     return { ok: true, message: `已加入 ${decisions.length} 項決議、${tasks.length} 項待辦` };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 會議室：修改會議名稱與日期（會議建立者、小幫手、規劃負責人、管理員）
+export async function updateMeeting(input: { id: string; title: string; heldOn: string }): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const m = await loadMeeting(input.id);
+    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0] : null;
+    const helpers = await sbGet<{ teacher_id: string }[]>(`meeting_helpers?meeting_id=eq.${m.id}&select=teacher_id`).catch(() => []);
+    if (!(staff.is_admin || m.created_by === staff.id || helpers.some((h) => h.teacher_id === staff.id) || (plan && canEditPlan(plan, staff)))) {
+      return { ok: false, message: "只有會議建立者、小幫手老師、規劃負責人或管理員可以修改" };
+    }
+    const title = String(input.title ?? "").trim().slice(0, 80);
+    if (!title) return { ok: false, message: "請填寫會議名稱" };
+    await sbPatch(`meetings?id=eq.${m.id}`, { title, held_on: isDate(input.heldOn) ? input.heldOn : null, updated_at: new Date().toISOString() });
+    await audit(actorOf(staff), "meeting.update", `meetings:${m.id}`, {});
+    refresh(m);
+    return { ok: true, message: "已儲存" };
   } catch (e) {
     return fail(e);
   }

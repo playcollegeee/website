@@ -10,9 +10,11 @@ type T = { id: string; name: string; nickname: string | null };
 
 // 待辦清單：指派老師與期限、勾選完成。showPlan＝在首頁「我的待辦」顯示來自哪份規劃
 export default function Tasks({
-  planId, tasks, teachers, me, isAdmin, canEditPlan, showPlan,
+  planId, tasks, teachers, me, isAdmin, canEditPlan, showPlan, meetingId, emptyText,
 }: {
   planId?: string;
+  meetingId?: string; // 在會議室新增的待辦記成這場會議的
+  emptyText?: string;
   tasks: PlanTask[];
   teachers?: T[];
   me: string;
@@ -57,7 +59,7 @@ export default function Tasks({
 
   return (
     <div className="pln-tasks">
-      {open.length === 0 && <p className="muted">{showPlan ? "目前沒有指派給你的待辦。" : "沒有未完成的待辦。"}</p>}
+      {open.length === 0 && <p className="muted">{emptyText ?? (showPlan ? "目前沒有指派給你的待辦。" : "沒有未完成的待辦。")}</p>}
       <ul>{open.map((t) => <Row key={t.id} t={t} />)}</ul>
       {done.length > 0 && (
         <button type="button" className="adm-link" onClick={() => setShowDone((v) => !v)}>
@@ -68,14 +70,14 @@ export default function Tasks({
       {planId && teachers && (
         <div className="pln-task-new">
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={300} placeholder="新增待辦，例：確認走讀場地與日期" aria-label="待辦事項"
-            onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) { e.preventDefault(); run(() => addTask({ planId, title, assigneeId: assignee, due }), () => { setTitle(""); setDue(""); }); } }} />
+            onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) { e.preventDefault(); run(() => addTask({ planId, title, assigneeId: assignee, due, meetingId }), () => { setTitle(""); setDue(""); }); } }} />
           <select value={assignee} onChange={(e) => setAssignee(e.target.value)} aria-label="指派給">
             <option value="">未指派</option>
             {teachers.map((x) => <option key={x.id} value={x.id}>{x.nickname || x.name}</option>)}
           </select>
           <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="期限" />
           <button type="button" className="btn btn-sm" disabled={busy || !title.trim()}
-            onClick={() => run(() => addTask({ planId, title, assigneeId: assignee, due }), () => { setTitle(""); setDue(""); })}>＋ 新增</button>
+            onClick={() => run(() => addTask({ planId, title, assigneeId: assignee, due, meetingId }), () => { setTitle(""); setDue(""); })}>＋ 新增</button>
         </div>
       )}
       {msg && <p className="notice err" role="status">{msg}</p>}
