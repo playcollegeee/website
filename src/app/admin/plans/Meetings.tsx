@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useRef, useState, useTransition } from "react";
@@ -332,6 +333,7 @@ function MeetingCard({
       )}
 
       <div className="pln-meet-foot">
+        <Link className="btn btn-sm" href={`/admin/meetings/${m.id}/board`}>🧩 討論白板</Link>
         <button type="button" className="adm-link" disabled={pending}
           onClick={() => transcript === null ? start(async () => { const r = await getTranscript(m.id); setTranscript(r.ok ? r.text : r.message ?? ""); }) : setTranscript(null)}>
           {transcript === null ? "📄 看逐字稿" : "收起逐字稿"}
