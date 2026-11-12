@@ -1,5 +1,7 @@
 "use client";
 
+import PondVote from "@/components/PondVote";
+
 import { useState, useTransition } from "react";
 import { IDEA_KINDS, IDEA_KIND_LABEL, VOTES_PER_PLAN, who, type PlanComment, type PlanIdea } from "@/lib/plans";
 import ConfirmButton from "@/app/admin/ConfirmButton";
@@ -51,7 +53,7 @@ export default function IdeaBoard({
           ))}
         </div>
       </div>
-      <p className="hint">每個人先把想法貼上來，再用 👍 投票（每份規劃每人 {VOTES_PER_PLAN} 票，再按一次可以收回），覺得要補充的就留意見。負責老師選定後按「採用」，主題會直接填入這份規劃。</p>
+      <p className="hint">每個人先把想法貼上來，再按 ♥ 投票（每份規劃每人 {VOTES_PER_PLAN} 票，再按一次可以收回），覺得要補充的就留意見。負責老師選定後按「採用」，主題會直接填入這份規劃。</p>
 
       <div className="pln-idea-grid">
         {list.map((i) => {
@@ -84,11 +86,9 @@ export default function IdeaBoard({
                   {i.detail && <p className="pln-idea-detail">{i.detail}</p>}
                   <small className="muted">{i.anonymous ? `匿名${isMine ? "（你）" : ""}` : who(i.author ?? null)}</small>
                   <div className="pln-idea-tools">
-                    <button type="button" className={`pln-vote${mine ? " on" : ""}`} disabled={busy || i.status !== "open" || (!mine && left <= 0)}
+                    <PondVote count={votes} on={mine} disabled={busy || i.status !== "open" || (!mine && left <= 0)}
                       title={i.status !== "open" ? "已經有結果" : mine ? "收回這一票" : left <= 0 ? "票數用完了，先收回一票" : "投一票"}
-                      onClick={() => run(() => toggleVote(i.id))}>
-                      👍 {votes}
-                    </button>
+                      onToggle={() => run(() => toggleVote(i.id))} />
                     <button type="button" className={`adm-link${cs.length ? " has" : ""}`} onClick={() => setTalk(talk === i.id ? null : i.id)}>💬 {cs.length || "意見"}</button>
                     {canEditPlan && i.status === "open" && (
                       <>
