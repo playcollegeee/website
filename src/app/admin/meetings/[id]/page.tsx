@@ -104,7 +104,8 @@ export default async function MeetingRoom({ params }: { params: Promise<{ id: st
 
           <section className="adm-panel room-board">
             <h2>🧩 討論白板</h2>
-            <Board meetingId={m.id} me={staff.id} teachers={teachersAll} title={m.title} />
+            <Board meetingId={m.id} me={staff.id} teachers={teachersAll} title={m.title}
+              planId={pid} canDecide={editable} activeTeachers={teachers} />
           </section>
 
           <details className="adm-panel room-sec" open={m.status !== "planned" && !m.applied_at}>

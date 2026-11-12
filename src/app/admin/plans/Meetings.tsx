@@ -7,7 +7,8 @@ import { fmtDay, who, type AgendaItem } from "@/lib/plans";
 import { ROOM_CTA, meetingStatus, type Meeting } from "@/lib/meetingTypes";
 export type { Meeting };
 import Agenda from "./Agenda";
-import { planMeeting } from "./meetingActions";
+import ConfirmButton from "@/app/admin/ConfirmButton";
+import { deleteMeeting, planMeeting } from "./meetingActions";
 import { PhaseBox, useRecorder } from "./useRecorder";
 
 type T = { id: string; name: string; nickname: string | null };
@@ -28,6 +29,13 @@ export default function Meetings({
   const next = meetings.filter((m) => m.status === "planned").sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   const planned = next ? [next] : [];
   const others = meetings.filter((m) => m.id !== next?.id);
+  const canDelete = (m: Meeting) => isAdmin || canEditPlan || m.created_by === me;
+  const [deleting, startDelete] = useTransition();
+  const Del = ({ m }: { m: Meeting }) => canDelete(m) ? (
+    <ConfirmButton label="刪除" disabled={deleting}
+      message={`確定刪除「${m.title}」？議程、白板、逐字稿會一起刪除；已套用到規劃的決議與待辦會保留。`}
+      onConfirm={() => startDelete(async () => { const r = await deleteMeeting(m.id); setMsg(r.ok ? null : r.message); if (r.ok) router.refresh(); })} />
+  ) : null;
 
   return (
     <section className="adm-panel pln-meetings">
@@ -63,7 +71,10 @@ export default function Meetings({
         <div key={m.id} className="pln-meet-next">
           <div className="pln-meet-next-head">
             <h3>{m.title}<small className="muted">　{m.held_on ? fmtDay(m.held_on) : ""}・{who(m.creator ?? null)} 安排</small></h3>
-            <Link className="btn primary" href={`/admin/meetings/${m.id}`}>{ROOM_CTA}</Link>
+            <span className="pln-meet-next-act">
+              <Link className="btn primary" href={`/admin/meetings/${m.id}`}>{ROOM_CTA}</Link>
+              <Del m={m} />
+            </span>
           </div>
           <Agenda meetingId={m.id} items={agenda.filter((a) => a.meeting_id === m.id)} teachers={teachers} me={me} isAdmin={isAdmin}
             canManage={m.created_by === me || canEditPlan} showResults={false} />
@@ -77,6 +88,7 @@ export default function Meetings({
               <strong>{m.title}</strong>
               <small className="muted">{m.held_on ? fmtDay(m.held_on) : ""}・{meetingStatus(m)}</small>
               <Link className="adm-link" href={`/admin/meetings/${m.id}`}>進入會議室 →</Link>
+              <Del m={m} />
             </li>
           ))}
         </ul>

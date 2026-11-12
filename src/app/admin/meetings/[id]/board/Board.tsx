@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ConfirmButton from "../../../ConfirmButton";
+import BoardAiPanel from "./BoardAiPanel";
+import { organizeBoard, type BoardAi } from "./actions";
 import {
   BOARD_COLORS, BOARD_MAX_ITEMS, NOTE_H, NOTE_MAX, NOTE_W, SECTION_MAX, SYNC_IDLE_MS, SYNC_MS,
-  colorOf, inside,
+  colorOf, edgePoint, inside,
   type BoardColor, type BoardItem, type BoardOp, type Presence, type SyncResult,
 } from "@/lib/board";
 
@@ -26,9 +28,10 @@ const r = Math.round;
 const HANDLES = ".bd-note, .bd-sec-head, .bd-resize";
 
 export default function Board({
-  meetingId, me, teachers, title,
+  meetingId, me, teachers, title, planId = null, canDecide = false, activeTeachers,
 }: {
   meetingId: string; me: string; teachers: T[]; title: string;
+  planId?: string | null; canDecide?: boolean; activeTeachers?: T[]; // AI 整理套用決議與待辦用
 }) {
   const [items, setItems] = useState<Record<string, BoardItem>>({});
   const [loaded, setLoaded] = useState(false);
@@ -44,6 +47,9 @@ export default function Board({
   const [list, setList] = useState(false);
   const [notice, setNotice] = useState("");
   const [full, setFull] = useState(false); // 全螢幕：白板蓋滿整個畫面，按 Esc 或「離開全螢幕」回來
+  const [connectFrom, setConnectFrom] = useState<string | null>(null); // 連線模式：起點
+  const [ai, setAi] = useState<BoardAi | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -242,11 +248,71 @@ export default function Board({
   };
 
   const remove = (it: BoardItem) => {
-    setItems((p) => { const n = { ...p }; delete n[it.id]; return n; });
+    setItems((p) => {
+      const n = { ...p };
+      delete n[it.id];
+      for (const a of Object.values(n)) if (a.kind === "arrow" && (a.from_id === it.id || a.to_id === it.id)) delete n[a.id];
+      return n;
+    });
     queue.current = queue.current.filter((o) => o.id !== it.id || o.op === "add");
     push({ op: "del", id: it.id });
     setSelected(null);
     if (editingRef.current === it.id) setEditing(null);
+  };
+
+  const addArrow = (from: string, to: string) => {
+    const all = itemsRef.current;
+    if (from === to || !all[from] || !all[to]) return;
+    if (Object.values(all).some((a) => a.kind === "arrow" && a.from_id === from && a.to_id === to)) { setNotice("這兩張已經連過了"); return; }
+    const a: BoardItem = { id: crypto.randomUUID(), kind: "arrow", from_id: from, to_id: to, x: 0, y: 0, w: 80, h: 60, z: 0, color: "white", text: "", author_id: me, updated_by: me, rev: 0 };
+    setItems((p) => ({ ...p, [a.id]: a }));
+    push({ op: "add", id: a.id, kind: "arrow", from_id: from, to_id: to });
+    setSelected(to);
+  };
+
+  // AI 分群：在白板右邊為每一群建立分區框，把便利貼排進去（兩欄，每群最多 3 張一排）
+  const arrange = (groups: BoardAi["groups"]) => {
+    const cur = Object.values(itemsRef.current).filter((i) => i.kind !== "arrow");
+    const baseX = cur.length ? Math.max(...cur.map((i) => i.x + i.w)) + 120 : 0;
+    const baseY = cur.length ? Math.min(...cur.map((i) => i.y)) : 0;
+    const colY = [baseY, baseY];
+    const colW = (3 * NOTE_W + 2 * 16 + 48) + 40;
+    let z = maxZ();
+    const changes: Record<string, BoardItem> = {};
+    groups.forEach((g, gi) => {
+      const ns = g.noteIds.map((id) => itemsRef.current[id]).filter((n): n is BoardItem => !!n && n.kind === "note");
+      if (!ns.length) return;
+      const cellW = Math.min(320, Math.max(...ns.map((n) => n.w))), cellH = Math.min(320, Math.max(...ns.map((n) => n.h)));
+      const cols = Math.min(3, ns.length), rows = Math.ceil(ns.length / cols);
+      const w = 48 + cols * cellW + (cols - 1) * 16, h = 72 + rows * cellH + (rows - 1) * 16;
+      const c = gi % 2 === 0 ? 0 : 1;
+      const x = baseX + c * Math.max(colW, w + 40), y = colY[c];
+      colY[c] += h + 40;
+      const sec: BoardItem = { id: crypto.randomUUID(), kind: "section", x: r(x), y: r(y), w: r(w), h: r(h), z: 0, color: "white", text: g.title.slice(0, SECTION_MAX), author_id: me, updated_by: me, rev: 0 };
+      changes[sec.id] = sec;
+      push({ op: "add", id: sec.id, kind: "section", x: sec.x, y: sec.y, w: sec.w, h: sec.h, z: 0, color: "white", text: sec.text });
+      ns.forEach((n, i) => {
+        const nx = r(x + 24 + (i % cols) * (cellW + 16)), ny = r(y + 56 + Math.floor(i / cols) * (cellH + 16));
+        z += 1;
+        changes[n.id] = { ...n, x: nx, y: ny, z };
+        push({ op: "move", id: n.id, x: nx, y: ny, z });
+      });
+    });
+    setItems((p) => ({ ...p, ...changes }));
+    if (list) setList(false);
+    fitted.current = false;
+    setTimeout(fitAll, 50);
+  };
+
+  const runAi = async () => {
+    setAiBusy(true);
+    setNotice("");
+    // 先把還沒送出的變更送出，AI 才會看到最新的白板
+    if (editingRef.current) finishEdit();
+    await new Promise((ok) => setTimeout(ok, 400));
+    const r = await organizeBoard(meetingId);
+    setAiBusy(false);
+    if (r.ok && r.ai) setAi(r.ai); else setNotice(r.message);
   };
 
   // ---------- 拖動、平移、縮放 ----------
@@ -269,7 +335,7 @@ export default function Board({
   };
 
   const fitAll = useCallback(() => {
-    const all = Object.values(itemsRef.current);
+    const all = Object.values(itemsRef.current).filter((i) => i.kind !== "arrow");
     const vp = vpRef.current?.getBoundingClientRect();
     if (!vp) return;
     if (!all.length) { setView({ x: 40, y: 40, s: 1 }); return; }
@@ -400,7 +466,7 @@ export default function Board({
     if (!d || d.pointerId !== e.pointerId) return;
     drag.current = null;
     if (d.mode === "pan") {
-      if (!d.moved) setSelected(null);
+      if (!d.moved) { setSelected(null); setConnectFrom(null); }
       return;
     }
     const all = itemsRef.current;
@@ -409,7 +475,11 @@ export default function Board({
       if (it) push({ op: "move", id: it.id, x: it.x, y: it.y, w: it.w, h: it.h });
       return;
     }
-    if (!d.moved) { setSelected(d.mainId); return; }
+    if (!d.moved) {
+      if (connectFrom && connectFrom !== d.mainId) { addArrow(connectFrom, d.mainId); setConnectFrom(null); return; }
+      setSelected(d.mainId);
+      return;
+    }
     setSelected(d.mainId);
     for (const t of d.targets) {
       const it = all[t.id];
@@ -426,7 +496,8 @@ export default function Board({
   };
 
   // ---------- 畫面 ----------
-  const all = Object.values(items);
+  const all = Object.values(items).filter((i) => i.kind !== "arrow");
+  const arrows = Object.values(items).filter((i) => i.kind === "arrow" && i.from_id && i.to_id && items[i.from_id] && items[i.to_id]);
   const sections = all.filter((i) => i.kind === "section").sort((a, b) => a.z - b.z || a.rev - b.rev);
   const notes = all.filter((i) => i.kind === "note").sort((a, b) => a.z - b.z || a.rev - b.rev);
   const sel = selected ? items[selected] : null;
@@ -487,6 +558,7 @@ export default function Board({
           </span>
           <button type="button" className="btn btn-sm primary" onClick={newNoteHere}>＋ 便利貼</button>
           <button type="button" className="btn btn-sm" onClick={newSection}>＋ 分區框</button>
+          <button type="button" className="btn btn-sm" disabled={aiBusy} onClick={() => void runAi()}>{aiBusy ? "AI 整理中…（約 10–30 秒）" : "✨ AI 整理"}</button>
           {!list && (
             <span className="bd-zoom">
               <button type="button" className="btn btn-sm" aria-label="縮小" onClick={() => zoomBy(1 / 1.25)}>−</button>
@@ -512,8 +584,16 @@ export default function Board({
         </div>
         {sel && !list && (
           <div className="bd-selbar">
-            <span className="muted">{sel.kind === "note" ? `便利貼・${nameOf(sel.author_id)}` : `分區框「${sel.text}」`}</span>
-            {canEdit(sel) ? (
+            <span className="muted">{sel.kind === "note" ? `便利貼・${nameOf(sel.author_id)}` : sel.kind === "arrow" ? `箭頭・${nameOf(sel.author_id)}` : `分區框「${sel.text}」`}</span>
+            {sel.kind !== "arrow" && (
+              <button type="button" className="adm-link" aria-pressed={connectFrom === sel.id}
+                onClick={() => { setConnectFrom(connectFrom === sel.id ? null : sel.id); }}>
+                {connectFrom === sel.id ? "取消連線" : "→ 連線"}
+              </button>
+            )}
+            {sel.kind === "arrow" ? (canEdit(sel) ? (
+              <ConfirmButton label="刪除箭頭" message="刪除這個箭頭？" confirmLabel="刪除" onConfirm={() => remove(sel)} />
+            ) : <small className="muted">箭頭限畫的人或小幫手老師刪除</small>) : canEdit(sel) ? (
               <>
                 {sel.kind === "note" && BOARD_COLORS.map((c) => (
                   <button key={c.value} type="button" className={`bd-sw${sel.color === c.value ? " on" : ""}`}
@@ -529,9 +609,14 @@ export default function Board({
             )}
           </div>
         )}
+        {connectFrom && <p className="notice ok bd-notice" role="status">連線中：點另一張便利貼或分區框，就會畫出箭頭（點空白處取消）</p>}
         {notice && <p className="notice err bd-notice" role="status">{notice}</p>}
       </div>
 
+      {ai && (
+        <BoardAiPanel ai={ai} meetingId={meetingId} planId={planId} canDecide={canDecide} teachers={activeTeachers ?? teachers}
+          textOf={(id) => itemsRef.current[id]?.text ?? ""} onArrange={arrange} onClose={() => setAi(null)} />
+      )}
       {!loaded && status !== "err" && <p className="muted">白板載入中…</p>}
 
       {list ? (
@@ -572,7 +657,7 @@ export default function Board({
           )}
           <div className="bd-world" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})` }}>
             {sections.map((it) => (
-              <div key={it.id} className={`bd-item bd-sec${selected === it.id ? " sel" : ""}`}
+              <div key={it.id} className={`bd-item bd-sec${selected === it.id ? " sel" : ""}${connectFrom === it.id ? " from" : ""}`}
                 style={{ left: it.x, top: it.y, width: it.w, height: it.h }}>
                 <div className="bd-sec-head" onPointerDown={(e) => onItemPointerDown(e, it, "move")}
                   onDoubleClick={(e) => { e.stopPropagation(); startEdit(it); }}>
@@ -584,10 +669,33 @@ export default function Board({
                 )}
               </div>
             ))}
+            <svg className="bd-arrows" width="1" height="1" aria-hidden>
+              <defs>
+                <marker id="bd-head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#5f6368" />
+                </marker>
+                <marker id="bd-head-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#5098d2" />
+                </marker>
+              </defs>
+              {arrows.map((a) => {
+                const A = items[a.from_id!], B = items[a.to_id!];
+                const p1 = edgePoint(A, B.x + B.w / 2, B.y + B.h / 2);
+                const p2 = edgePoint(B, A.x + A.w / 2, A.y + A.h / 2);
+                const on = selected === a.id;
+                return (
+                  <g key={a.id} className="bd-arrow" onPointerDown={(e) => { e.stopPropagation(); setSelected(a.id); setConnectFrom(null); }}>
+                    <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="transparent" strokeWidth={16} />
+                    <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={on ? "#5098d2" : "#5f6368"} strokeWidth={on ? 3 : 2}
+                      markerEnd={`url(#${on ? "bd-head-sel" : "bd-head"})`} />
+                  </g>
+                );
+              })}
+            </svg>
             {notes.map((it) => {
               const c = colorOf(it.color);
               return (
-                <div key={it.id} className={`bd-item bd-note${selected === it.id ? " sel" : ""}${editors.has(it.id) ? " busy" : ""}`}
+                <div key={it.id} className={`bd-item bd-note${selected === it.id ? " sel" : ""}${editors.has(it.id) ? " busy" : ""}${connectFrom === it.id ? " from" : ""}`}
                   style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z + 1, background: c.bg, borderColor: c.line }}
                   onPointerDown={(e) => onItemPointerDown(e, it, "move")}
                   onDoubleClick={(e) => { e.stopPropagation(); startEdit(it); }}>

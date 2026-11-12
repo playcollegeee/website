@@ -20,7 +20,9 @@ export const SYNC_IDLE_MS = 10000; // 分頁在背景時改成 10 秒
 
 export type BoardItem = {
   id: string;
-  kind: "note" | "section";
+  kind: "note" | "section" | "arrow";
+  from_id?: string | null; // 箭頭的起點（便利貼或分區框）
+  to_id?: string | null; // 箭頭的終點
   x: number; y: number; w: number; h: number; z: number;
   color: BoardColor;
   text: string;
@@ -32,6 +34,7 @@ export type BoardItem = {
 
 export type BoardOp =
   | { op: "add"; id: string; kind: "note" | "section"; x: number; y: number; w: number; h: number; z: number; color: BoardColor; text: string }
+  | { op: "add"; id: string; kind: "arrow"; from_id: string; to_id: string }
   | { op: "move"; id: string; x: number; y: number; w?: number; h?: number; z?: number }
   | { op: "edit"; id: string; text?: string; color?: BoardColor }
   | { op: "del"; id: string };
@@ -52,3 +55,14 @@ export const inside = (n: { x: number; y: number; w: number; h: number }, s: { x
   const cy = n.y + n.h / 2;
   return cx >= s.x && cx <= s.x + s.w && cy >= s.y && cy <= s.y + s.h;
 };
+
+// 箭頭端點：從方框中心往另一個方框中心的方向，停在方框邊上
+export function edgePoint(r: { x: number; y: number; w: number; h: number }, tx: number, ty: number) {
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  const dx = tx - cx, dy = ty - cy;
+  if (!dx && !dy) return { x: cx, y: cy };
+  const sx = dx ? (r.w / 2) / Math.abs(dx) : Infinity;
+  const sy = dy ? (r.h / 2) / Math.abs(dy) : Infinity;
+  const k = Math.min(sx, sy);
+  return { x: cx + dx * k, y: cy + dy * k };
+}

@@ -9,6 +9,7 @@ import {
 import { type LessonOpt } from "../ItemCard";
 import PlanSchedule from "../PlanSchedule";
 import Tasks from "../Tasks";
+import Discussion from "../Discussion";
 import PlanHeader from "../PlanHeader";
 import Meetings, { type Meeting } from "../Meetings";
 import { sttConfigured } from "@/lib/stt";
@@ -116,15 +117,17 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <h2>📌 待辦 <small>{tasks.filter((t) => !t.done_at).length} 項未完成</small></h2>
             <Tasks planId={plan.id} tasks={tasks} teachers={teachers} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} />
           </section>
+          <section className="adm-panel">
+            <h2>💬 討論 <small>{comments.filter((c) => !c.item_id && !c.idea_id).length} 則</small></h2>
+            <Discussion planId={plan.id} comments={comments.filter((c) => !c.item_id && !c.idea_id)} me={staff.id} isAdmin={staff.is_admin} canDecide={editable} />
+          </section>
           {(() => {
-            // 點子牆與討論移到會議室；這裡只留一行，帶到最新一場會議
-            const nIdeas = ideasSafe?.length ?? 0;
-            const nTalk = comments.filter((c) => !c.item_id && !c.idea_id).length;
+            // 點子牆在會議室；這裡留一行，帶到最新一場會議
             const latest = (meetings ?? []).find((m) => m.status === "planned") ?? (meetings ?? [])[0];
             return (
               <p className="pln-room-hint">
-                💡 點子 {nIdeas} 則・💬 討論 {nTalk} 則
-                {latest ? <> → <Link href={`/admin/meetings/${latest.id}`}>到{latest.title}的會議室</Link></> : "（安排會議後，在會議室一起討論）"}
+                💡 點子 {ideasSafe?.length ?? 0} 則
+                {latest ? <> → <Link href={`/admin/meetings/${latest.id}`}>到{latest.title}的會議室</Link></> : "（安排會議後，在會議室的點子牆貼點子、投票）"}
               </p>
             );
           })()}

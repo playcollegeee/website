@@ -154,8 +154,8 @@ export default function MeetingAfter({
           onClick={() => transcript === null ? start(async () => { const r = await getTranscript(m.id); setTranscript(r.ok ? r.text : r.message ?? ""); }) : setTranscript(null)}>
           {transcript === null ? "📄 看逐字稿" : "收起逐字稿"}
         </button>
-        {(isAdmin || m.created_by === me) && (
-          <ConfirmButton label="刪除會議紀錄" disabled={pending}
+        {(isAdmin || canEditPlan || m.created_by === me) && (
+          <ConfirmButton label="刪除這場會議" disabled={pending}
             message={`確定刪除「${m.title}」的會議紀錄與逐字稿？已套用到規劃的決議、待辦不會被刪除。`}
             onConfirm={() => start(async () => {
               const r = await deleteMeeting(m.id);
