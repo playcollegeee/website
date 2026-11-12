@@ -447,12 +447,15 @@ export async function updateMeeting(input: { id: string; title: string; heldOn: 
   }
 }
 
-// 刪除會議紀錄（含逐字稿）：匯入的老師或管理員
+// 刪除會議（含議程、白板、逐字稿；已套用的決議與待辦保留）：會議建立者、規劃負責人或管理員
 export async function deleteMeeting(id: string): Promise<Result> {
   try {
     const staff = await requireStaff();
     const m = await loadMeeting(id);
-    if (!(staff.is_admin || m.created_by === staff.id)) return { ok: false, message: "只有匯入的老師或管理員可以刪除" };
+    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0] : null;
+    if (!(staff.is_admin || m.created_by === staff.id || (plan && canEditPlan(plan, staff)))) {
+      return { ok: false, message: "只有會議建立者、規劃負責人或管理員可以刪除" };
+    }
     await sbDelete(`meetings?id=eq.${id}`);
     await audit(actorOf(staff), "meeting.delete", `meetings:${id}`, {});
     refresh(m);

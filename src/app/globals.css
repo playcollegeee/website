@@ -1581,3 +1581,15 @@ details.pln-meet-new > summary { cursor: pointer; font-weight: 700; }
   .room-main > :last-child { order: 9; }
 }
 .room-sec > .pln-agenda > h4 { display: none; } /* 會議室的議程標題已在摺疊列上 */
+.pln-meet-next-act { display: inline-flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.bd-arrows { position: absolute; left: 0; top: 0; overflow: visible; z-index: 0; pointer-events: none; }
+.bd-arrow { pointer-events: stroke; cursor: pointer; }
+.bd-note.from, .bd-sec.from { outline: 3px dashed var(--blue); outline-offset: 3px; }
+.bd-ai { border: 2px solid #cbe9e0; background: #f4fbf8; border-radius: 14px; padding: 12px 14px; display: grid; gap: 6px; }
+.bd-ai-head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.bd-ai-head .adm-link { margin-left: auto; }
+.bd-ai h4 { margin: 8px 0 2px; }
+.bd-ai h4 small { font-weight: 400; color: var(--ink-soft); }
+.bd-ai-sum { margin: 0; white-space: pre-wrap; }
+.bd-ai ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.bd-ai .btn { justify-self: start; }
