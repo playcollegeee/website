@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import TrialForm from "@/components/TrialForm";
 import { site } from "@/lib/content";
+import { getSiteFlags } from "@/lib/siteFlags";
 
 export const metadata: Metadata = {
-  title: "預約試聽與聯絡我們",
-  description: "預約玩學院試聽課程、詢問活動與工作坊，或洽詢學校與機構合作。",
+  title: "聯絡我們",
+  description: "課程諮詢、詢問活動與工作坊，或洽詢學校與機構合作。",
 };
 
 const allowed = ["trial", "workshop", "school", "other"];
@@ -14,16 +15,23 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   // 從「活動與工作坊」按「詢問與報名」過來時，先把活動名稱填進留言（只取純文字、限制長度）
   const act = typeof activity === "string" ? activity.replace(/[<>\n\r]/g, "").slice(0, 60) : "";
   const defaultMessage = act ? `我想報名／詢問「${act}」\n參加人數：大人　位、孩子　位（孩子年齡：　）\n` : "";
-  const defaultType = type && allowed.includes(type) ? type : "trial";
+  const { trial } = await getSiteFlags();
+  // 後台關閉預約試聽時，沒有「預約試聽」選項，預設改成課程諮詢
+  const okTypes = trial ? allowed : allowed.filter((t) => t !== "trial");
+  const defaultType = type && okTypes.includes(type) ? type : trial ? "trial" : "other";
   const defaultLevel = level && /^[a-z]{4,12}$/.test(level) ? level : "";
   const defaultMajors = major && ["lego", "3d", "art"].includes(major) ? [major] : [];
   return (
     <section>
       <div className="container grid cols-2" style={{ alignItems: "start" }}>
         <div>
-          <p className="eyebrow">預約試聽與聯絡我們</p>
-          <h1>帶孩子來玩一次吧</h1>
-          <p className="lead">填寫表單後，我們會依孩子的年級與興趣，推薦合適的試聽課程與時段。</p>
+          <p className="eyebrow">{trial ? "預約試聽與聯絡我們" : "聯絡我們"}</p>
+          <h1>{trial ? "帶孩子來玩一次吧" : "有問題都可以問我們"}</h1>
+          <p className="lead">
+            {trial
+              ? "填寫表單後，我們會依孩子的年級與興趣，推薦合適的試聽課程與時段。"
+              : "課程諮詢、活動與工作坊、學校與機構合作，填寫表單後我們會盡快回覆。"}
+          </p>
           <p>已經決定要上課了？<a href="/enroll">直接線上報名 →</a></p>
           <div className="card bar-yellow" style={{ marginTop: 24 }}>
             <h3>其他聯絡方式</h3>
@@ -43,7 +51,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </div>
         </div>
         <div className="card">
-          <TrialForm defaultType={defaultType} defaultLevel={defaultLevel} defaultMajors={defaultMajors} defaultMessage={defaultMessage} />
+          <TrialForm defaultType={defaultType} defaultLevel={defaultLevel} defaultMajors={defaultMajors} defaultMessage={defaultMessage} trial={trial} />
         </div>
       </div>
     </section>

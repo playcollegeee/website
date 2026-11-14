@@ -13,7 +13,7 @@ const links = [
 ];
 
 // 頁首：桌機是一排選單；手機是 logo＋「預約試聽」＋「☰ 選單」按鈕，點開才展開選單
-export default function Header() {
+export default function Header({ trial = false }: { trial?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -33,9 +33,11 @@ export default function Header() {
           <Image src="/brand/logo-horizontal.png" alt="玩學院" width={720} height={270} priority />
         </Link>
         <div className="header-mobile">
-          <Link href="/contact" className="header-cta">
-            預約試聽
-          </Link>
+          {trial && (
+            <Link href="/contact?type=trial" className="header-cta">
+              預約試聽
+            </Link>
+          )}
           <button type="button" className="menu-btn" aria-expanded={open} aria-controls="site-nav" onClick={() => setOpen((v) => !v)}>
             <span aria-hidden="true">{open ? "✕" : "☰"}</span> 選單
           </button>
@@ -46,8 +48,8 @@ export default function Header() {
               {l.label}
             </Link>
           ))}
-          <Link href="/contact" className="cta" onClick={() => setOpen(false)}>
-            預約試聽
+          <Link href={trial ? "/contact?type=trial" : "/contact"} className="cta" onClick={() => setOpen(false)}>
+            {trial ? "預約試聽" : "聯絡我們"}
           </Link>
         </nav>
       </div>

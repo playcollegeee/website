@@ -12,11 +12,13 @@ export default function TrialForm({
   defaultLevel = "",
   defaultMajors = [],
   defaultMessage = "",
+  trial = false,
 }: {
   defaultType?: string;
   defaultLevel?: string;
   defaultMajors?: string[];
   defaultMessage?: string;
+  trial?: boolean;
 }) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
@@ -62,10 +64,10 @@ export default function TrialForm({
       <div className="field">
         <label htmlFor="type">想詢問的是</label>
         <select id="type" name="type" defaultValue={defaultType}>
-          <option value="trial">預約試聽</option>
+          {trial && <option value="trial">預約試聽</option>}
           <option value="workshop">活動與工作坊通知</option>
           <option value="school">學校／機構合作</option>
-          <option value="other">其他問題</option>
+          <option value="other">{trial ? "其他問題" : "課程諮詢與其他問題"}</option>
         </select>
       </div>
       <div className="grid cols-2">

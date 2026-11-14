@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import TrialCta from "@/components/TrialCta";
 import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -50,9 +51,7 @@ export default function AboutPage() {
             <h3>想更認識我們？</h3>
             <p>歡迎帶孩子來試聽一堂課，親自看看孩子在玩學院的樣子。</p>
             <div className="btn-row">
-              <Link href="/contact" className="btn primary">
-                預約試聽
-              </Link>
+              <TrialCta />
             </div>
           </div>
         </div>

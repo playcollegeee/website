@@ -1,5 +1,6 @@
 import { requireStaff } from "@/lib/staff";
 import PasswordForm from "./PasswordForm";
+import NicknameForm from "./NicknameForm";
 
 export const metadata = { title: "我的帳號" };
 
@@ -8,6 +9,7 @@ export default async function AccountPage() {
   return (
     <>
       <div className="adm-head"><h1>{staff.nickname ?? staff.name} <small>{staff.email}{staff.is_admin && "・管理員"}</small></h1></div>
+      <NicknameForm current={staff.nickname} name={staff.name} />
       <PasswordForm />
     </>
   );

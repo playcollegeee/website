@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { site } from "@/lib/content";
 
-export default function Footer() {
+export default function Footer({ trial = false }: { trial?: boolean }) {
   const year = new Date().getFullYear();
   return (
     <footer className="footer">
@@ -19,7 +19,7 @@ export default function Footer() {
             聯絡信箱：<a href={`mailto:${site.email}`}>{site.email}</a>
           </p>
           <p style={{ margin: 0 }}>
-            <Link href="/contact">預約試聽與課程諮詢</Link>
+            <Link href="/contact">{trial ? "預約試聽與課程諮詢" : "課程諮詢與聯絡我們"}</Link>
           </p>
           <p style={{ margin: 0 }}>
             <Link href="/enroll">新生線上報名</Link>

@@ -157,8 +157,8 @@ export const schoolServices = [
 export const announcement = {
   // 手機只顯示一行，重點放前面
   text: "新朋友入門課「積木故事屋」：3–6 歲親子，每月新主題",
-  href: "/contact",
-  cta: "立即預約",
+  href: "/workshops",
+  cta: "看活動",
 };
 
 // 為什麼選玩學院（三欄價值主張）
@@ -181,7 +181,7 @@ export const featured = {
     { label: "形式", value: "親子同行" },
   ],
   image: "/images/story-ship.webp",
-  href: "/contact?type=trial",
+  href: "/workshops",
 };
 
 // 成果與活動紀錄（之後可連到部落格文章）

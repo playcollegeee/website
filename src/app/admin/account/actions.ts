@@ -1,7 +1,8 @@
 "use server";
 
 import { actorOf, requireStaff } from "@/lib/staff";
-import { audit, sbAuthFetch, sbGet } from "@/lib/supabase";
+import { revalidatePath } from "next/cache";
+import { audit, sbAuthFetch, sbGet, sbPatch } from "@/lib/supabase";
 
 export async function changePassword(_prev: { ok?: string; error?: string }, fd: FormData) {
   const staff = await requireStaff();
@@ -25,4 +26,17 @@ export async function changePassword(_prev: { ok?: string; error?: string }, fd:
   if (!res.ok) return { error: `更新失敗（${res.status}），密碼可能太簡單。` };
   await audit(actorOf(staff), "staff.password", `teachers:${staff.id}`);
   return { ok: "密碼已更新。" };
+}
+
+// 老師自己改稱呼（讀卡站、後台、會議都顯示這個名字；真實姓名由管理員在老師帳號改）
+export async function changeNickname(_prev: { ok?: string; error?: string }, fd: FormData) {
+  const staff = await requireStaff();
+  const nick = String(fd.get("nickname") ?? "").replace(/\s+/g, " ").trim();
+  if (!nick) return { error: "請填稱呼。" };
+  if (nick.length > 20) return { error: "稱呼最多 20 個字。" };
+  if (/[<>]/.test(nick)) return { error: "稱呼不能有 < > 符號。" };
+  await sbPatch(`teachers?id=eq.${staff.id}`, { nickname: nick });
+  await audit(actorOf(staff), "staff.nickname", `teachers:${staff.id}`, { from: staff.nickname, to: nick });
+  revalidatePath("/admin", "layout");
+  return { ok: `已改成「${nick}」。` };
 }

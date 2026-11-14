@@ -4,31 +4,18 @@ import AvatarCreator from "@/components/AvatarCreator";
 import BrickPlayground from "@/components/BrickPlayground";
 import CourseQuiz from "@/components/CourseQuiz";
 import StackingLevels from "@/components/StackingLevels";
-import { featured, heroPhoto, interestQuests, site, stats, valueProps } from "@/lib/content";
+import { featured, heroPhoto, site, stats, valueProps } from "@/lib/content";
+import { Quests, Ribbon } from "@/components/HomeExtras";
+import TrialCta from "@/components/TrialCta";
+import { getSiteFlags } from "@/lib/siteFlags";
 import { getPublishedPhotos } from "@/lib/sitePhotos";
 import PhotoMarquee, { fillTo } from "@/components/PhotoMarquee";
 
 // 教室現場照片在這個數量以內用兩排固定排列，超過就改成兩排跑馬燈
 const GALLERY_STATIC_MAX = 6;
 
-const ribbonWords = ["先探索", "再發現", "逐步深入", "LEGO 機器人", "3D 造物", "美術創作", "動手做", "玩出興趣"];
-
-function Ribbon({ tone }: { tone: "yellow" | "blue" }) {
-  return (
-    <div className="ribbon-wrap" aria-hidden="true">
-      <div className={`ribbon ribbon-${tone}`}>
-        <div className="ribbon-track">
-          {[...ribbonWords, ...ribbonWords].map((w, i) => (
-            <span key={i}>★ {w}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default async function HomePage() {
-  const [highlightPhotos, galleryPhotos] = await Promise.all([getPublishedPhotos("highlights"), getPublishedPhotos("gallery")]);
+  const [highlightPhotos, galleryPhotos, flags] = await Promise.all([getPublishedPhotos("highlights"), getPublishedPhotos("gallery"), getSiteFlags()]);
   return (
     <>
       {/* 1. 首屏 */}
@@ -45,9 +32,15 @@ export default async function HomePage() {
               LEGO 樂高機器人、3D 列印造物、美術創作，從幼兒園到國高中，孩子可以一路探索、一路深入，累積屬於自己的作品。
             </p>
             <div className="btn-row">
-              <Link href="/contact" className="btn primary">
-                預約試聽
-              </Link>
+              {flags.trial ? (
+                <Link href="/contact?type=trial" className="btn primary">
+                  預約試聽
+                </Link>
+              ) : (
+                <Link href="/workshops" className="btn primary">
+                  看活動與工作坊
+                </Link>
+              )}
               <Link href="/courses" className="btn">
                 看課程介紹
               </Link>
@@ -76,38 +69,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <Ribbon tone="yellow" />
+      {flags.ribbon && <Ribbon tone="yellow" />}
 
-      {/* 任務入口：從孩子的興趣出發 */}
-      <section>
-        <div className="container">
-          <div className="section-head">
-            <p className="eyebrow">選擇你的任務</p>
-            <h2>孩子喜歡什麼？從這裡出發</h2>
-            <p className="lead">不用先搞懂課程名稱，從孩子平常最愛做的事開始找。</p>
-          </div>
-          <div className="quests">
-            {interestQuests.map((q) => (
-              <Link key={q.title} href={q.href} className={`quest q-${q.color}`}>
-                <span className="quest-emoji" aria-hidden="true">
-                  {q.emoji}
-                </span>
-                <strong>{q.title}</strong>
-                <span>{q.text}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      {flags.quests && <Quests />}
 
       {/* 找課小測驗 */}
       <section className="bg-blue" id="quiz">
         <div className="container">
           <div className="section-head">
-            <p className="eyebrow">30 秒找課</p>
+            <p className="eyebrow">快速找課程</p>
             <h2>回答兩題，找到最適合的班級</h2>
           </div>
-          <CourseQuiz />
+          <CourseQuiz trial={flags.trial} />
         </div>
       </section>
 
@@ -156,10 +129,10 @@ export default async function HomePage() {
             </dl>
             <div className="btn-row">
               <Link href={featured.href} className="btn primary">
-                預約體驗
+                看近期場次
               </Link>
-              <Link href="/workshops" className="btn">
-                其他活動
+              <Link href="/courses" className="btn">
+                看主修課程
               </Link>
             </div>
           </div>
@@ -251,11 +224,11 @@ export default async function HomePage() {
               每位學生都有一個專屬的像素角色。每堂課刷卡累積經驗值，完成一期解鎖新裝備；完成第 1 期還能從 6 種職業裡挑一種轉職。先來試玩看看！
             </p>
           </div>
-          <AvatarCreator />
+          <AvatarCreator trial={flags.trial} />
         </div>
       </section>
 
-      <Ribbon tone="blue" />
+      {flags.ribbon && <Ribbon tone="blue" />}
 
       {/* 11. 雙軌行動呼籲 */}
       <section>
@@ -265,9 +238,7 @@ export default async function HomePage() {
             <h2>帶孩子來玩一次</h2>
             <p>告訴我們孩子的年級與興趣，我們推薦合適的試聽課程與時段。</p>
             <div className="btn-row">
-              <Link href="/contact?type=trial" className="btn primary">
-                預約試聽
-              </Link>
+              <TrialCta />
             </div>
           </div>
           <div className="cta-card cta-school">

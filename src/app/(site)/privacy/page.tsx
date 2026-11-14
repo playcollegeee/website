@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import TrialCta from "@/components/TrialCta";
 import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -87,9 +88,7 @@ export default function PrivacyPage() {
         <p>本政策如有修改，會公告在這個頁面。最後更新日期：{updated}。</p>
 
         <div className="btn-row">
-          <Link href="/contact" className="btn primary">
-            預約試聽
-          </Link>
+          <TrialCta />
           <a href={`mailto:${site.email}`} className="btn">
             來信詢問
           </a>

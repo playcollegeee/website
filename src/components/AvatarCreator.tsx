@@ -98,7 +98,7 @@ function layersFor(track: Track, term: number, skin: string, hair: string, hairC
   return L.map((n) => `/avatar/${n}.png`);
 }
 
-export default function AvatarCreator() {
+export default function AvatarCreator({ trial = false }: { trial?: boolean }) {
   const [track, setTrack] = useState<Track>("eng");
   const [openPanel, setOpenPanel] = useState(false); // 手機版：角色設定是否展開
   const [skin, setSkin] = useState("s2");
@@ -337,9 +337,15 @@ export default function AvatarCreator() {
         </fieldset>
 
         <div className="btn-row">
-          <Link href={`/contact?type=trial&major=${t.majorKey}`} className="btn primary">
-            讓角色真的長大：預約試聽
-          </Link>
+          {trial ? (
+            <Link href={`/contact?type=trial&major=${t.majorKey}`} className="btn primary">
+              讓角色真的長大：預約試聽
+            </Link>
+          ) : (
+            <Link href="/courses" className="btn primary">
+              看這條路線的主修課程
+            </Link>
+          )}
           <button type="button" className="btn" onClick={download}>存成圖片</button>
         </div>
         <p className="hint">暱稱與外觀只留在你的瀏覽器裡，不會上傳。</p>

@@ -6,7 +6,7 @@ import { burstConfetti } from "@/lib/confetti";
 import { levels, majors, quiz } from "@/lib/content";
 
 // 兩題小測驗：年級 + 喜歡做什麼 → 推薦班級與主修，直接帶到試聽表單
-export default function CourseQuiz() {
+export default function CourseQuiz({ trial = false }: { trial?: boolean }) {
   const [level, setLevel] = useState<string | null>(null);
   const [major, setMajor] = useState<string | null>(null);
 
@@ -82,9 +82,15 @@ export default function CourseQuiz() {
             </p>
             {tooYoungFor3d && <p className="hint">3D 列印主修從國小三年級開始，現階段先從 LEGO 打好建構基礎。</p>}
             <div className="btn-row">
-              <Link href={`/contact?${params.toString()}`} className="btn primary">
-                預約這堂試聽
-              </Link>
+              {trial ? (
+                <Link href={`/contact?${params.toString()}`} className="btn primary">
+                  預約這堂試聽
+                </Link>
+              ) : (
+                <Link href="/courses" className="btn primary">
+                  看課程介紹
+                </Link>
+              )}
               <button
                 type="button"
                 className="btn"

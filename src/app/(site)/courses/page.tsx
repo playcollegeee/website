@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import TrialCta from "@/components/TrialCta";
 import StackingLevels from "@/components/StackingLevels";
 import { majors } from "@/lib/content";
 
@@ -90,9 +91,7 @@ export default function CoursesPage() {
             <Link href="/workshops" className="btn">
               看近期活動
             </Link>
-            <Link href="/contact" className="btn primary">
-              預約試聽
-            </Link>
+            <TrialCta />
           </div>
         </div>
       </section>
