@@ -8,7 +8,7 @@ export const DEFAULT_FLAGS: SiteFlags = { trial: false, ribbon: false, quests: f
 
 export const FLAG_INFO: { key: keyof SiteFlags; label: string; note: string }[] = [
   { key: "trial", label: "預約試聽", note: "頁首、右下角浮動按鈕、首頁與各頁的「預約試聽」按鈕、詢問表單的「預約試聽」選項。關閉時改成「課程諮詢」。" },
-  { key: "ribbon", label: "標語跑馬燈", note: "首頁數據帶下方與頁尾上方的黃色／藍色文字跑馬燈。" },
+  { key: "ribbon", label: "標語跑馬燈", note: "首頁數據帶下方與頁尾上方的跑馬燈（文字夾著 LOGO 零件輕輕跳，下面那條往反方向跑）。" },
   { key: "quests", label: "選擇任務", note: "首頁「孩子喜歡什麼？從這裡出發」5 張興趣卡片。" },
 ];
 
