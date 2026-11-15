@@ -6,7 +6,7 @@ const script = `(function(){try{var d=document.documentElement,s=sessionStorage;
 if(s.getItem("pc_intro")||matchMedia("(prefers-reduced-motion: reduce)").matches)return;
 s.setItem("pc_intro","1");d.classList.add("intro-on");
 var off=function(){d.classList.remove("intro-on")};
-setTimeout(off,2600);
+setTimeout(off,1350);
 addEventListener("pointerdown",off,{once:true});addEventListener("keydown",off,{once:true});
 }catch(e){}})();`;
 
