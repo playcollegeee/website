@@ -8,7 +8,7 @@
  * - 標題與小卡在同一區：活動小卡分前後兩層飄在整個首屏，大標疊在上面
  * - 小卡從下往上循環飄、慢慢翻轉；背景有 LOGO 零件從中心往外散開
  * - 滑鼠移到卡片上：卡片轉正、放大，游標旁的小圓放大顯示「看看」
- * - 點卡片＝聚焦：卡片飛到中間，背景從點擊位置擴散成這張卡的顏色，每 7 秒自動換下一張
+ * - 點卡片＝聚焦：卡片飛到中間，半透明的顏色從點擊位置擴散開來（後面的小卡照樣看得到），每 7 秒自動換下一張
  * - 聚焦時再點卡片或「看更多」＝前往活動頁；點其他地方、按「回首頁」或 Esc 回到飄浮狀態
  * - 「減少動態效果」：不飄、不輪播，卡片靜態排列（CSS 處理）
  * - 畫面外或分頁在背景時停止計算
@@ -145,9 +145,9 @@ export default function HeroCards({ cards, count, children }: { cards: HeroCard[
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       if (!visible || document.hidden) return;
-      const focused = focusRef.current !== null;
 
-      if (!focused) {
+      {
+        // 點開小卡後背景是半透明的，後面的小卡繼續飄
         for (let i = 0; i < bodies.length; i++) {
           const b = bodies[i];
           const el = flyRefs.current[i];
@@ -285,7 +285,6 @@ export default function HeroCards({ cards, count, children }: { cards: HeroCard[
 
   return (
     <section ref={heroRef} className={`hero hero2${fc ? ` is-focus tone-${tone}` : ""}`}>
-      <div className={`hc-wash c-${wash}${swap ? " swap" : ""}`} aria-hidden="true" />
       <div className="hc-rings" aria-hidden="true" />
 
       <div className="container hero2-text">{children}</div>
@@ -330,6 +329,9 @@ export default function HeroCards({ cards, count, children }: { cards: HeroCard[
               );
             })}
           </div>
+
+          {/* 點開小卡時蓋上來的半透明顏色，蓋在飄浮小卡上面、介紹下面 */}
+          <div className={`hc-wash c-${wash}${swap ? " swap" : ""}`} aria-hidden="true" />
 
           {fc && (
             <>

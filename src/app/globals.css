@@ -1617,16 +1617,16 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 }
 /* 聚焦時從點擊位置擴散出去的顏色 */
 .hc-wash {
-  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  position: absolute; inset: 0; pointer-events: none; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
   clip-path: circle(0 at var(--ox, 70%) var(--oy, 50%));
   transition: clip-path 0.9s cubic-bezier(0.6, 0, 0.2, 1);
 }
 .hc-wash.swap { transition: clip-path 0.9s cubic-bezier(0.6, 0, 0.2, 1), background-color 1.2s; }
 .is-focus .hc-wash { clip-path: circle(150% at var(--ox, 70%) var(--oy, 50%)); }
-.hc-wash.c-yellow { background-color: var(--yellow); }
-.hc-wash.c-green { background-color: var(--green); }
-.hc-wash.c-red { background-color: var(--red); }
-.hc-wash.c-blue { background-color: var(--blue); }
+.hc-wash.c-yellow { background-color: color-mix(in srgb, var(--yellow) 70%, transparent); }
+.hc-wash.c-green { background-color: color-mix(in srgb, var(--green) 70%, transparent); }
+.hc-wash.c-red { background-color: color-mix(in srgb, var(--red) 70%, transparent); }
+.hc-wash.c-blue { background-color: color-mix(in srgb, var(--blue) 70%, transparent); }
 .hero2::after {
   content: ""; position: absolute; inset: auto 0 0 0; height: 90px; z-index: 2; pointer-events: none;
   background: linear-gradient(transparent, var(--paper)); transition: opacity 0.5s;
@@ -1638,14 +1638,14 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 .hero2-text a { pointer-events: auto; }
 .hero2-text h1 { color: var(--fg); transition: color 0.6s; text-shadow: 0 0 18px #fdfbf2, 0 0 6px #fdfbf2; }
 .hero2-text .eyebrow, .hero2-text .lead { transition: opacity 0.4s; text-shadow: 0 0 10px #fdfbf2, 0 0 4px #fdfbf2; }
-.hero2.is-focus .hero2-text h1 { text-shadow: none; }
+.hero2.is-focus .hero2-text h1 { text-shadow: 0 1px 12px rgba(0, 0, 0, 0.2); }
 .hero2.is-focus .hero2-text h1 span { background: none; }
 .hero2.is-focus .hero2-text .eyebrow, .hero2.is-focus .hero2-text .lead { opacity: 0; }
 
 .hc-stage { position: absolute; inset: 0; z-index: 2; }
 .hc-floats { position: absolute; inset: 0; perspective: 1100px; transition: opacity 0.5s; }
 .hc-parts { position: absolute; inset: 0; pointer-events: none; transition: opacity 0.5s; }
-.is-focus .hc-floats, .is-focus .hc-parts { opacity: 0; pointer-events: none; }
+.is-focus .hc-floats, .is-focus .hc-parts { pointer-events: none; }
 .hc-parts img { position: absolute; top: 0; left: 0; width: 34px; margin: -17px 0 0 -17px; opacity: 0; will-change: transform; }
 
 .hc-fly {
