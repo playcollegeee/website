@@ -13,7 +13,7 @@ const links = [
 ];
 
 // 頁首：桌機是一排選單；手機是 logo＋「預約試聽」＋「☰ 選單」按鈕，點開才展開選單
-export default function Header({ trial = false }: { trial?: boolean }) {
+export default function Header({ trial = false, camp = null }: { trial?: boolean; camp?: { href: string; label: string; season: "winter" | "summer" } | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -33,6 +33,11 @@ export default function Header({ trial = false }: { trial?: boolean }) {
           <Image src="/brand/logo-horizontal.png" alt="玩學院" width={720} height={270} priority />
         </Link>
         <div className="header-mobile">
+          {camp && !trial && (
+            <Link href={camp.href} className={`header-cta header-camp nav-camp-${camp.season}`}>
+              {camp.label}
+            </Link>
+          )}
           {trial && (
             <Link href="/contact?type=trial" className="header-cta">
               預約試聽
@@ -43,6 +48,17 @@ export default function Header({ trial = false }: { trial?: boolean }) {
           </button>
         </div>
         <nav id="site-nav" className={`nav${open ? " open" : ""}`} aria-label="主選單">
+          {/* 冬夏令營宣傳期間才出現（後台「冬夏令營頁面」設定日期，最後一梯結束後自動收起） */}
+          {camp && (
+            <Link
+              href={camp.href}
+              className={`nav-camp nav-camp-${camp.season}`}
+              aria-current={pathname.startsWith("/camp") ? "page" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              {camp.label}
+            </Link>
+          )}
           {links.map((l) => (
             <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined} onClick={() => setOpen(false)}>
               {l.label}
