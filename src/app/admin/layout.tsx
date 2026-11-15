@@ -75,6 +75,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               { href: "/admin/photos", label: "官網照片", icon: "🖼️" },
               { href: "/admin/site-sections", label: "官網區塊開關", icon: "🎛️" },
               { href: "/admin/events", label: "活動報名", icon: "🎟️", badge: toVerify },
+              { href: "/admin/camps", label: "冬夏令營頁面", icon: "🏕️" },
               { href: "/admin/contacts", label: "活動名單", icon: "📇" },
               { href: "/admin/activities", label: "活動卡片", icon: "🎪" },
             ],
