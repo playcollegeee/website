@@ -1,61 +1,67 @@
 import Image from "next/image";
 import Link from "next/link";
 import AvatarCreator from "@/components/AvatarCreator";
-import BrickPlayground from "@/components/BrickPlayground";
+import HeroCards, { type HeroCard } from "@/components/HeroCards";
 import CourseQuiz from "@/components/CourseQuiz";
 import StackingLevels from "@/components/StackingLevels";
-import { featured, heroPhoto, site, stats, valueProps } from "@/lib/content";
+import { featured, site, stats, valueProps } from "@/lib/content";
 import { Quests, Ribbon } from "@/components/HomeExtras";
 import TrialCta from "@/components/TrialCta";
 import { getSiteFlags } from "@/lib/siteFlags";
+import { AUDIENCE_LABEL, KIND_LABEL, getPublishedActivities } from "@/lib/activities";
 import { getPublishedPhotos } from "@/lib/sitePhotos";
 import PhotoMarquee, { fillTo } from "@/components/PhotoMarquee";
 
 // 教室現場照片在這個數量以內用兩排固定排列，超過就改成兩排跑馬燈
 const GALLERY_STATIC_MAX = 6;
+const HERO_CARD_MAX = 8;
 
 export default async function HomePage() {
-  const [highlightPhotos, galleryPhotos, flags] = await Promise.all([getPublishedPhotos("highlights"), getPublishedPhotos("gallery"), getSiteFlags()]);
+  const [highlightPhotos, galleryPhotos, flags, activities] = await Promise.all([
+    getPublishedPhotos("highlights"),
+    getPublishedPhotos("gallery"),
+    getSiteFlags(),
+    getPublishedActivities(),
+  ]);
+  // 首屏飄浮小卡：後台「活動卡片」裡有照片的活動（最多 8 張），點了連到活動頁的那張卡
+  const heroCards: HeroCard[] = activities
+    .filter((a) => a.image_url)
+    .slice(0, HERO_CARD_MAX)
+    .map((a) => ({
+      id: a.id,
+      title: a.title,
+      tag: `${AUDIENCE_LABEL[a.audience]}・${KIND_LABEL[a.kind]}`,
+      image: a.image_url as string,
+      href: `/workshops#act-${a.id}`,
+    }));
   return (
     <>
-      {/* 1. 首屏 */}
-      <section className="hero">
-        <div className="container hero-grid">
-          <div>
-            <p className="eyebrow">台中・兒童 STEAM 探索學院</p>
-            <h1>
-              透過<span>玩</span>，發現超能力，
-              <br />
-              遇見閃閃發亮的自己
-            </h1>
-            <p className="lead">
-              LEGO 樂高機器人、3D 列印造物、美術創作，從幼兒園到國高中，孩子可以一路探索、一路深入，累積屬於自己的作品。
-            </p>
-            <div className="btn-row">
-              {flags.trial ? (
-                <Link href="/contact?type=trial" className="btn primary">
-                  預約試聽
-                </Link>
-              ) : (
-                <Link href="/workshops" className="btn primary">
-                  看活動與工作坊
-                </Link>
-              )}
-              <Link href="/courses" className="btn">
-                看課程介紹
-              </Link>
-            </div>
-          </div>
-          <div className="hero-side">
-            {/* 手機：先看到孩子上課的照片，積木遊樂區排在後面 */}
-            <figure className="hero-photo">
-              <Image src={heroPhoto.src} alt={heroPhoto.alt} width={heroPhoto.w} height={heroPhoto.h} sizes="(max-width: 860px) 100vw, 1px" priority />
-              <figcaption>{heroPhoto.alt}</figcaption>
-            </figure>
-            <BrickPlayground />
-          </div>
+      {/* 1. 首屏：飄浮活動小卡（HeroCards） */}
+      <HeroCards cards={heroCards}>
+        <p className="eyebrow">台中・兒童 STEAM 探索學院</p>
+        <h1>
+          透過<span>玩</span>，發現超能力，
+          <br />
+          遇見閃閃發亮的自己
+        </h1>
+        <p className="lead">
+          LEGO 樂高機器人、3D 列印造物、美術創作，從幼兒園到國高中，孩子可以一路探索、一路深入，累積屬於自己的作品。
+        </p>
+        <div className="btn-row">
+          {flags.trial ? (
+            <Link href="/contact?type=trial" className="btn primary">
+              預約試聽
+            </Link>
+          ) : (
+            <Link href="/workshops" className="btn primary">
+              看活動與工作坊
+            </Link>
+          )}
+          <Link href="/courses" className="btn">
+            看課程介紹
+          </Link>
         </div>
-      </section>
+      </HeroCards>
 
       {/* 2. 數據帶 */}
       <section className="stats-band">

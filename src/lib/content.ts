@@ -168,9 +168,6 @@ export const valueProps = [
   { title: "看得見成長", text: "每一期都有作品與學習紀錄，未來還有專屬角色記錄孩子的每一步。", color: "blue" },
 ] as const;
 
-// 首屏照片（手機版顯示在大標下方）
-export const heroPhoto = { src: "/images/story-ship.webp", alt: "積木故事屋：老師帶孩子一起完成作品", w: 1100, h: 825 };
-
 // 主打課程卡
 export const featured = {
   name: "積木故事屋",

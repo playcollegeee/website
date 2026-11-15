@@ -95,7 +95,7 @@ export default async function WorkshopsPage() {
                 const href = signupHref(a);
                 const external = a.signup === "link";
                 return (
-                  <article key={a.id} className="card act-card">
+                  <article key={a.id} id={`act-${a.id}`} className="card act-card">
                     {a.image_url && (
                       <div className="card-img">
                         <Image src={a.image_url} alt={`${a.title}活動照片`} width={a.width} height={a.height} sizes="(max-width: 860px) 100vw, 560px" />
