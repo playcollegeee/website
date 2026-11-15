@@ -5,7 +5,8 @@
  * 設計參考：日本テレビアート https://www.ntvart.co.jp/ 首屏（飄浮作品卡、點卡片聚焦、自動輪播）。
  * 只參考互動概念，程式自行撰寫，不使用 three.js／GSAP 等套件。
  *
- * - 活動小卡分前後兩層，從下往上循環飄、慢慢翻轉；背景有 LOGO 零件從中心往外散開
+ * - 標題與小卡在同一區：活動小卡分前後兩層飄在整個首屏，大標疊在上面
+ * - 小卡從下往上循環飄、慢慢翻轉；背景有 LOGO 零件從中心往外散開
  * - 滑鼠移到卡片上：卡片轉正、放大，游標旁的小圓放大顯示「看看」
  * - 點卡片＝聚焦：卡片飛到中間，背景從點擊位置擴散成這張卡的顏色，每 7 秒自動換下一張
  * - 聚焦時再點卡片或「看更多」＝前往活動頁；點其他地方、按「回首頁」或 Esc 回到飄浮狀態
@@ -20,8 +21,6 @@ export type HeroCard = { id: string; title: string; tag: string; image: string; 
 
 const COLORS = ["yellow", "green", "red", "blue"] as const;
 const PARTS = ["roof", "p1", "box", "cap", "p2", "base"];
-const MIN_SLOTS = 8; // 活動太少時重複補滿，畫面才不會空
-const MAX_SLOTS = 10;
 const PARTICLES = 14;
 const FLIP_SEC = 2.4;
 const AUTO_MS = 7000; // 聚焦後每 7 秒換下一張
@@ -44,9 +43,10 @@ const sign = () => (Math.random() < 0.5 ? -1 : 1);
 // 把角度收到 -180～180，轉正時走最短的方向
 const norm = (a: number) => ((((a + 180) % 360) + 360) % 360) - 180;
 
-export default function HeroCards({ cards, children }: { cards: HeroCard[]; children: ReactNode }) {
+// count：畫面上同時飄著幾張（後台可調）；活動比這個數字少時會重複出現
+export default function HeroCards({ cards, count, children }: { cards: HeroCard[]; count: number; children: ReactNode }) {
   const n = cards.length;
-  const slotCount = n === 0 ? 0 : Math.min(MAX_SLOTS, Math.max(MIN_SLOTS, n));
+  const slotCount = n === 0 ? 0 : Math.max(1, count);
   const slots = Array.from({ length: slotCount }, (_, i) => ({ card: i % n, dup: i >= n }));
 
   const [focus, setFocus] = useState<number | null>(null);
@@ -96,8 +96,8 @@ export default function HeroCards({ cards, children }: { cards: HeroCard[]; chil
         const front = i % 2 === 0;
         const k = Math.floor(i / 2);
         const cnt = front ? nf : nb;
-        // 電腦：兩層都在右半邊（左邊留給大標，文字才清楚）；手機鋪滿整個舞台
-        const [lo, hi] = mobile ? [0.1, 0.9] : front ? [0.54, 0.93] : [0.47, 0.98];
+        // 小卡飄在整個首屏，大標疊在上面（和參考網站一樣，標題與小卡是同一區）
+        const [lo, hi] = mobile ? [0.14, 0.86] : front ? [0.1, 0.9] : [0.05, 0.95];
         return {
           front,
           x: lo + ((k + 0.5) / cnt) * (hi - lo) + rand(-0.02, 0.02),
@@ -176,7 +176,7 @@ export default function HeroCards({ cards, children }: { cards: HeroCard[]; chil
           el.style.visibility = "visible";
         }
         // LOGO 零件從中心往外散開，越外面越大
-        const ox = mobile ? W * 0.5 : W * 0.7;
+        const ox = W * 0.5;
         const oy = H * 0.5;
         const maxR = Math.max(W, H) * 0.75;
         for (let i = 0; i < parts.length; i++) {

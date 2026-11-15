@@ -7,26 +7,26 @@ import StackingLevels from "@/components/StackingLevels";
 import { featured, site, stats, valueProps } from "@/lib/content";
 import { Quests, Ribbon } from "@/components/HomeExtras";
 import TrialCta from "@/components/TrialCta";
-import { getSiteFlags } from "@/lib/siteFlags";
+import { getHeroCardCount, getSiteFlags } from "@/lib/siteFlags";
 import { AUDIENCE_LABEL, KIND_LABEL, getPublishedActivities } from "@/lib/activities";
 import { getPublishedPhotos } from "@/lib/sitePhotos";
 import PhotoMarquee, { fillTo } from "@/components/PhotoMarquee";
 
 // 教室現場照片在這個數量以內用兩排固定排列，超過就改成兩排跑馬燈
 const GALLERY_STATIC_MAX = 6;
-const HERO_CARD_MAX = 8;
 
 export default async function HomePage() {
-  const [highlightPhotos, galleryPhotos, flags, activities] = await Promise.all([
+  const [highlightPhotos, galleryPhotos, flags, activities, heroCount] = await Promise.all([
     getPublishedPhotos("highlights"),
     getPublishedPhotos("gallery"),
     getSiteFlags(),
     getPublishedActivities(),
+    getHeroCardCount(),
   ]);
-  // 首屏飄浮小卡：後台「活動卡片」裡有照片的活動（最多 8 張），點了連到活動頁的那張卡
+  // 首屏飄浮小卡：後台「活動卡片」裡有照片的活動，張數在後台「官網區塊開關」調整；點了連到活動頁的那張卡
   const heroCards: HeroCard[] = activities
     .filter((a) => a.image_url)
-    .slice(0, HERO_CARD_MAX)
+    .slice(0, heroCount)
     .map((a) => ({
       id: a.id,
       title: a.title,
@@ -37,7 +37,7 @@ export default async function HomePage() {
   return (
     <>
       {/* 1. 首屏：飄浮活動小卡（HeroCards） */}
-      <HeroCards cards={heroCards}>
+      <HeroCards cards={heroCards} count={heroCount}>
         <p className="eyebrow">台中・兒童 STEAM 探索學院</p>
         <h1>
           透過<span>玩</span>，發現超能力，
@@ -62,18 +62,6 @@ export default async function HomePage() {
           </Link>
         </div>
       </HeroCards>
-
-      {/* 2. 數據帶 */}
-      <section className="stats-band">
-        <div className="container stats">
-          {stats.map((s) => (
-            <div key={s.label} className="stat">
-              <div className="stat-value">{s.value}</div>
-              <div className="stat-label">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {flags.ribbon && <Ribbon tone="yellow" />}
 
@@ -112,6 +100,18 @@ export default async function HomePage() {
               認識玩學院
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* 數據帶（2026-11-15 移到「為什麼選玩學院」下方） */}
+      <section className="stats-band">
+        <div className="container stats">
+          {stats.map((s) => (
+            <div key={s.label} className="stat">
+              <div className="stat-value">{s.value}</div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          ))}
         </div>
       </section>
 

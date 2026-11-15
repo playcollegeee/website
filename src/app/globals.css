@@ -188,7 +188,7 @@ h3 { font-size: 20px; }
 .announce a { color: var(--yellow); font-weight: 700; text-decoration: none; }
 
 /* ---------- 數據帶 ---------- */
-.stats-band { padding: 0; margin-top: -24px; }
+.stats-band { padding: 0 0 72px; margin-top: -24px; }
 .stats {
   display: grid; grid-template-columns: repeat(3, 1fr); background: #fff; border: 2px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow);
@@ -1565,6 +1565,7 @@ details.pln-meet-new > summary { cursor: pointer; font-weight: 700; }
 .flag-row h2 { margin: 0 0 4px; font-size: 18px; }
 .flag-row .hint { margin: 0; max-width: 60ch; }
 .flag-switch { display: inline-flex; align-items: center; gap: 10px; }
+.hero-count { min-width: 4em; text-align: center; font-size: 18px; }
 .flag-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 14px 4px 6px; border-radius: 999px; border: 2px solid #d9d2c3; background: #f4f1ea; font: inherit; font-weight: 800; cursor: pointer; color: var(--ink-soft); }
 .flag-btn.on { background: var(--green-soft, #e3f4ef); border-color: var(--green); color: var(--ink); }
 .flag-knob { width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 2px solid currentColor; transition: transform 0.2s; }
@@ -1589,18 +1590,18 @@ details.pln-meet-new > summary { cursor: pointer; font-weight: 700; }
 
 /* 進站 LOGO 動畫（SiteIntro）：零件飛進來組成學院圖示 → 輕輕彈一下 → 整片往上收 */
 .intro { display: none; }
-html.intro-on .intro { display: grid; place-items: center; position: fixed; inset: 0; z-index: 200; background: #fdfbf2; overflow: hidden; animation: intro-out 0.6s 1.9s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
+html.intro-on .intro { display: grid; place-items: center; position: fixed; inset: 0; z-index: 200; background: #fdfbf2; overflow: hidden; animation: intro-out 0.35s 0.95s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
 @keyframes intro-out { to { transform: translateY(-100%); } }
-.intro-icon { position: relative; width: min(46vw, 240px); aspect-ratio: 370 / 420; animation: intro-pop 0.5s 1.15s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.intro-icon { position: relative; width: min(46vw, 240px); aspect-ratio: 370 / 420; animation: intro-pop 0.3s 0.62s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
 @keyframes intro-pop { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
-.intro-icon img { position: absolute; display: block; animation: intro-in 0.8s cubic-bezier(0.2, 1.2, 0.35, 1) both; }
+.intro-icon img { position: absolute; display: block; animation: intro-in 0.5s cubic-bezier(0.2, 1.2, 0.35, 1) both; }
 @keyframes intro-in { from { opacity: 0; transform: translate(var(--ix, 0), var(--iy, 0)) rotate(var(--ir, 0deg)); } 30% { opacity: 1; } to { opacity: 1; transform: none; } }
-.in-base { --iy: 70vh; animation-delay: 0.1s; }
-.in-p1 { --ix: -70vw; --ir: -20deg; animation-delay: 0.25s; }
-.in-p2 { --ix: -55vw; --ir: -12deg; animation-delay: 0.35s; }
-.in-box { --ix: 70vw; --ir: 16deg; animation-delay: 0.3s; }
-.in-cap { --ix: 60vw; --ir: 20deg; animation-delay: 0.42s; }
-.in-roof { --iy: -80vh; --ir: -8deg; animation-delay: 0.5s; }
+.in-base { --iy: 70vh; animation-delay: 0s; }
+.in-p1 { --ix: -70vw; --ir: -20deg; animation-delay: 0.05s; }
+.in-p2 { --ix: -55vw; --ir: -12deg; animation-delay: 0.1s; }
+.in-box { --ix: 70vw; --ir: 16deg; animation-delay: 0.08s; }
+.in-cap { --ix: 60vw; --ir: 20deg; animation-delay: 0.13s; }
+.in-roof { --iy: -80vh; --ir: -8deg; animation-delay: 0.16s; }
 
 /* ---------- 首屏飄浮小卡（2026-11-15，HeroCards.tsx；設計參考日本テレビアート，程式自寫） ---------- */
 .hero2 {
@@ -1612,7 +1613,7 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 /* 同心圓：像舞台聚光 */
 .hc-rings {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(circle at 70% 50%, #fff 0 13%, rgba(255, 255, 255, 0.72) 13% 26%, rgba(255, 255, 255, 0.46) 26% 40%, rgba(255, 255, 255, 0.24) 40% 55%, transparent 55%);
+  background: radial-gradient(circle at 50% 50%, #fff 0 13%, rgba(255, 255, 255, 0.72) 13% 26%, rgba(255, 255, 255, 0.46) 26% 40%, rgba(255, 255, 255, 0.24) 40% 55%, transparent 55%);
 }
 /* 聚焦時從點擊位置擴散出去的顏色 */
 .hc-wash {
@@ -1723,16 +1724,18 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 .is-focus .hc-scroll { opacity: 0; }
 
 @media (max-width: 860px) {
-  .hero2 { display: block; min-height: 0; padding-top: 28px; }
-  .hero2-text { padding-block: 0; }
-  .hc-rings { background: radial-gradient(circle at 50% 72%, #fff 0 18%, rgba(255, 255, 255, 0.72) 18% 36%, rgba(255, 255, 255, 0.46) 36% 56%, rgba(255, 255, 255, 0.24) 56% 78%, transparent 78%); }
-  .hc-stage { position: relative; inset: auto; height: 470px; margin-top: 4px; }
-  /* 手機：小卡不要飄到上面的文字後面，上緣淡出 */
-  .hc-floats, .hc-parts { -webkit-mask-image: linear-gradient(transparent 0, #000 70px); mask-image: linear-gradient(transparent 0, #000 70px); }
+  /* 手機：小卡一樣飄在整個首屏，文字疊在上面 */
+  .hero2 { align-items: flex-start; min-height: 700px; }
+  .hero2-text { padding-block: 28px 0; }
+  .hc-rings { background: radial-gradient(circle at 50% 60%, #fff 0 18%, rgba(255, 255, 255, 0.72) 18% 36%, rgba(255, 255, 255, 0.46) 36% 56%, rgba(255, 255, 255, 0.24) 56% 78%, transparent 78%); }
   .hc-fly { width: 114px; height: 152px; border-radius: 12px; }
   .hc-face { border-radius: 12px; border-width: 3px; }
   .hc-label { font-size: 13px; padding: 5px 8px; }
-  .hc-focus { left: 50%; gap: 12px; }
+  /* 點開小卡時只留大標，介紹放在大標下方 */
+  .hero2-text .btn-row { transition: opacity 0.4s; }
+  .hero2.is-focus .hero2-text .btn-row { opacity: 0; }
+  .hero2.is-focus .hero2-text .btn-row a { pointer-events: none; }
+  .hc-focus { left: 50%; top: 60%; gap: 12px; }
   .hc-fcard { width: 180px; height: 240px; border-radius: 16px; }
   .hc-ftitle { font-size: 22px; margin-bottom: 10px; }
   .hc-scroll { display: none; }
@@ -1740,7 +1743,7 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 
 /* 減少動態效果：不飄，卡片靜態排好 */
 @media (prefers-reduced-motion: reduce) {
-  .hc-floats { perspective: none; -webkit-mask-image: none; mask-image: none; inset: 0 3% 0 50%; display: grid; grid-template-columns: repeat(3, auto); gap: 14px; place-content: center; }
+  .hc-floats { perspective: none; inset: 0 3% 0 50%; display: grid; grid-template-columns: repeat(3, auto); gap: 14px; place-content: center; }
   .hc-fly { position: relative; visibility: visible; width: 144px; height: 192px; }
   .hc-fly.dup, .hc-fly:nth-child(n + 7) { display: none; }
   .hc-fly.back .hc-face::after, .hc-back, .hc-parts, .hc-cursor, .hc-scroll i { display: none; }
@@ -1749,6 +1752,10 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
   .hc-count i { display: none; }
 }
 @media (prefers-reduced-motion: reduce) and (max-width: 860px) {
+  .hero2 { display: block; min-height: 0; }
+  .hc-stage { position: relative; inset: auto; height: 320px; }
+  .hero2.is-focus .hc-stage { height: 440px; }
+  .hc-focus { top: 50%; }
   .hc-floats { inset: 0; gap: 10px; }
   .hc-fly { width: 100px; height: 133px; }
 }
