@@ -56,9 +56,9 @@ export default function SignupForm({
   const grades = gradesInRange(gradeMin, gradeMax);
   function bump(key: string, d: number) {
     const p = prices.find((x) => x.key === key);
-    const next = Math.max(0, Math.min(10, (qtys[key] ?? 0) + d));
     if (d > 0 && p && seats + Math.max(p.seats, 1) > MAX_SEATS) return;
-    setQtys({ ...qtys, [key]: next });
+    // 用前一次的值計算，連續快速按也不會漏掉
+    setQtys((q) => ({ ...q, [key]: Math.max(0, Math.min(10, (q[key] ?? 0) + d)) }));
   }
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
