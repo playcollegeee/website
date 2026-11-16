@@ -56,8 +56,8 @@ export async function POST(req: Request) {
   });
   if (people.length === 0 || people.some((p) => !p.name)) return NextResponse.json({ error: "請填寫每一位參加者的姓名" }, { status: 400 });
   if (people.some((p) => p.kind === "child" && p.grade === null)) return NextResponse.json({ error: "請選擇年級（要在這個活動適合的年級範圍內）" }, { status: 400 });
-  // 報名表不另外問家長姓名：有大人參加就用大人的名字，否則用「孩子名＋家長」當聯絡人稱呼
-  const contactName = (people.find((p) => p.kind === "adult")?.name ?? `${people[0].name}家長`).slice(0, 40);
+  // 報名表不另外問家長姓名：有大人參加就用大人的名字，否則用「孩子名＋爸爸媽媽」當聯絡人稱呼（私訊開頭：王小明爸爸媽媽您好～）
+  const contactName = (people.find((p) => p.kind === "adult")?.name ?? `${people[0].name}爸爸媽媽`).slice(0, 40);
   // 方案與份數（可複選）
   const rawItems = Array.isArray(b.items) ? b.items.slice(0, 10) : [];
   const items = rawItems
