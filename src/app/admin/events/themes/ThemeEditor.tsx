@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { shrinkImage } from "@/lib/imageShrink";
-import { SHOWCASE_LABEL, type Theme, type ThemePhoto } from "@/lib/eventTypes";
+import { GRADES, SHOWCASE_LABEL, type Theme, type ThemePhoto } from "@/lib/eventTypes";
 import ActBtn from "../ActBtn";
 import RichTextarea from "../RichTextarea";
 import { addThemePhoto, deleteTheme, deleteThemePhoto, moveThemePhoto, saveTheme, setThemeCover, type EvResult } from "../actions";
@@ -96,6 +96,20 @@ export default function ThemeEditor({ theme, activities, photos }: { theme?: The
               <label>
                 適合對象
                 <input name="audience_text" defaultValue={t?.audience_text ?? ""} maxLength={80} placeholder="例：國小三年級以上" />
+              </label>
+              <label>
+                報名表最低年級
+                <select name="grade_min" defaultValue={t?.grade_min ?? ""}>
+                  <option value="">不限</option>
+                  {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </label>
+              <label>
+                報名表最高年級
+                <select name="grade_max" defaultValue={t?.grade_max ?? ""}>
+                  <option value="">不限</option>
+                  {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
               </label>
               <label>
                 時間長度

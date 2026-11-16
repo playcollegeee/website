@@ -102,6 +102,8 @@ export default async function SignupPage({ params }: Props) {
               prices={run.prices}
               questions={run.questions ?? []}
               refundText={run.refund_text || settings.refund || ""}
+              gradeMin={theme.grade_min}
+              gradeMax={theme.grade_max}
               slots={slots.map((s) => ({
                 id: s.id,
                 label: s.label,

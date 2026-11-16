@@ -23,6 +23,8 @@ export type Theme = {
   duration_text: string | null;
   includes_text: string | null;
   notes_text: string | null;
+  grade_min?: number | null; // 報名表年級選項的範圍（0023）；空白＝不限
+  grade_max?: number | null;
   cover_url: string | null;
   cover_path: string | null;
   sort: number;
@@ -193,6 +195,10 @@ export const GRADES: { value: number; label: string }[] = [
   ...[7, 8, 9].map((g) => ({ value: g, label: `國${"一二三"[g - 7]}` })),
   ...[10, 11, 12].map((g) => ({ value: g, label: `高${"一二三"[g - 10]}` })),
 ];
+// 主題設定的年級範圍內的選項
+export function gradesInRange(min?: number | null, max?: number | null) {
+  return GRADES.filter((g) => g.value >= (min ?? -3) && g.value <= (max ?? 12));
+}
 export function gradeLabel(g: number | null | undefined): string {
   if (g === null || g === undefined) return "";
   if (g > 12) return "高中畢業以上";

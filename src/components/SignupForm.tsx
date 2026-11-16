@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { burstConfetti } from "@/lib/confetti";
 import { ACTIVITY_CONSENT_NOTICE } from "@/lib/consent";
-import { GRADES, money, type Price, type Question, type Unit, type Who } from "@/lib/eventTypes";
+import { gradesInRange, money, type Price, type Question, type Unit, type Who } from "@/lib/eventTypes";
 
 // 官網活動報名表：選場次 → 選方案 → 填參加者 → 聯絡方式 → 須知與同意
 export type SignupSlot = {
@@ -16,9 +16,11 @@ export type SignupSlot = {
   waitlist: boolean;
   confirmed: boolean;
 };
-type PersonRow = { kind: "child" | "adult"; name: string; grade: string; care: string; careConsent: boolean; showCare: boolean };
+// grade：年級數字的字串；大人小孩都可以的活動多一個 "adult"（成人）
+type PersonRow = { name: string; grade: string; care: string; careConsent: boolean; showCare: boolean };
 
-const emptyPerson = (who: Who): PersonRow => ({ kind: who === "adult" ? "adult" : "child", name: "", grade: "", care: "", careConsent: false, showCare: false });
+const emptyPerson = (): PersonRow => ({ name: "", grade: "", care: "", careConsent: false, showCare: false });
+const MAX_SEATS = 12;
 
 export default function SignupForm({
   runId,
@@ -29,6 +31,8 @@ export default function SignupForm({
   questions,
   slots,
   refundText,
+  gradeMin,
+  gradeMax,
 }: {
   runId: string;
   who: Who;
@@ -38,14 +42,24 @@ export default function SignupForm({
   questions: Question[];
   slots: SignupSlot[];
   refundText: string;
+  gradeMin?: number | null;
+  gradeMax?: number | null;
 }) {
   const unitLabel = unit === "group" ? "組" : "位";
   const [slotId, setSlotId] = useState(slots.length === 1 ? slots[0].id : "");
-  const [priceKey, setPriceKey] = useState(prices[0]?.key ?? "");
-  const [qty, setQty] = useState(1);
-  const price = prices.find((p) => p.key === priceKey) ?? prices[0];
-  const seats = (price?.seats ?? 1) * qty;
-  const [people, setPeople] = useState<PersonRow[]>(() => Array.from({ length: seats }, () => emptyPerson(who)));
+  // 每個方案各選幾份（可以混搭，例如兩人同行 1 份＋單人 1 份）；只有一個方案時預設 1 份
+  const [qtys, setQtys] = useState<Record<string, number>>(() => (prices.length === 1 ? { [prices[0].key]: 1 } : {}));
+  const seats = prices.reduce((n, p) => n + (qtys[p.key] ?? 0) * Math.max(p.seats, 1), 0);
+  const total = prices.reduce((n, p) => n + (qtys[p.key] ?? 0) * p.amount, 0);
+  const picked = prices.filter((p) => (qtys[p.key] ?? 0) > 0);
+  const [people, setPeople] = useState<PersonRow[]>([]);
+  const grades = gradesInRange(gradeMin, gradeMax);
+  function bump(key: string, d: number) {
+    const p = prices.find((x) => x.key === key);
+    const next = Math.max(0, Math.min(10, (qtys[key] ?? 0) + d));
+    if (d > 0 && p && seats + Math.max(p.seats, 1) > MAX_SEATS) return;
+    setQtys({ ...qtys, [key]: next });
+  }
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const slot = slots.find((s) => s.id === slotId);
@@ -54,8 +68,8 @@ export default function SignupForm({
   // 參加者欄位數跟著方案與份數變
   const rows = useMemo(() => {
     if (people.length === seats) return people;
-    return Array.from({ length: seats }, (_, i) => people[i] ?? emptyPerson(who));
-  }, [people, seats, who]);
+    return Array.from({ length: seats }, (_, i) => people[i] ?? emptyPerson());
+  }, [people, seats]);
 
   function setRow(i: number, patch: Partial<PersonRow>) {
     setPeople(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
@@ -65,7 +79,7 @@ export default function SignupForm({
     e.preventDefault();
     setError("");
     if (!slotId) return setError("請選擇場次");
-    if (!price) return setError("請選擇報名方案");
+    if (seats === 0) return setError("請選擇報名方案與份數");
     const f = new FormData(e.currentTarget);
     const s = (k: string) => String(f.get(k) ?? "");
     const answers: Record<string, string> = {};
@@ -73,10 +87,11 @@ export default function SignupForm({
     const payload = {
       runId,
       slotId,
-      priceKey: price.key,
-      qty,
-      people: rows.map((r) => ({ kind: r.kind, name: r.name, grade: r.kind === "child" ? r.grade : "", careNotes: r.care, careConsent: r.careConsent })),
-      contactName: s("contactName"),
+      items: picked.map((p) => ({ key: p.key, qty: qtys[p.key] })),
+      people: rows.map((r) => {
+        const adult = who === "adult" || r.grade === "adult";
+        return { kind: adult ? "adult" : "child", name: r.name, grade: adult ? "" : r.grade, careNotes: r.care, careConsent: r.careConsent };
+      }),
       phone: s("phone"),
       email: s("email"),
       socialName: s("socialName"),
@@ -128,60 +143,55 @@ export default function SignupForm({
       </fieldset>
 
       <fieldset>
-        <legend>2　選方案</legend>
+        <legend>2　選方案與份數</legend>
         <div className="su-options">
-          {prices.map((p) => (
-            <label key={p.key} className={`su-option ${priceKey === p.key ? "on" : ""}`}>
-              <input type="radio" name="price" value={p.key} checked={priceKey === p.key} onChange={() => setPriceKey(p.key)} />
-              <span className="su-option-main">
-                <strong>{p.label}</strong>
-                <small>
-                  {p.seats > 1 ? `含 ${p.seats} ${unitLabel}` : `每${unitLabel === "組" ? "組" : "人"}`}
-                  {p.returning_only ? "・參加過玩學院活動的舊生" : ""}
-                </small>
-              </span>
-              <span className="su-price">${money(p.amount)}</span>
-            </label>
-          ))}
+          {prices.map((p) => {
+            const n = qtys[p.key] ?? 0;
+            return (
+              <div key={p.key} className={`su-option su-plan ${n > 0 ? "on" : ""}`}>
+                <span className="su-option-main">
+                  <strong>{p.label}</strong>
+                  <small>
+                    {p.seats > 1 ? `一份含 ${p.seats} ${unitLabel}` : `每${unitLabel === "組" ? "組" : "人"}`}
+                    {p.returning_only ? "・參加過玩學院活動的舊生" : ""}
+                  </small>
+                </span>
+                <span className="su-price">${money(p.amount)}</span>
+                <span className="su-step">
+                  <button type="button" onClick={() => bump(p.key, -1)} disabled={n === 0} aria-label={`${p.label} 減少一份`}>−</button>
+                  <output aria-label={`${p.label} 份數`}>{n}</output>
+                  <button type="button" onClick={() => bump(p.key, 1)} disabled={seats + Math.max(p.seats, 1) > MAX_SEATS} aria-label={`${p.label} 增加一份`}>＋</button>
+                </span>
+              </div>
+            );
+          })}
         </div>
-        <div className="field su-qty">
-          <label htmlFor="su-qty">份數</label>
-          <select id="su-qty" value={qty} onChange={(e) => setQty(Number(e.target.value))}>
-            {[1, 2, 3, 4].map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-          <small className="hint">例如三兄妹一起參加，可以選「兩人同行」1 份＋另外再報名 1 位。</small>
-        </div>
+        <p className="hint su-plan-sum" role="status">
+          {seats === 0
+            ? "按 ＋ 選擇份數，不同方案可以一起選。例如 3 人參加：兩人同行 1 份＋單人 1 份。"
+            : `已選 ${picked.map((p) => `${p.label} × ${qtys[p.key]}`).join("＋")}，共 ${seats} ${unitLabel}，$${money(total)}`}
+        </p>
       </fieldset>
 
       <fieldset>
         <legend>3　參加者{unit === "group" ? "（每組記錄孩子）" : ""}</legend>
+        {seats === 0 && <p className="hint">先在上面選方案與份數，這裡會出現對應人數的欄位。</p>}
         {rows.map((r, i) => (
           <div key={i} className="su-person">
             <p className="su-person-no">第 {i + 1} {unitLabel}</p>
-            {who === "any" && (
-              <div className="su-kind" role="radiogroup" aria-label="參加者身分">
-                {(["child", "adult"] as const).map((k) => (
-                  <label key={k} className={r.kind === k ? "on" : ""}>
-                    <input type="radio" name={`kind-${i}`} checked={r.kind === k} onChange={() => setRow(i, { kind: k })} />
-                    {k === "child" ? "孩子" : "大人"}
-                  </label>
-                ))}
-              </div>
-            )}
             <div className="grid cols-2">
               <div className="field">
-                <label htmlFor={`pname-${i}`}>{r.kind === "adult" ? "姓名 *" : "孩子姓名 *"}</label>
+                <label htmlFor={`pname-${i}`}>{who === "kids" || who === "family" ? "孩子姓名 *" : "姓名 *"}</label>
                 <input id={`pname-${i}`} value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} required maxLength={40} />
                 <small className="hint">會用來做桌牌，公開照片時不寫全名。</small>
               </div>
-              {r.kind === "child" && (
+              {who !== "adult" && (
                 <div className="field">
-                  <label htmlFor={`pgrade-${i}`}>年級 *</label>
+                  <label htmlFor={`pgrade-${i}`}>{who === "any" ? "成人／孩子年級 *" : "年級 *"}</label>
                   <select id={`pgrade-${i}`} value={r.grade} onChange={(e) => setRow(i, { grade: e.target.value })} required>
                     <option value="" disabled>請選擇</option>
-                    {GRADES.map((g) => (
+                    {who === "any" && <option value="adult">成人</option>}
+                    {grades.map((g) => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
                   </select>
@@ -189,11 +199,11 @@ export default function SignupForm({
               )}
             </div>
             {!r.showCare ? (
-              <button type="button" className="su-link" onClick={() => setRow(i, { showCare: true })}>＋ 有過敏或需要老師留意的地方</button>
+              <button type="button" className="su-link" onClick={() => setRow(i, { showCare: true })}>＋ 需要老師留意的地方</button>
             ) : (
               <div className="field">
-                <label htmlFor={`pcare-${i}`}>過敏或需要老師留意的地方</label>
-                <input id={`pcare-${i}`} value={r.care} onChange={(e) => setRow(i, { care: e.target.value })} maxLength={300} placeholder="例：花生過敏" />
+                <label htmlFor={`pcare-${i}`}>需要老師留意的地方</label>
+                <input id={`pcare-${i}`} value={r.care} onChange={(e) => setRow(i, { care: e.target.value })} maxLength={300} placeholder="例：花生過敏、容易緊張" />
                 {r.care.trim() && (
                   <label className="check">
                     <input type="checkbox" checked={r.careConsent} onChange={(e) => setRow(i, { careConsent: e.target.checked })} required />
@@ -209,10 +219,6 @@ export default function SignupForm({
       <fieldset>
         <legend>4　聯絡方式</legend>
         <div className="grid cols-2">
-          <div className="field">
-            <label htmlFor="contactName">{who === "adult" ? "姓名 *" : "家長姓名 *"}</label>
-            <input id="contactName" name="contactName" required maxLength={40} autoComplete="name" />
-          </div>
           <div className="field">
             <label htmlFor="phone">手機 *</label>
             <input id="phone" name="phone" required maxLength={20} inputMode="tel" autoComplete="tel" />
@@ -293,7 +299,7 @@ export default function SignupForm({
           {payMode === "after_confirm" && !slot?.confirmed && <small>確定開課後才需要匯款</small>}
           {willWait && <small>這個場次名額不足，送出後會登記為候補</small>}
         </span>
-        <strong>${money((price?.amount ?? 0) * qty)}</strong>
+        <strong>${money(total)}</strong>
       </div>
       {error && <p className="notice err" role="alert">{error}</p>}
       <button type="submit" className="btn primary su-submit" disabled={sending}>

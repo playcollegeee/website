@@ -61,9 +61,19 @@ export async function saveTheme(fd: FormData): Promise<EvResult> {
     const showcase = str(fd, "showcase", 10);
     if (!["none", "3d", "kids"].includes(showcase)) return NG("分類不正確");
     const activity_id = str(fd, "activity_id", 40);
+    const gradeOf = (k: string) => {
+      const v = str(fd, k, 4);
+      const n = Number(v);
+      return v !== "" && Number.isInteger(n) && n >= -3 && n <= 12 ? n : null;
+    };
+    const grade_min = gradeOf("grade_min");
+    const grade_max = gradeOf("grade_max");
+    if (grade_min !== null && grade_max !== null && grade_min > grade_max) return NG("最低年級不能高於最高年級");
     const fields = {
       title,
       slug,
+      grade_min,
+      grade_max,
       showcase,
       activity_id: isUuid(activity_id) ? activity_id : null,
       series: str(fd, "series", 40) || null,

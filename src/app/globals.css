@@ -2017,3 +2017,10 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 .rt-preview .rich-list { margin-bottom: 0; }
 .ev-field { display: grid; gap: 4px; }
 .ev-field-label { font-weight: 700; font-size: 14px; }
+.su-plan { cursor: default; flex-wrap: wrap; }
+.su-step { display: inline-flex; align-items: center; gap: 4px; }
+.su-step button { width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--ink); background: #fff; font: inherit; font-size: 20px; font-weight: 800; cursor: pointer; line-height: 1; }
+.su-step button:disabled { opacity: 0.35; cursor: not-allowed; }
+.su-step output { min-width: 28px; text-align: center; font-weight: 800; font-size: 18px; }
+.su-plan-sum { margin: 2px 0 0; }
+@media (max-width: 520px) { .su-plan .su-option-main { flex-basis: 100%; } .su-plan .su-price { margin-right: auto; } }
