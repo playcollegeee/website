@@ -294,4 +294,7 @@ export const TEMPLATE_KEYS: { key: string; label: string; kind: NoticeKind }[] =
 ];
 export const TEMPLATE_VARS = "{家長} {參加者} {活動} {場次} {時間} {地點} {金額} {編號} {匯款資訊} {付款說明} {連結} {備註} {原因} {退款說明}";
 
+// 把 **粗體** 記號和換行拿掉，給卡片摘要、搜尋引擎描述用
+export const plainText = (s: string | null | undefined) => (s ?? "").replace(/\*\*/g, "").replace(/\s*\n+\s*/g, " ").trim();
+
 export const runTitle = (run: Pick<Run, "title">, theme: Pick<Theme, "title">) => run.title?.trim() || theme.title;

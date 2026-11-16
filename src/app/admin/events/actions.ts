@@ -67,8 +67,14 @@ export async function saveTheme(fd: FormData): Promise<EvResult> {
       showcase,
       activity_id: isUuid(activity_id) ? activity_id : null,
       series: str(fd, "series", 40) || null,
-      summary: str(fd, "summary", 800),
-      highlights: str(fd, "highlights", 2000).split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 10),
+      summary: str(fd, "summary", 2000),
+      // 課程特色：每一點之間空一行；每點可以多行（第一行標題、其他行說明）
+      highlights: str(fd, "highlights", 3000)
+        .replace(/\r\n?/g, "\n")
+        .split(/\n\s*\n/)
+        .map((s) => s.split("\n").map((l) => l.trim()).filter(Boolean).join("\n").slice(0, 400))
+        .filter(Boolean)
+        .slice(0, 12),
       audience_text: str(fd, "audience_text", 80) || null,
       duration_text: str(fd, "duration_text", 80) || null,
       includes_text: str(fd, "includes_text", 200) || null,
@@ -262,7 +268,7 @@ export async function saveRun(fd: FormData): Promise<EvResult> {
     const deadline = str(fd, "deadline", 10);
     await sbPatch(`activity_runs?id=eq.${id}`, {
       title: str(fd, "title", 80) || null,
-      intro: str(fd, "intro", 800) || null,
+      intro: str(fd, "intro", 2000) || null,
       who,
       unit,
       pay_mode,

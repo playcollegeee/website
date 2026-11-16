@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { shrinkImage } from "@/lib/imageShrink";
 import { SHOWCASE_LABEL, type Theme, type ThemePhoto } from "@/lib/eventTypes";
 import ActBtn from "../ActBtn";
+import RichTextarea from "../RichTextarea";
 import { addThemePhoto, deleteTheme, deleteThemePhoto, moveThemePhoto, saveTheme, setThemeCover, type EvResult } from "../actions";
 
 // 後台：一個主題的介紹＋照片管理（照片在瀏覽器縮到 1600px 再一張一張上傳）
@@ -108,14 +109,21 @@ export default function ThemeEditor({ theme, activities, photos }: { theme?: The
                 備註
                 <input name="notes_text" defaultValue={t?.notes_text ?? ""} maxLength={200} placeholder="例：需自備一台筆電；午餐自理" />
               </label>
-              <label className="adm-wide">
-                介紹
-                <textarea name="summary" defaultValue={t?.summary ?? ""} rows={3} maxLength={800} />
-              </label>
-              <label className="adm-wide">
-                課程特色（一行一點）
-                <textarea name="highlights" defaultValue={t?.highlights.join("\n") ?? ""} rows={4} maxLength={2000} />
-              </label>
+              <div className="adm-wide ev-field">
+                <span className="ev-field-label">介紹</span>
+                <RichTextarea name="summary" defaultValue={t?.summary ?? ""} rows={8} maxLength={2000} />
+              </div>
+              <div className="adm-wide ev-field">
+                <span className="ev-field-label">課程特色</span>
+                <RichTextarea
+                  name="highlights"
+                  list
+                  defaultValue={t?.highlights.join("\n\n") ?? ""}
+                  rows={10}
+                  maxLength={3000}
+                  placeholder={"🔰 **零基礎也能參加**\n從最基礎開始帶領，沒有經驗也能輕鬆上手\n\n🖥️ **完整體驗 3D 列印流程**\n從建模概念 → 設計 → 切片 → 列印，一次了解"}
+                />
+              </div>
               <label className="adm-check">
                 <input type="checkbox" name="published" defaultChecked={t?.published ?? true} />
                 顯示在官網

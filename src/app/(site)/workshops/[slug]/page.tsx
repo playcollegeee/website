@@ -3,7 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import InterestForm from "@/components/InterestForm";
-import { fmtTimes, getThemeBySlug, runTitle, SHOWCASE_LABEL } from "@/lib/events";
+import RichText, { RichList } from "@/components/RichText";
+import { fmtTimes, getThemeBySlug, plainText, runTitle, SHOWCASE_LABEL } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const d = await getThemeBySlug(slug).catch(() => null);
   if (!d) return { title: "工作坊" };
-  return { title: d.theme.title, description: d.theme.summary };
+  return { title: d.theme.title, description: plainText(d.theme.summary).slice(0, 150) };
 }
 
 // 官網：一個工作坊主題的介紹頁（照片、特色、正在報名的場次、我想上這堂）
@@ -32,7 +33,7 @@ export default async function ThemePage({ params }: Props) {
             {theme.series && <> ／ {theme.series}</>}
           </p>
           <h1>{theme.title}</h1>
-          <p className="lead">{theme.summary}</p>
+          <RichText text={theme.summary} className="su-intro" />
           <div className="btn-row">
             {runs.length > 0 ? (
               <a href="#runs" className="btn primary">報名中，看場次</a>
@@ -63,9 +64,7 @@ export default async function ThemePage({ params }: Props) {
             {theme.highlights.length > 0 && (
               <>
                 <h2>這次會玩什麼？</h2>
-                <ul className="su-highlights">
-                  {theme.highlights.map((h) => <li key={h}>{h}</li>)}
-                </ul>
+                <RichList items={theme.highlights} />
               </>
             )}
           </div>

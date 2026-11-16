@@ -1998,3 +1998,22 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 .cmp-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .cmp-photos figure { margin: 0; display: grid; gap: 4px; }
 .cmp-photos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+
+/* ---------- 簡易格式文字（活動簡介、課程特色：換行、emoji、粗體） ---------- */
+.rich p { margin: 0; line-height: 1.75; overflow-wrap: anywhere; }
+.rich .rich-gap { height: 0.9em; }
+.rich strong, .rich-list strong { font-weight: 800; color: var(--ink); }
+.su-intro { font-size: 17px; color: var(--ink-soft); margin: 0 0 18px; max-width: 640px; }
+.rich-list { list-style: disc; margin: 0 0 16px; padding-left: 22px; display: grid; gap: 12px; }
+.rich-list li { line-height: 1.7; overflow-wrap: anywhere; }
+.rich-list-head { display: block; }
+.rich-list-body { display: block; color: var(--ink-soft); }
+.wk-sum { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.rt { display: grid; gap: 6px; }
+.rt-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.rt-b { font-weight: 800; }
+.rt-preview { background: #fffdf6; border: 2px dashed var(--line); border-radius: 12px; padding: 10px 14px; font-weight: 400; }
+.rt-preview-label { display: block; font-size: 12px; font-weight: 800; color: var(--ink-soft); margin-bottom: 6px; }
+.rt-preview .rich-list { margin-bottom: 0; }
+.ev-field { display: grid; gap: 4px; }
+.ev-field-label { font-weight: 700; font-size: 14px; }

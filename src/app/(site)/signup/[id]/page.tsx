@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import RichText, { RichList } from "@/components/RichText";
 import SignupForm from "@/components/SignupForm";
 import { site } from "@/lib/content";
-import { fmtTimes, getRunBundle, getSettings, runTitle, WHO_LABEL } from "@/lib/events";
+import { fmtTimes, getRunBundle, getSettings, plainText, runTitle, WHO_LABEL } from "@/lib/events";
 import { isUuid } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const b = isUuid(id) ? await getRunBundle(id).catch(() => null) : null;
   if (!b || b.run.status === "draft") return { title: "活動報名" };
-  return { title: `報名｜${runTitle(b.run, b.theme)}`, description: b.run.intro || b.theme.summary };
+  return { title: `報名｜${runTitle(b.run, b.theme)}`, description: plainText(b.run.intro || b.theme.summary).slice(0, 150) };
 }
 
 // 官網：一次開課的報名頁（左邊課程資訊、右邊報名表；手機上下排列）
@@ -42,7 +43,7 @@ export default async function SignupPage({ params }: Props) {
               <Image src={cover} alt={`${title}活動照片`} width={1200} height={900} sizes="(max-width: 960px) 100vw, 520px" priority />
             </div>
           )}
-          <p className="lead">{run.intro || theme.summary}</p>
+          <RichText text={run.intro || theme.summary} className="su-intro" />
           <dl className="su-facts">
             {theme.audience_text && (<div><dt>適合對象</dt><dd>{theme.audience_text}（{WHO_LABEL[run.who]}）</dd></div>)}
             {theme.duration_text && (<div><dt>時間長度</dt><dd>{theme.duration_text}</dd></div>)}
@@ -72,9 +73,7 @@ export default async function SignupPage({ params }: Props) {
           {theme.highlights.length > 0 && (
             <>
               <h2 className="su-h">課程特色</h2>
-              <ul className="su-highlights">
-                {theme.highlights.map((h) => <li key={h}>{h}</li>)}
-              </ul>
+              <RichList items={theme.highlights} />
             </>
           )}
           <p className="hint">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { getShowcaseThemes, SHOWCASE_LABEL, SHOWCASE_LEAD } from "@/lib/events";
+import { getShowcaseThemes, plainText, SHOWCASE_LABEL, SHOWCASE_LEAD } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -53,7 +53,7 @@ export default async function WorkshopGalleryPage() {
                   </p>
                   <h3>{t.title}</h3>
                   {t.audience_text && <p><strong>適合對象：</strong>{t.audience_text}</p>}
-                  <p>{t.summary}</p>
+                  <p className="wk-sum">{plainText(t.summary)}</p>
                   <span className="wk-more">看照片與介紹 →</span>
                 </Link>
               ))}
