@@ -2,8 +2,9 @@
 
 import { useRef, useState, useTransition } from "react";
 import { shrinkImage } from "@/lib/imageShrink";
-import { SHOWCASE_LABEL, type Theme, type ThemePhoto } from "@/lib/eventTypes";
+import { GRADES, SHOWCASE_LABEL, type Theme, type ThemePhoto } from "@/lib/eventTypes";
 import ActBtn from "../ActBtn";
+import RichTextarea from "../RichTextarea";
 import { addThemePhoto, deleteTheme, deleteThemePhoto, moveThemePhoto, saveTheme, setThemeCover, type EvResult } from "../actions";
 
 // 後台：一個主題的介紹＋照片管理（照片在瀏覽器縮到 1600px 再一張一張上傳）
@@ -97,6 +98,20 @@ export default function ThemeEditor({ theme, activities, photos }: { theme?: The
                 <input name="audience_text" defaultValue={t?.audience_text ?? ""} maxLength={80} placeholder="例：國小三年級以上" />
               </label>
               <label>
+                報名表最低年級
+                <select name="grade_min" defaultValue={t?.grade_min ?? ""}>
+                  <option value="">不限</option>
+                  {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </label>
+              <label>
+                報名表最高年級
+                <select name="grade_max" defaultValue={t?.grade_max ?? ""}>
+                  <option value="">不限</option>
+                  {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </label>
+              <label>
                 時間長度
                 <input name="duration_text" defaultValue={t?.duration_text ?? ""} maxLength={80} placeholder="例：3 個週日，共 15 小時" />
               </label>
@@ -108,14 +123,21 @@ export default function ThemeEditor({ theme, activities, photos }: { theme?: The
                 備註
                 <input name="notes_text" defaultValue={t?.notes_text ?? ""} maxLength={200} placeholder="例：需自備一台筆電；午餐自理" />
               </label>
-              <label className="adm-wide">
-                介紹
-                <textarea name="summary" defaultValue={t?.summary ?? ""} rows={3} maxLength={800} />
-              </label>
-              <label className="adm-wide">
-                課程特色（一行一點）
-                <textarea name="highlights" defaultValue={t?.highlights.join("\n") ?? ""} rows={4} maxLength={2000} />
-              </label>
+              <div className="adm-wide ev-field">
+                <span className="ev-field-label">介紹</span>
+                <RichTextarea name="summary" defaultValue={t?.summary ?? ""} rows={8} maxLength={2000} />
+              </div>
+              <div className="adm-wide ev-field">
+                <span className="ev-field-label">課程特色</span>
+                <RichTextarea
+                  name="highlights"
+                  list
+                  defaultValue={t?.highlights.join("\n\n") ?? ""}
+                  rows={10}
+                  maxLength={3000}
+                  placeholder={"🔰 **零基礎也能參加**\n從最基礎開始帶領，沒有經驗也能輕鬆上手\n\n🖥️ **完整體驗 3D 列印流程**\n從建模概念 → 設計 → 切片 → 列印，一次了解"}
+                />
+              </div>
               <label className="adm-check">
                 <input type="checkbox" name="published" defaultChecked={t?.published ?? true} />
                 顯示在官網

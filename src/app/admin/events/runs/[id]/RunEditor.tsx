@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { shrinkImage } from "@/lib/imageShrink";
 import { PAY_MODE_LABEL, UNIT_LABEL, WHO_LABEL, type Price, type Question, type Run } from "@/lib/eventTypes";
 import type { EvResult } from "../../actions";
+import RichTextarea from "../../RichTextarea";
 
 // 後台：開課設定（標題、參加方式、價格方案、自訂題目、退費辦法）
 export default function RunEditor({ run, defaultRefund, save }: { run: Run; defaultRefund: string; save: (fd: FormData) => Promise<EvResult> }) {
@@ -42,10 +43,10 @@ export default function RunEditor({ run, defaultRefund, save }: { run: Run; defa
           這次的標題（空白就用主題名稱）
           <input name="title" defaultValue={run.title ?? ""} maxLength={80} placeholder="例：7 月份主題【追風小勇士】" />
         </label>
-        <label className="adm-wide">
-          這次的補充說明（空白就用主題介紹）
-          <textarea name="intro" defaultValue={run.intro ?? ""} rows={3} maxLength={800} />
-        </label>
+        <div className="adm-wide ev-field">
+          <span className="ev-field-label">這次的簡介（空白就用主題介紹）</span>
+          <RichTextarea name="intro" defaultValue={run.intro ?? ""} rows={8} maxLength={2000} />
+        </div>
         <label>
           誰參加
           <select name="who" defaultValue={run.who}>

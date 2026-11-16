@@ -25,14 +25,12 @@ export async function POST(req: Request) {
   if (!isUuid(runId) || !isUuid(slotId)) return NextResponse.json({ error: "請選擇場次" }, { status: 400 });
   const bundle = await getRunBundle(runId);
   if (!bundle || bundle.run.status !== "open") return NextResponse.json({ error: "這個活動目前沒有開放報名" }, { status: 400 });
-  const { run } = bundle;
+  const { run, theme } = bundle;
   if (!bundle.slots.some((s) => s.id === slotId)) return NextResponse.json({ error: "請選擇場次" }, { status: 400 });
 
-  const contactName = clean(b.contactName, 40);
   const phone = clean(b.phone, 20);
   const email = clean(b.email, 120);
   const socialName = clean(b.socialName, 60);
-  if (!contactName) return NextResponse.json({ error: "請填寫聯絡人姓名" }, { status: 400 });
   if (!PHONE.test(phone)) return NextResponse.json({ error: "手機號碼格式看起來不正確" }, { status: 400 });
   if (!EMAIL.test(email)) return NextResponse.json({ error: "請填寫正確的 Email，報名通知會寄到這裡" }, { status: 400 });
   if (!socialName) return NextResponse.json({ error: "請填寫私訊粉專／IG 用的名字，方便我們對帳與通知" }, { status: 400 });
@@ -51,13 +49,24 @@ export async function POST(req: Request) {
     return {
       kind,
       name: clean(o.name, 40),
-      grade: kind === "child" && Number.isInteger(g) && g >= -3 && g <= 12 ? g : null,
+      grade: kind === "child" && Number.isInteger(g) && g >= (theme.grade_min ?? -3) && g <= (theme.grade_max ?? 12) ? g : null,
       care_notes: care,
       care_consent: !!care && o.careConsent === true,
     };
   });
   if (people.length === 0 || people.some((p) => !p.name)) return NextResponse.json({ error: "請填寫每一位參加者的姓名" }, { status: 400 });
-  if (people.some((p) => p.kind === "child" && p.grade === null)) return NextResponse.json({ error: "請選擇孩子的年級" }, { status: 400 });
+  if (people.some((p) => p.kind === "child" && p.grade === null)) return NextResponse.json({ error: "請選擇年級（要在這個活動適合的年級範圍內）" }, { status: 400 });
+  // 報名表不另外問家長姓名：有大人參加就用大人的名字，否則用「孩子名＋爸爸媽媽」當聯絡人稱呼（私訊開頭：王小明爸爸媽媽您好～）
+  const contactName = (people.find((p) => p.kind === "adult")?.name ?? `${people[0].name}爸爸媽媽`).slice(0, 40);
+  // 方案與份數（可複選）
+  const rawItems = Array.isArray(b.items) ? b.items.slice(0, 10) : [];
+  const items = rawItems
+    .map((it) => {
+      const o = (it ?? {}) as Record<string, unknown>;
+      return { key: clean(o.key, 40), qty: Math.min(Math.max(Math.round(Number(o.qty) || 0), 0), 10) };
+    })
+    .filter((it) => it.qty > 0 && run.prices.some((p) => p.key === it.key));
+  if (items.length === 0) return NextResponse.json({ error: "請選擇報名方案與份數" }, { status: 400 });
   if (people.some((p) => p.care_notes && !p.care_consent)) return NextResponse.json({ error: "填寫注意事項時，請勾選同意記錄" }, { status: 400 });
 
   // 自訂題目
@@ -71,7 +80,6 @@ export async function POST(req: Request) {
   }
 
   const token = newToken();
-  const qty = Math.min(Math.max(Number(b.qty) || 1, 1), 10);
   for (let attempt = 0; attempt < 3; attempt++) {
     const code = newCode();
     const res = await sbFetch("rpc/book_activity", {
@@ -79,8 +87,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         p: {
           slot_id: slotId,
-          price_key: clean(b.priceKey, 40),
-          qty,
+          items,
           contact_name: contactName,
           phone,
           email,
