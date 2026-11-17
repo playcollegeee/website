@@ -16,7 +16,7 @@ import { type LessonOpt } from "../../plans/ItemCard";
 import Board from "./board/Board";
 import Helpers from "./board/Helpers";
 import MeetingTitle from "./MeetingTitle";
-import AutoRefresh from "./AutoRefresh";
+import AutoRefresh from "../../AutoRefresh";
 
 export const metadata = { title: "會議室" };
 export const maxDuration = 60; // 錄音轉文字、AI 整理最多等 60 秒
@@ -80,7 +80,7 @@ export default async function MeetingRoom({ params }: { params: Promise<{ id: st
   return (
     <div className="room">
       {/* 白板以外的區塊：別的老師新增或修改，幾秒內自動出現，不用按重新整理 */}
-      <AutoRefresh meetingId={m.id} />
+      <AutoRefresh src={`/admin/meetings/${m.id}/stamp`} />
       <p className="lsn-noprint"><Link href={back.href} className="adm-link">← {back.label}</Link></p>
       <div className="room-head">
         <MeetingTitle id={m.id} title={m.title} heldOn={m.held_on} canEdit={canManage} />

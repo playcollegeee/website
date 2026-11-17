@@ -45,7 +45,7 @@ export default function Meetings({
         <button type="button" className="btn primary" disabled={planning || rec.busy}
           onClick={() => startPlan(async () => {
             const r = await planMeeting({ planId });
-            setMsg(r.ok ? null : r.message);
+            setMsg(r.ok && !r.existed ? null : r.message);
             if (r.ok) router.refresh();
           })}>
           {planning ? "安排中…" : "📅 安排會議"}
@@ -64,7 +64,7 @@ export default function Meetings({
           </details>
         )}
       </div>
-      {msg && <p className="notice err">{msg}</p>}
+      {msg && <p className={`notice ${msg.includes("已經安排了") ? "ok" : "err"}`}>{msg}</p>}
       <PhaseBox phase={rec.phase} resumeId={rec.resumeId} pick={rec.pick} />
 
       {planned.map((m) => (

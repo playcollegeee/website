@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 const EVERY_MS = 2500; // 開著頁面時每 2.5 秒檢查一次
 const HIDDEN_MS = 15000; // 切到別的分頁時放慢
 
-// 會議室自動更新（白板以外）：定期問伺服器資料有沒有變，變了才重新整理。
+// 後台頁面自動更新（會議室白板以外、課程規劃頁）：定期問伺服器資料有沒有變，變了才重新整理。
+// src 是回傳 { stamp } 的網址（資料指紋）。
 // router.refresh() 只更新伺服器的資料，老師正在打的字、展開的區塊都會保留。
-export default function AutoRefresh({ meetingId }: { meetingId: string }) {
+export default function AutoRefresh({ src }: { src: string }) {
   const router = useRouter();
   const last = useRef<string | null>(null);
 
@@ -18,7 +19,7 @@ export default function AutoRefresh({ meetingId }: { meetingId: string }) {
 
     const tick = async () => {
       try {
-        const res = await fetch(`/admin/meetings/${meetingId}/stamp`, { cache: "no-store" });
+        const res = await fetch(src, { cache: "no-store" });
         if (res.ok) {
           const { stamp } = (await res.json()) as { stamp?: string };
           if (stamp) {
@@ -45,7 +46,7 @@ export default function AutoRefresh({ meetingId }: { meetingId: string }) {
       if (timer) clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [meetingId, router]);
+  }, [src, router]);
 
   return null;
 }
