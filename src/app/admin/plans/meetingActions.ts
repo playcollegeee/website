@@ -76,19 +76,38 @@ export async function createMeeting(input: {
 }
 
 // 0. 先安排會議（還沒錄音）：可以先擬議程；所有老師都可以安排
-export async function planMeeting(input: { planId: string; title?: string; heldOn?: string }): Promise<Result & { id?: string }> {
+export async function planMeeting(input: { planId: string; title?: string; heldOn?: string }): Promise<Result & { id?: string; existed?: boolean }> {
   try {
     const staff = await requireStaff();
     if (!isUuid(input.planId)) return { ok: false, message: "資料不正確" };
     const p = await sbGet<{ id: string }[]>(`plans?id=eq.${input.planId}&select=id`);
     if (!p[0]) return { ok: false, message: "找不到這份規劃" };
     const heldOn = isDate(input.heldOn) ? input.heldOn : today();
+    // 防重複（2026-11-17 有老師沒看到別人已經安排，又按了一次）：同一份規劃、同一天已經有待開的會議，就直接用那一場
+    const sameDay = `meetings?plan_id=eq.${input.planId}&held_on=eq.${heldOn}&status=eq.planned&select=id,title,creator:teachers!meetings_created_by_fkey(name,nickname)&order=created_at,id`;
+    type Existing = { id: string; title: string; creator: { name: string; nickname: string | null } | null };
+    const found = await sbGet<Existing[]>(sameDay);
+    const taken = (e: Existing) => ({
+      ok: true as const, existed: true, id: e.id,
+      message: `${e.creator?.nickname || e.creator?.name || "其他老師"}已經安排了「${e.title}」，直接進會議室就好，不用再安排一次`,
+    });
+    if (found[0]) {
+      revalidatePath(`/admin/plans/${input.planId}`);
+      return taken(found[0]);
+    }
     const n = await nextSeq(input.planId);
     const title = String(input.title ?? "").trim().slice(0, 80) || seqTitle(n.seq);
     const m = await sbInsert<{ id: string }>("meetings", {
       ...(n.hasSeq ? { seq: n.seq } : {}),
       plan_id: input.planId, title, held_on: heldOn, status: "planned", parts_total: 0, created_by: staff.id,
     });
+    // 兩位老師幾乎同時按：再查一次，留最早建立的那一場，把自己剛建的空會議刪掉
+    const after = await sbGet<Existing[]>(sameDay);
+    if (after[0] && after[0].id !== m.id) {
+      await sbDelete(`meetings?id=eq.${m.id}`);
+      revalidatePath(`/admin/plans/${input.planId}`);
+      return taken(after[0]);
+    }
     await audit(actorOf(staff), "meeting.plan", `meetings:${m.id}`, { plan: input.planId });
     revalidatePath(`/admin/plans/${input.planId}`);
     return { ok: true, message: `已安排${title}，可以開始擬議程`, id: m.id };

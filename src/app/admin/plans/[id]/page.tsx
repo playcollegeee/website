@@ -13,6 +13,7 @@ import Discussion from "../Discussion";
 import PlanHeader from "../PlanHeader";
 import Meetings, { type Meeting } from "../Meetings";
 import { sttConfigured } from "@/lib/stt";
+import AutoRefresh from "../../AutoRefresh";
 
 export const metadata = { title: "課程規劃" };
 export const maxDuration = 60; // 會議逐字稿轉文字、AI 整理最多等 60 秒
@@ -67,6 +68,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
+      {/* 別的老師安排會議、留言、排課，幾秒內自動出現，不用按重新整理 */}
+      <AutoRefresh src={`/admin/plans/${plan.id}/stamp`} />
       <div className="adm-head">
         <h1>
           <small className="pln-kind">{kind.icon} {kind.label}</small> {plan.title}
