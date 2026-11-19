@@ -1,4 +1,4 @@
--- 0024：活動主題加「課程流程圖」（報名頁、主題介紹頁的「課程安排」區塊顯示）
+-- 0025：活動主題加「課程流程圖」（報名頁、主題介紹頁的「課程安排」區塊顯示）
 alter table activity_themes add column if not exists flow_url text;
 alter table activity_themes add column if not exists flow_path text;  -- 後台上傳的檔案位置（換圖時刪舊檔）；程式庫內建圖為空
 alter table activity_themes add column if not exists flow_width int;
