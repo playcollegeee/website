@@ -35,7 +35,7 @@ export default async function ThemesPage() {
           <section key={k}>
             <h2 className="ph-h">{SHOWCASE_LABEL[k]}（{list.length}）</h2>
             {list.map((t) => (
-              <ThemeEditor key={`${t.id}-${t.cover_url}`} theme={t} activities={acts} photos={photos.filter((p) => p.theme_id === t.id)} />
+              <ThemeEditor key={`${t.id}-${t.cover_url}-${t.flow_url}`} theme={t} activities={acts} photos={photos.filter((p) => p.theme_id === t.id)} />
             ))}
           </section>
         );

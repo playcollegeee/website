@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import RichText, { RichList } from "@/components/RichText";
+import RichText, { FlowImage, RichList } from "@/components/RichText";
 import SignupForm from "@/components/SignupForm";
 import { site } from "@/lib/content";
 import { fmtTimes, getRunBundle, getSettings, plainText, runTitle, WHO_LABEL } from "@/lib/events";
@@ -74,6 +74,12 @@ export default async function SignupPage({ params }: Props) {
             <>
               <h2 className="su-h">課程特色</h2>
               <RichList items={theme.highlights} />
+            </>
+          )}
+          {theme.flow_url && (
+            <>
+              <h2 className="su-h">課程安排</h2>
+              <FlowImage url={theme.flow_url} width={theme.flow_width} height={theme.flow_height} title={theme.title} />
             </>
           )}
           <p className="hint">

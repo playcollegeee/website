@@ -17,6 +17,17 @@ export default function RichText({ text, className = "" }: { text: string; class
   );
 }
 
+// 課程流程圖：點圖片開新分頁看大圖
+export function FlowImage({ url, width, height, title }: { url: string; width?: number | null; height?: number | null; title: string }) {
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="su-flow" aria-label={`${title}課程流程圖，點一下看大圖`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt={`${title}課程流程圖`} width={width ?? 1131} height={height ?? 1600} loading="lazy" />
+      <span className="su-flow-hint">點圖片看大圖</span>
+    </a>
+  );
+}
+
 // 課程特色：每一點第一行是標題，其他行是說明
 export function RichList({ items, className = "" }: { items: string[]; className?: string }) {
   return (
