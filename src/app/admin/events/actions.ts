@@ -189,6 +189,40 @@ export async function moveThemePhoto(id: string, dir: "up" | "down"): Promise<Ev
   return OK("");
 }
 
+// 課程流程圖：上傳或換一張（舊的後台上傳檔會刪掉）
+export async function setThemeFlow(fd: FormData): Promise<EvResult> {
+  const staff = await requireStaff(true);
+  try {
+    const themeId = str(fd, "theme_id", 40);
+    if (!isUuid(themeId)) return NG("資料不正確");
+    const t = (await sbGet<Theme[]>(`activity_themes?id=eq.${themeId}&select=*`))[0];
+    if (!t) return NG("找不到這個主題");
+    const up = await uploadImage(fd, "themes");
+    if (!up) return NG("請選流程圖");
+    await sbPatch(`activity_themes?id=eq.${themeId}`, { flow_url: up.url, flow_path: up.path, flow_width: up.width, flow_height: up.height });
+    if (t.flow_path) await sbRemoveFile(PHOTO_BUCKET, t.flow_path);
+    await audit(actorOf(staff), "theme.flow.set", `activity_themes:${themeId}`);
+    refreshPublic(t.slug);
+    revalidatePath("/admin/events/themes");
+    return OK("已更新流程圖");
+  } catch (e) {
+    return NG(errMsg(e));
+  }
+}
+
+export async function clearThemeFlow(themeId: string): Promise<EvResult> {
+  const staff = await requireStaff(true);
+  if (!isUuid(themeId)) return NG("資料不正確");
+  const t = (await sbGet<Theme[]>(`activity_themes?id=eq.${themeId}&select=*`))[0];
+  if (!t) return NG("找不到這個主題");
+  await sbPatch(`activity_themes?id=eq.${themeId}`, { flow_url: null, flow_path: null, flow_width: null, flow_height: null });
+  if (t.flow_path) await sbRemoveFile(PHOTO_BUCKET, t.flow_path);
+  await audit(actorOf(staff), "theme.flow.clear", `activity_themes:${themeId}`);
+  refreshPublic(t.slug);
+  revalidatePath("/admin/events/themes");
+  return OK("已拿掉流程圖");
+}
+
 export async function setThemeCover(photoId: string): Promise<EvResult> {
   const staff = await requireStaff(true);
   if (!isUuid(photoId)) return NG("資料不正確");

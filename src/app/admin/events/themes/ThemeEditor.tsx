@@ -5,7 +5,7 @@ import { shrinkImage } from "@/lib/imageShrink";
 import { GRADES, SHOWCASE_LABEL, type Theme, type ThemePhoto } from "@/lib/eventTypes";
 import ActBtn from "../ActBtn";
 import RichTextarea from "../RichTextarea";
-import { addThemePhoto, deleteTheme, deleteThemePhoto, moveThemePhoto, saveTheme, setThemeCover, type EvResult } from "../actions";
+import { addThemePhoto, clearThemeFlow, deleteTheme, setThemeFlow, deleteThemePhoto, moveThemePhoto, saveTheme, setThemeCover, type EvResult } from "../actions";
 
 // 後台：一個主題的介紹＋照片管理（照片在瀏覽器縮到 1600px 再一張一張上傳）
 export default function ThemeEditor({ theme, activities, photos }: { theme?: Theme; activities: { id: string; title: string }[]; photos: ThemePhoto[] }) {
@@ -15,6 +15,26 @@ export default function ThemeEditor({ theme, activities, photos }: { theme?: The
   const [msg, setMsg] = useState<EvResult | null>(null);
   const [busy, start] = useTransition();
   const [uploading, setUploading] = useState("");
+  const [flowBusy, setFlowBusy] = useState(false);
+
+  async function uploadFlow(files: FileList | null) {
+    const f = files?.[0];
+    if (!f || !t) return;
+    setFlowBusy(true);
+    try {
+      // 流程圖字多，長邊保留 2000px 比較清楚
+      const out = await shrinkImage(f, 2000, 0.9);
+      const fd = new FormData();
+      fd.set("theme_id", t.id);
+      fd.set("file", out.blob, "flow.webp");
+      fd.set("width", String(out.width));
+      fd.set("height", String(out.height));
+      setMsg(await setThemeFlow(fd));
+    } catch (err) {
+      setMsg({ ok: false, message: err instanceof Error ? err.message : "圖片處理失敗" });
+    }
+    setFlowBusy(false);
+  }
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -151,6 +171,17 @@ export default function ThemeEditor({ theme, activities, photos }: { theme?: The
           </form>
           {t && (
             <div className="ev-photos">
+              <p className="ev-sub">課程流程圖（報名頁與主題頁的「課程安排」顯示，可不放）</p>
+              <div className="ev-flow">
+                {t.flow_url && <img src={t.flow_url} alt="課程流程圖" />}
+                <div className="adm-btns">
+                  <label className="btn btn-sm">
+                    {flowBusy ? "上傳中…" : t.flow_url ? "換一張" : "＋ 上傳流程圖"}
+                    <input type="file" accept="image/*" className="sr-only" disabled={flowBusy} onChange={(e) => uploadFlow(e.target.files)} />
+                  </label>
+                  {t.flow_url && <ActBtn run={() => clearThemeFlow(t.id)} label="拿掉" className="adm-link danger" ask="拿掉這張流程圖？" />}
+                </div>
+              </div>
               <p className="ev-sub">照片（第一張大圖顯示，⭐ 是卡片封面）</p>
               <div className="ev-photo-grid">
                 {photos.map((p, i) => (

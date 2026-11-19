@@ -2070,3 +2070,9 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 }
 .bd-penw span { display: inline-block; border-radius: 50%; }
 .bd-penw.on { border-color: var(--blue); font-weight: 700; }
+/* 課程流程圖 */
+.su-flow { display: block; margin: 0 0 18px; max-width: 520px; border-radius: 16px; overflow: hidden; border: 2px solid var(--line); background: #fff; text-decoration: none; position: relative; }
+.su-flow img { display: block; width: 100%; height: auto; }
+.su-flow-hint { position: absolute; right: 10px; bottom: 10px; background: rgba(255, 255, 255, 0.92); color: var(--ink); font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+.ev-flow { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 12px; }
+.ev-flow img { width: 140px; border-radius: 10px; border: 2px solid var(--line); }

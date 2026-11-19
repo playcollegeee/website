@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import InterestForm from "@/components/InterestForm";
-import RichText, { RichList } from "@/components/RichText";
+import RichText, { FlowImage, RichList } from "@/components/RichText";
 import { fmtTimes, getThemeBySlug, plainText, runTitle, SHOWCASE_LABEL } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +65,12 @@ export default async function ThemePage({ params }: Props) {
               <>
                 <h2>這次會玩什麼？</h2>
                 <RichList items={theme.highlights} />
+              </>
+            )}
+            {theme.flow_url && (
+              <>
+                <h2>課程安排</h2>
+                <FlowImage url={theme.flow_url} width={theme.flow_width} height={theme.flow_height} title={theme.title} />
               </>
             )}
           </div>

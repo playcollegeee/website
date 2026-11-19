@@ -25,6 +25,10 @@ export type Theme = {
   notes_text: string | null;
   grade_min?: number | null; // 報名表年級選項的範圍（0023）；空白＝不限
   grade_max?: number | null;
+  flow_url?: string | null; // 課程流程圖（0024）
+  flow_path?: string | null;
+  flow_width?: number | null;
+  flow_height?: number | null;
   cover_url: string | null;
   cover_path: string | null;
   sort: number;
