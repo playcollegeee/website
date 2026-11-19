@@ -1212,7 +1212,7 @@ fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
 @media (max-width: 960px) { .su-layout { grid-template-columns: 1fr; } }
 .su-info h1 { margin-bottom: 12px; }
 .su-cover { border-radius: 16px; overflow: hidden; margin: 0 0 16px; border: 2px solid var(--line); }
-.su-cover { background: #fff; }
+.su-cover { background: #fff; width: 70%; } /* 海報縮小到七成 */
 .su-cover img { display: block; width: 100%; height: auto; } /* 海報照原比例顯示，不裁切 */
 .su-facts { display: grid; gap: 0; margin: 0 0 16px; }
 .su-facts > div { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
