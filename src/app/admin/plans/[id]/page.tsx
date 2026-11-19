@@ -1,4 +1,7 @@
 import Link from "next/link";
+import Refs from "../Refs";
+import type { PlanRef } from "@/lib/planRefs";
+import Linkify from "@/components/Linkify";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
@@ -25,7 +28,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [plans, items, comments, tasks, teachers, lessons, meetings, ideas] = await Promise.all([
+  const [plans, items, comments, tasks, teachers, lessons, meetings, ideas, refs] = await Promise.all([
     sbGet<Plan[]>(`plans?id=eq.${id}&select=*,owner:teachers!plans_owner_id_fkey(${PERSON})`),
     sbGet<PlanItem[]>(
       `plan_items?plan_id=eq.${id}&select=*,lesson:lessons(id,title),teacher:teachers!plan_items_teacher_id_fkey(${PERSON})&order=day.nullslast,seq,created_at`,
@@ -43,6 +46,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     // 點子牆（0017 還沒執行時當作沒有）
     sbGet<PlanIdea[]>(
       `plan_ideas?plan_id=eq.${id}&select=*,author:teachers!plan_ideas_author_id_fkey(${PERSON}),votes:plan_votes(teacher_id)&order=created_at`,
+    ).catch(() => null),
+    // 參考網址及檔案：所有會議貼的都列在這裡（0024 還沒執行時不顯示）
+    sbGet<PlanRef[]>(
+      `plan_refs?plan_id=eq.${id}&select=*,author:teachers!plan_refs_created_by_fkey(${PERSON}),meeting:meetings(id,title)&order=created_at.desc`,
     ).catch(() => null),
   ]);
   const plan = plans[0];
@@ -86,7 +93,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       <p className="pln-meta">
         📅 {fmtRange(plan.start_date, plan.end_date)}　👤 負責：{plan.owner_id ? who(plan.owner ?? null) : "未指定"}
       </p>
-      {plan.summary && <p className="pln-summary">{plan.summary}</p>}
+      {plan.summary && <p className="pln-summary"><Linkify text={plan.summary} /></p>}
       <PlanHeader plan={plan} canEdit={editable} isAdmin={staff.is_admin} teachers={teachers} />
 
       <div className="pln-layout">
@@ -109,7 +116,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               <ol className="pln-decisions">
                 {decisions.map((c) => (
                   <li key={c.id}>
-                    {c.body}
+                    <Linkify text={c.body} />
                     <small className="muted">　{c.item_id ? `〔${itemTitle(c.item_id)}〕` : ""}{who(c.author ?? null)}・{c.decided_at ? new Date(c.decided_at).toLocaleDateString("zh-TW") : ""}</small>
                   </li>
                 ))}
@@ -124,6 +131,12 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
             <h2>💬 討論 <small>{comments.filter((c) => !c.item_id && !c.idea_id).length} 則</small></h2>
             <Discussion planId={plan.id} comments={comments.filter((c) => !c.item_id && !c.idea_id)} me={staff.id} isAdmin={staff.is_admin} canDecide={editable} />
           </section>
+          {refs !== null && (
+            <section className="adm-panel">
+              <h2>📎 參考網址及檔案 <small>{refs.length} 筆</small></h2>
+              <Refs planId={plan.id} refs={refs} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} showMeeting />
+            </section>
+          )}
           {(() => {
             // 點子牆在會議室；這裡留一行，帶到最新一場會議
             const latest = (meetings ?? []).find((m) => m.status === "planned") ?? (meetings ?? [])[0];

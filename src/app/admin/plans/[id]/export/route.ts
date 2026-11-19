@@ -3,7 +3,7 @@ import { actorOf, requireStaff } from "@/lib/staff";
 import { audit, isUuid, sbGet } from "@/lib/supabase";
 import { buildDocx, type Block, type Row } from "@/lib/docx";
 import {
-  CAMP_SLOTS, LIST_SECTIONS, MAJOR_SECTIONS, PLAN_KIND_LABEL, PLAN_STATUS_LABEL, SECTIONS, campDays, fmtDay, fmtRange, who,
+  CAMP_SLOTS, LIST_SECTIONS, MAJOR_SECTIONS, PLAN_KIND_LABEL, PLAN_STATUS_LABEL, SECTIONS, campDays, fmtDay, fmtRange, itemTeachers, namesOf, who,
   type Plan, type PlanItem,
 } from "@/lib/plans";
 
@@ -13,12 +13,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const staff = await requireStaff();
   const { id } = await params;
   if (!isUuid(id)) return new NextResponse("找不到", { status: 404 });
-  const [plans, items, decisions] = await Promise.all([
+  const [plans, items, decisions, teachers] = await Promise.all([
     sbGet<Plan[]>(`plans?id=eq.${id}&select=*,owner:teachers!plans_owner_id_fkey(name,nickname)`),
     sbGet<PlanItem[]>(
       `plan_items?plan_id=eq.${id}&select=*,lesson:lessons(id,title),teacher:teachers!plan_items_teacher_id_fkey(name,nickname)&order=day.nullslast,seq,created_at`,
     ),
     sbGet<{ body: string }[]>(`plan_comments?plan_id=eq.${id}&is_decision=eq.true&select=body&order=decided_at`),
+    sbGet<{ id: string; name: string; nickname: string | null }[]>(`teachers?select=id,name,nickname`),
   ]);
   const p = plans[0];
   if (!p) return new NextResponse("找不到規劃", { status: 404 });
@@ -28,7 +29,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return [
       it.title ?? "",
       it.lesson ? `教案：${it.lesson.title}` : "",
-      it.teacher_id ? `負責老師：${who(it.teacher ?? null)}` : "",
+      itemTeachers(it).length ? `負責老師：${namesOf(itemTeachers(it), teachers, it.teacher ?? null)}` : "",
       ...(it.notes ? it.notes.split("\n") : []),
     ].filter(Boolean);
   };

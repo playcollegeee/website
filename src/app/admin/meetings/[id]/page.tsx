@@ -1,4 +1,7 @@
 import Link from "next/link";
+import Refs from "../../plans/Refs";
+import type { PlanRef } from "@/lib/planRefs";
+import Linkify from "@/components/Linkify";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff";
 import { isUuid, sbGet } from "@/lib/supabase";
@@ -54,7 +57,7 @@ export default async function MeetingRoom({ params }: { params: Promise<{ id: st
   const mod = canModerate(m, helperIds, staff);
 
   const pid = m.plan_id;
-  const [plans, items, comments, tasks, lessons, ideas, agenda] = await Promise.all([
+  const [plans, items, comments, tasks, lessons, ideas, agenda, refs] = await Promise.all([
     pid ? sbGet<Plan[]>(`plans?id=eq.${pid}&select=*,owner:teachers!plans_owner_id_fkey(${PERSON})`) : Promise.resolve([] as Plan[]),
     pid ? sbGet<PlanItem[]>(`plan_items?plan_id=eq.${pid}&select=*,lesson:lessons(id,title),teacher:teachers!plan_items_teacher_id_fkey(${PERSON})&order=day.nullslast,seq,created_at`) : Promise.resolve([] as PlanItem[]),
     pid ? sbGet<Cm[]>(`plan_comments?plan_id=eq.${pid}&select=*,author:teachers!plan_comments_author_id_fkey(${PERSON})&order=created_at`) : Promise.resolve([] as Cm[]),
@@ -62,6 +65,8 @@ export default async function MeetingRoom({ params }: { params: Promise<{ id: st
     pid ? sbGet<{ id: string; title: string; category: { major: string } | null }[]>("lessons?status=neq.archived&select=id,title,category:lesson_categories(major)&order=title") : Promise.resolve([]),
     pid ? sbGet<PlanIdea[]>(`plan_ideas?plan_id=eq.${pid}&select=*,author:teachers!plan_ideas_author_id_fkey(${PERSON}),votes:plan_votes(teacher_id)&order=created_at`).catch(() => null) : Promise.resolve(null),
     sbGet<AgendaItem[]>(`meeting_agenda?meeting_id=eq.${id}&select=*,owner:teachers!meeting_agenda_owner_id_fkey(${PERSON})&order=seq,created_at`).catch(() => [] as AgendaItem[]),
+    // 參考網址及檔案（0024 還沒執行時不顯示）
+    pid ? sbGet<PlanRef[]>(`plan_refs?meeting_id=eq.${id}&select=*,author:teachers!plan_refs_created_by_fkey(${PERSON})&order=created_at`).catch(() => null) : Promise.resolve(null),
   ]);
   const plan = plans[0] ?? null;
   const editable = plan ? canEditPlan(plan, staff) : staff.is_admin;
@@ -111,6 +116,13 @@ export default async function MeetingRoom({ params }: { params: Promise<{ id: st
               planId={pid} canDecide={editable} activeTeachers={teachers} />
           </section>
 
+          {plan && refs !== null && (
+            <section className="adm-panel room-refs">
+              <h2>📎 參考網址及檔案 <small>{refs.length} 筆・也會列在規劃頁</small></h2>
+              <Refs planId={plan.id} meetingId={m.id} refs={refs} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} />
+            </section>
+          )}
+
           <details className="adm-panel room-sec" open={m.status !== "planned" && !m.applied_at}>
             <summary><h2>🎙️ 開完會後 <small>匯入錄音，AI 整理摘要、決議、待辦</small></h2></summary>
             <MeetingAfter m={m} planId={pid} teachers={teachers} me={staff.id} isAdmin={staff.is_admin}
@@ -122,7 +134,7 @@ export default async function MeetingRoom({ params }: { params: Promise<{ id: st
           <aside className="room-side">
             <section className="adm-panel">
               <h2>📌 上次待辦 <small>{lastTasks.length} 項未完成</small></h2>
-              <Tasks tasks={lastTasks} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} emptyText="沒有上次留下的待辦。" />
+              <Tasks tasks={lastTasks} teachers={teachers} me={staff.id} isAdmin={staff.is_admin} canEditPlan={editable} emptyText="沒有上次留下的待辦。" />
             </section>
             <section className="adm-panel">
               <h2>✅ 決議 <small>共 {decisions.length} 項{decisions.some((c) => c.meeting_id === m.id) ? `，這次 ${decisions.filter((c) => c.meeting_id === m.id).length} 項` : ""}</small></h2>
@@ -132,7 +144,7 @@ export default async function MeetingRoom({ params }: { params: Promise<{ id: st
                 <ol className="pln-decisions">
                   {decisions.map((c) => (
                     <li key={c.id} className={c.meeting_id === m.id ? "room-new" : undefined}>
-                      {c.meeting_id === m.id && <span className="pln-badge final">這次</span>} {c.body}
+                      {c.meeting_id === m.id && <span className="pln-badge final">這次</span>} <Linkify text={c.body} />
                       <small className="muted">　{who(c.author ?? null)}・{c.decided_at ? new Date(c.decided_at).toLocaleDateString("zh-TW") : ""}</small>
                     </li>
                   ))}

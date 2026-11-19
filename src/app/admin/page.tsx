@@ -50,7 +50,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     ).catch(() => []),
     // 課程規劃裡指派給我的待辦
     sbGet<PlanTask[]>(
-      `plan_tasks?assignee_id=eq.${staff.id}&done_at=is.null&select=*,plan:plans(id,title,kind)&order=due_date.nullslast&limit=20`,
+      `plan_tasks?assignee_ids=cs.{${staff.id}}&done_at=is.null&select=*,plan:plans(id,title,kind)&order=due_date.nullslast&limit=20`,
     ).catch(() => [] as PlanTask[]),
   ]);
   const openShift = myShifts.find((x) => !x.check_out_at && x.check_in_at >= since) ?? null;

@@ -15,6 +15,7 @@ export const LIMITS = {
   checkin: { limit: 120, windowSec: 60 }, // 讀卡站 1 分鐘 120 次（正常上課不會碰到）
   ai: { limit: 30, windowSec: 60 * 60 }, // AI 產生教案初稿：每位老師 1 小時 30 次（控制費用）
   stt: { limit: 400, windowSec: 60 * 60 }, // 會議錄音轉文字：每位老師 1 小時 400 段（約 10 小時錄音）
+  refUpload: { limit: 60, windowSec: 60 * 60 }, // 參考檔案上傳：每位老師 1 小時 60 個（Supabase 免費方案空間只有 1 GB）
 } as const;
 
 // 從請求標頭取出訪客 IP（Vercel 會放在 x-forwarded-for 第一個）

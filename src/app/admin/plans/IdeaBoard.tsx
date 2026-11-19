@@ -1,5 +1,6 @@
 "use client";
 
+import Linkify from "@/components/Linkify";
 import PondVote from "@/components/PondVote";
 
 import { useState, useTransition } from "react";
@@ -82,8 +83,8 @@ export default function IdeaBoard({
                     <span className="pln-idea-kind">{IDEA_KIND_LABEL[i.kind]}</span>
                     {STATUS_LABEL[i.status] && <span className={`pln-badge ${i.status === "adopted" ? "final" : "idea"}`}>{STATUS_LABEL[i.status]}</span>}
                   </div>
-                  <strong className="pln-idea-title">{i.title}</strong>
-                  {i.detail && <p className="pln-idea-detail">{i.detail}</p>}
+                  <strong className="pln-idea-title"><Linkify text={i.title} /></strong>
+                  {i.detail && <p className="pln-idea-detail"><Linkify text={i.detail} /></p>}
                   <small className="muted">{i.anonymous ? `匿名${isMine ? "（你）" : ""}` : who(i.author ?? null)}</small>
                   <div className="pln-idea-tools">
                     <PondVote count={votes} on={mine} disabled={busy || i.status !== "open" || (!mine && left <= 0)}

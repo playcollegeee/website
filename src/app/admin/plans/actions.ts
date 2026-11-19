@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { actorOf, requireStaff, type Staff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbGet, sbInsert, sbPatch } from "@/lib/supabase";
-import { PLAN_KINDS, PLAN_STATUS, SECTIONS, VOTES_PER_PLAN, autoTitle, campType, canEditPlan, monthRange, MAJOR_LESSONS } from "@/lib/plans";
+import { PLAN_KINDS, PLAN_STATUS, SECTIONS, VOTES_PER_PLAN, autoTitle, campType, canEditPlan, itemTeachers, monthRange, taskAssignees, MAJOR_LESSONS } from "@/lib/plans";
 
 type Result = { ok: boolean; message: string };
 const fail = (e: unknown): Result => ({ ok: false, message: e instanceof Error ? e.message : "儲存失敗，請再試一次" });
@@ -36,6 +36,15 @@ async function mustEdit(id: string, staff: Staff) {
   const p = await loadPlan(id);
   if (!canEditPlan(p, staff)) throw new Error("只有負責老師、建立者或管理員可以修改規劃");
   return p;
+}
+// 多位老師（0024）：去掉重複、最多 8 位，每位都要是在職老師
+async function teachersOk(ids: unknown): Promise<string[]> {
+  const list = [...new Set((Array.isArray(ids) ? ids : []).filter((x): x is string => typeof x === "string" && x !== ""))].slice(0, 8);
+  if (!list.length) return [];
+  if (!list.every(isUuid)) throw new Error("老師資料不正確");
+  const t = await sbGet<{ id: string }[]>(`teachers?id=in.(${list.join(",")})&active=eq.true&select=id`);
+  if (t.length !== list.length) throw new Error("找不到其中一位老師");
+  return list;
 }
 async function teacherOk(id: string | null) {
   if (!id) return null;
@@ -140,7 +149,7 @@ export async function deletePlan(id: string): Promise<Result> {
 // ---------- 規劃內容 ----------
 export async function saveItem(input: {
   planId: string; id?: string; section: string; seq?: number; day?: string; slot?: string;
-  title: string; lessonId: string; teacherId: string; notes: string;
+  title: string; lessonId: string; teacherIds?: string[]; teacherId?: string; notes: string;
 }): Promise<Result & { id?: string }> {
   try {
     const staff = await requireStaff();
@@ -155,23 +164,24 @@ export async function saveItem(input: {
     if (input.section === "camp" && !day) return { ok: false, message: "營隊要有日期" };
 
     // 找既有的那一筆（主修用堂次、營隊用日期＋時段、其他用 id）
-    let existing: { id: string; teacher_id: string | null } | undefined;
+    type Ex = { id: string; teacher_id: string | null; teacher_ids?: string[] | null };
+    let existing: Ex | undefined;
     if (input.id && isUuid(input.id)) {
-      existing = (await sbGet<{ id: string; teacher_id: string | null; plan_id: string }[]>(
-        `plan_items?id=eq.${input.id}&select=id,teacher_id,plan_id`,
+      existing = (await sbGet<(Ex & { plan_id: string })[]>(
+        `plan_items?id=eq.${input.id}&select=id,teacher_id,teacher_ids,plan_id`,
       )).find((x) => x.plan_id === plan.id);
       if (!existing) return { ok: false, message: "找不到這一項，可能已被刪除" };
     } else if (isMajor) {
-      existing = (await sbGet<{ id: string; teacher_id: string | null }[]>(
-        `plan_items?plan_id=eq.${plan.id}&section=eq.${input.section}&seq=eq.${seq}&select=id,teacher_id`,
+      existing = (await sbGet<Ex[]>(
+        `plan_items?plan_id=eq.${plan.id}&section=eq.${input.section}&seq=eq.${seq}&select=id,teacher_id,teacher_ids`,
       ))[0];
     } else if (input.section === "camp") {
-      existing = (await sbGet<{ id: string; teacher_id: string | null }[]>(
-        `plan_items?plan_id=eq.${plan.id}&section=eq.camp&day=eq.${day}&slot=eq.${slot}&select=id,teacher_id`,
+      existing = (await sbGet<Ex[]>(
+        `plan_items?plan_id=eq.${plan.id}&section=eq.camp&day=eq.${day}&slot=eq.${slot}&select=id,teacher_id,teacher_ids`,
       ))[0];
     }
     // 權限：可以改規劃的人；或這一項的負責老師
-    if (!canEditPlan(plan, staff) && !(existing && existing.teacher_id === staff.id)) {
+    if (!canEditPlan(plan, staff) && !(existing && itemTeachers(existing).includes(staff.id))) {
       return { ok: false, message: "只有規劃的負責老師、建立者、管理員，或這一項的負責老師可以修改" };
     }
     let lessonId: string | null = null;
@@ -182,7 +192,9 @@ export async function saveItem(input: {
       lessonId = input.lessonId;
     }
     const row = {
-      title: text(input.title, 120) || null, lesson_id: lessonId, teacher_id: await teacherOk(input.teacherId || null),
+      title: text(input.title, 120) || null, lesson_id: lessonId,
+      // 觸發器會把第一位寫回 teacher_id
+      teacher_ids: await teachersOk(input.teacherIds ?? (input.teacherId ? [input.teacherId] : [])),
       notes: text(input.notes, 3000) || null, day, slot, updated_by: staff.id, updated_at: new Date().toISOString(),
     };
     let id = existing?.id;
@@ -323,7 +335,7 @@ export async function toggleDecision(id: string, meetingId?: string): Promise<Re
 
 // ---------- 待辦 ----------
 // 所有老師都能新增待辦、指派給任何老師；被指派的人、建立者、可修改規劃的人能勾完成；刪除限建立者與管理員
-export async function addTask(input: { planId: string; title: string; assigneeId: string; due: string; meetingId?: string }): Promise<Result> {
+export async function addTask(input: { planId: string; title: string; assigneeIds?: string[]; assigneeId?: string; due: string; meetingId?: string }): Promise<Result> {
   try {
     const staff = await requireStaff();
     const plan = await loadPlan(input.planId);
@@ -331,10 +343,10 @@ export async function addTask(input: { planId: string; title: string; assigneeId
     const title = text(input.title, 300);
     if (!title) return { ok: false, message: "請填寫待辦事項" };
     const t = await sbInsert<{ id: string }>("plan_tasks", {
-      plan_id: plan.id, title, assignee_id: await teacherOk(input.assigneeId || null),
+      plan_id: plan.id, title, assignee_ids: await teachersOk(input.assigneeIds ?? (input.assigneeId ? [input.assigneeId] : [])),
       due_date: isDate(input.due) ? input.due : null, created_by: staff.id, ...(meetingId ? { meeting_id: meetingId } : {}),
     });
-    await audit(actorOf(staff), "plan.task_add", `plan_tasks:${t.id}`, { plan: plan.id, assignee: input.assigneeId || null });
+    await audit(actorOf(staff), "plan.task_add", `plan_tasks:${t.id}`, { plan: plan.id, assignees: input.assigneeIds ?? [] });
     refresh(plan.id);
     revalidatePath("/admin");
     return { ok: true, message: "已新增待辦" };
@@ -345,8 +357,8 @@ export async function addTask(input: { planId: string; title: string; assigneeId
 
 async function loadTask(id: string) {
   if (!isUuid(id)) throw new Error("資料不正確");
-  const t = (await sbGet<{ id: string; plan_id: string; assignee_id: string | null; created_by: string | null; done_at: string | null }[]>(
-    `plan_tasks?id=eq.${id}&select=id,plan_id,assignee_id,created_by,done_at`,
+  const t = (await sbGet<{ id: string; plan_id: string; assignee_id: string | null; assignee_ids?: string[] | null; created_by: string | null; done_at: string | null }[]>(
+    `plan_tasks?id=eq.${id}&select=id,plan_id,assignee_id,assignee_ids,created_by,done_at`,
   ))[0];
   if (!t) throw new Error("找不到這個待辦，可能已被刪除");
   return t;
@@ -357,7 +369,7 @@ export async function toggleTask(id: string): Promise<Result> {
     const staff = await requireStaff();
     const t = await loadTask(id);
     const plan = await loadPlan(t.plan_id);
-    if (!(t.assignee_id === staff.id || t.created_by === staff.id || canEditPlan(plan, staff))) {
+    if (!(taskAssignees(t).includes(staff.id) || t.created_by === staff.id || canEditPlan(plan, staff))) {
       return { ok: false, message: "只有被指派的老師、建立者或規劃負責人可以勾選" };
     }
     const done = !t.done_at;
@@ -366,6 +378,26 @@ export async function toggleTask(id: string): Promise<Result> {
     refresh(t.plan_id);
     revalidatePath("/admin");
     return { ok: true, message: done ? "已完成" : "已改回未完成" };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// 改待辦的負責老師（可複選）：建立者、規劃負責人、管理員
+export async function setTaskAssignees(id: string, ids: string[]): Promise<Result> {
+  try {
+    const staff = await requireStaff();
+    const t = await loadTask(id);
+    const plan = await loadPlan(t.plan_id);
+    if (!(t.created_by === staff.id || canEditPlan(plan, staff))) {
+      return { ok: false, message: "只有建立者、規劃負責人或管理員可以改負責老師" };
+    }
+    const list = await teachersOk(ids);
+    await sbPatch(`plan_tasks?id=eq.${id}`, { assignee_ids: list });
+    await audit(actorOf(staff), "plan.task_assign", `plan_tasks:${id}`, { assignees: list });
+    refresh(t.plan_id);
+    revalidatePath("/admin");
+    return { ok: true, message: "已更新負責老師" };
   } catch (e) {
     return fail(e);
   }

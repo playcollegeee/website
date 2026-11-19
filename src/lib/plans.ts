@@ -38,6 +38,17 @@ export const CAMP_SLOTS = [
 export type Person = { name: string; nickname: string | null } | null;
 export const who = (p: Person) => (p ? p.nickname || p.name : "（已離職）");
 
+// 多位負責老師（0024）：陣列沒有資料時退回舊的單一欄位
+export const itemTeachers = (it: { teacher_id: string | null; teacher_ids?: string[] | null }) =>
+  it.teacher_ids?.length ? it.teacher_ids : it.teacher_id ? [it.teacher_id] : [];
+export const taskAssignees = (t: { assignee_id: string | null; assignee_ids?: string[] | null }) =>
+  t.assignee_ids?.length ? t.assignee_ids : t.assignee_id ? [t.assignee_id] : [];
+// 老師 id 換成稱呼，例：「阿智、小美」
+export const namesOf = (ids: string[], teachers: { id: string; name: string; nickname: string | null }[], fallback?: Person) => {
+  const m = new Map(teachers.map((t) => [t.id, t.nickname || t.name]));
+  return ids.map((id, i) => m.get(id) ?? (i === 0 && fallback ? who(fallback) : "（已離職）")).join("、");
+};
+
 export type Plan = {
   id: string; kind: PlanKind; title: string; theme: string | null; start_date: string | null; end_date: string | null; status: string;
   summary: string | null; owner_id: string | null; created_by: string | null; created_at: string; updated_at: string;
@@ -45,7 +56,7 @@ export type Plan = {
 };
 export type PlanItem = {
   id: string; plan_id: string; section: string; seq: number; day: string | null; slot: string | null; title: string | null;
-  lesson_id: string | null; teacher_id: string | null; notes: string | null; updated_at: string;
+  lesson_id: string | null; teacher_id: string | null; teacher_ids?: string[] | null; notes: string | null; updated_at: string;
   lesson?: { id: string; title: string } | null;
   teacher?: Person;
 };
@@ -54,7 +65,7 @@ export type PlanComment = {
   decided_at: string | null; author_id: string | null; created_at: string; updated_at: string; author?: Person;
 };
 export type PlanTask = {
-  id: string; plan_id: string; title: string; assignee_id: string | null; due_date: string | null; done_at: string | null;
+  id: string; plan_id: string; title: string; assignee_id: string | null; assignee_ids?: string[] | null; due_date: string | null; done_at: string | null;
   created_by: string | null; created_at: string; assignee?: Person; plan?: { id: string; title: string; kind: string } | null;
 };
 

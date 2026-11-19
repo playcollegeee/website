@@ -160,6 +160,43 @@ export async function sbSignUrl(bucket: string, path: string, expiresIn = 60, do
   return download === undefined ? url : `${url}&download=${encodeURIComponent(download)}`;
 }
 
+// 私人 bucket 的「上傳用」限時網址：瀏覽器直接把檔案 PUT 到 Supabase，不經過 Vercel（server action 有 4 MB 上限）
+export async function sbSignUpload(bucket: string, path: string): Promise<string> {
+  const cfg = supabaseConfig();
+  if (!cfg) throw new Error("Supabase 尚未設定");
+  const res = await fetch(`${cfg.url}/storage/v1/object/upload/sign/${bucket}/${path}`, {
+    method: "POST",
+    headers: { ...authHeaders(cfg.key), "Content-Type": "application/json" },
+    body: "{}",
+    cache: "no-store",
+  });
+  if (!res.ok) await fail(res, "準備上傳");
+  const { url } = (await res.json()) as { url?: string };
+  if (!url) throw new Error("準備上傳失敗，請再試一次");
+  return `${cfg.url}/storage/v1${url}`;
+}
+
+// 檔案是否已經在 bucket 裡（上傳完成後確認用）
+export async function sbObjectExists(bucket: string, path: string): Promise<boolean> {
+  const cfg = supabaseConfig();
+  if (!cfg) return false;
+  const res = await fetch(`${cfg.url}/storage/v1/object/info/authenticated/${bucket}/${path}`, {
+    headers: authHeaders(cfg.key), cache: "no-store",
+  }).catch(() => null);
+  if (res?.ok) return true;
+  // 舊版 Storage 沒有 info：改用列出資料夾
+  const slash = path.lastIndexOf("/");
+  const res2 = await fetch(`${cfg.url}/storage/v1/object/list/${bucket}`, {
+    method: "POST",
+    headers: { ...authHeaders(cfg.key), "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: slash > 0 ? path.slice(0, slash) : "", search: path.slice(slash + 1), limit: 5 }),
+    cache: "no-store",
+  }).catch(() => null);
+  if (!res2?.ok) return false;
+  const list = (await res2.json()) as { name: string }[];
+  return list.some((o) => o.name === path.slice(slash + 1));
+}
+
 export async function sbRemoveFile(bucket: string, path: string): Promise<void> {
   const cfg = supabaseConfig();
   if (!cfg) return;

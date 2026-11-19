@@ -5,12 +5,13 @@ import ConfirmButton from "../../../ConfirmButton";
 import BoardAiPanel from "./BoardAiPanel";
 import { organizeBoard, type BoardAi } from "./actions";
 import {
-  BOARD_COLORS, BOARD_MAX_ITEMS, NOTE_H, NOTE_MAX, NOTE_W, SECTION_MAX, SYNC_IDLE_MS, SYNC_MS,
-  colorOf, edgePoint, inside,
-  type BoardColor, type BoardItem, type BoardOp, type Presence, type SyncResult,
+  BOARD_COLORS, BOARD_MAX_ITEMS, INK_COLORS, INK_MAX_POINTS, INK_WIDTHS, NOTE_H, NOTE_MAX, NOTE_W, SECTION_MAX, SYNC_IDLE_MS, SYNC_MS,
+  colorOf, edgePoint, inkHex, inkPath, inside,
+  type BoardColor, type BoardItem, type BoardOp, type InkColor, type Presence, type SyncResult,
 } from "@/lib/board";
+import Linkify from "@/components/Linkify";
 
-// 會議討論白板：便利貼＋分區框，多人約 2 秒同步一次。
+// 會議討論白板：便利貼＋分區框＋箭頭＋塗鴉（2026-11-19），多人約 2 秒同步一次。
 // 畫面座標 = 白板座標 × 縮放 + 平移。自己的變更先畫上去（樂觀更新），再排隊送到伺服器。
 
 type T = { id: string; name: string; nickname: string | null };
@@ -25,7 +26,7 @@ const MAX_S = 2.5;
 const clampS = (s: number) => Math.min(MAX_S, Math.max(MIN_S, s));
 const r = Math.round;
 // 這些地方按下去是操作項目；其他地方（含分區框的內部）都當作空白處
-const HANDLES = ".bd-note, .bd-sec-head, .bd-resize";
+const HANDLES = ".bd-note, .bd-sec-head, .bd-resize, .bd-ink-hit";
 
 export default function Board({
   meetingId, me, teachers, title, planId = null, canDecide = false, activeTeachers,
@@ -50,6 +51,13 @@ export default function Board({
   const [connectFrom, setConnectFrom] = useState<string | null>(null); // 連線模式：起點
   const [ai, setAi] = useState<BoardAi | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
+  // 塗鴉：開啟後在白板上拖曳就是畫線；畫好的每一筆是一個項目，可以拖動、換色、刪除
+  const [pen, setPen] = useState(false);
+  const [penColor, setPenColor] = useState<InkColor>("black");
+  const [penW, setPenW] = useState<number>(INK_WIDTHS[0].value);
+  const [stroke, setStroke] = useState<[number, number][] | null>(null);
+  const strokeRef = useRef<{ pointerId: number; pts: [number, number][] } | null>(null);
+  const myInks = useRef<string[]>([]); // 這次畫的筆畫，給「復原」用
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -168,7 +176,7 @@ export default function Board({
 
   // ---------- 權限（畫面先擋，伺服器會再檢查一次） ----------
   const canEdit = (it: BoardItem) => mod || it.author_id === me;
-  const canResize = (it: BoardItem) => it.kind === "section" || canEdit(it);
+  const canResize = (it: BoardItem) => it.kind === "section" || (it.kind !== "ink" && canEdit(it));
 
   const maxZ = () => Object.values(itemsRef.current).reduce((m, it) => Math.max(m, it.z), 0);
 
@@ -216,7 +224,7 @@ export default function Board({
       author_id: me, updated_by: me, rev: 0,
     };
     setItems((p) => ({ ...p, [it.id]: it }));
-    push({ op: "add", id: it.id, kind, x: it.x, y: it.y, w, h, z: it.z, color: it.color, text: it.text });
+    push({ op: "add", id: it.id, kind, x: it.x, y: it.y, w, h, z: it.z, color: it.color as BoardColor, text: it.text });
     return it;
   };
 
@@ -241,7 +249,7 @@ export default function Board({
     }
   };
 
-  const setItemColor = (it: BoardItem, c: BoardColor) => {
+  const setItemColor = (it: BoardItem, c: BoardColor | InkColor) => {
     if (!canEdit(it)) return;
     setItems((p) => ({ ...p, [it.id]: { ...p[it.id], color: c } }));
     push({ op: "edit", id: it.id, color: c });
@@ -382,7 +390,7 @@ export default function Board({
     // 拖分區框時，裡面的便利貼一起移動
     const all = itemsRef.current;
     const ids = it.kind === "section"
-      ? [it.id, ...Object.values(all).filter((n) => n.kind === "note" && inside(n, it)).map((n) => n.id)]
+      ? [it.id, ...Object.values(all).filter((n) => (n.kind === "note" || n.kind === "ink") && inside(n, it)).map((n) => n.id)]
       : [it.id];
     drag.current = {
       mode: "move", pointerId: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false, mainId: it.id,
@@ -487,6 +495,57 @@ export default function Board({
     }
   };
 
+  // ---------- 塗鴉 ----------
+  const onInkDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    if (strokeRef.current) return; // 一次只畫一筆（第二根手指不算）
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (editingRef.current) finishEdit();
+    const w = toWorld(e.clientX, e.clientY);
+    strokeRef.current = { pointerId: e.pointerId, pts: [[w.x, w.y]] };
+    setStroke([[w.x, w.y]]);
+    setSelected(null);
+  };
+  const onInkMove = (e: React.PointerEvent) => {
+    const st = strokeRef.current;
+    if (!st || st.pointerId !== e.pointerId) return;
+    const w = toWorld(e.clientX, e.clientY);
+    const last = st.pts[st.pts.length - 1];
+    if (Math.hypot(w.x - last[0], w.y - last[1]) < 1.5 / viewRef.current.s) return; // 太近的點不記，筆畫比較輕
+    if (st.pts.length >= INK_MAX_POINTS) return;
+    st.pts.push([w.x, w.y]);
+    setStroke([...st.pts]);
+  };
+  const onInkUp = (e: React.PointerEvent) => {
+    const st = strokeRef.current;
+    if (!st || st.pointerId !== e.pointerId) return;
+    strokeRef.current = null;
+    setStroke(null);
+    commitInk(st.pts);
+  };
+  const commitInk = (pts: [number, number][]) => {
+    if (!pts.length) return;
+    if (Object.keys(itemsRef.current).length >= BOARD_MAX_ITEMS) { setNotice(`一塊白板最多 ${BOARD_MAX_ITEMS} 個項目`); return; }
+    const pad = Math.ceil(penW / 2) + 4;
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const x = Math.floor(Math.min(...xs)) - pad, y = Math.floor(Math.min(...ys)) - pad;
+    const w = Math.max(80, Math.ceil(Math.max(...xs) - x) + pad), h = Math.max(60, Math.ceil(Math.max(...ys) - y) + pad);
+    const rel = pts.map(([px, py]) => [r(px - x), r(py - y)] as [number, number]);
+    const points = { w: penW, p: rel };
+    const it: BoardItem = { id: crypto.randomUUID(), kind: "ink", x, y, w, h, z: maxZ() + 1, color: penColor, text: "", points, author_id: me, updated_by: me, rev: 0 };
+    setItems((p) => ({ ...p, [it.id]: it }));
+    push({ op: "add", id: it.id, kind: "ink", x, y, w, h, z: it.z, color: penColor, points });
+    myInks.current.push(it.id);
+  };
+  const undoInk = () => {
+    while (myInks.current.length) {
+      const it = itemsRef.current[myInks.current.pop()!];
+      if (it) { remove(it); return; }
+    }
+    setNotice("沒有可以復原的筆畫");
+  };
+
   // 點兩下空白處：在那裡貼一張便利貼
   const onBgDoubleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest(HANDLES)) return;
@@ -500,6 +559,7 @@ export default function Board({
   const arrows = Object.values(items).filter((i) => i.kind === "arrow" && i.from_id && i.to_id && items[i.from_id] && items[i.to_id]);
   const sections = all.filter((i) => i.kind === "section").sort((a, b) => a.z - b.z || a.rev - b.rev);
   const notes = all.filter((i) => i.kind === "note").sort((a, b) => a.z - b.z || a.rev - b.rev);
+  const inks = all.filter((i) => i.kind === "ink" && i.points?.p?.length).sort((a, b) => a.z - b.z || a.rev - b.rev);
   const sel = selected ? items[selected] : null;
   const editors = new Map(presence.filter((p) => p.editing && p.teacher_id !== me).map((p) => [p.editing!, p.teacher_id]));
   const online = presence.map((p) => p.teacher_id);
@@ -546,7 +606,8 @@ export default function Board({
   );
 
   return (
-    <div className={`bd${full ? " full" : ""}`} onKeyDown={(e) => { if (e.key === "Escape" && full && !editing) setFull(false); }}>
+    <div className={`bd${full ? " full" : ""}${pen ? " pen" : ""}`}
+      onKeyDown={(e) => { if (e.key === "Escape" && !editing) { if (pen) setPen(false); else if (full) setFull(false); } }}>
       <div className="bd-bar">
         <div className="bd-tools">
           <span className="bd-swatches" role="group" aria-label="新便利貼的顏色">
@@ -558,6 +619,12 @@ export default function Board({
           </span>
           <button type="button" className="btn btn-sm primary" onClick={newNoteHere}>＋ 便利貼</button>
           <button type="button" className="btn btn-sm" onClick={newSection}>＋ 分區框</button>
+          {!list && (
+            <button type="button" className={`btn btn-sm${pen ? " primary" : ""}`} aria-pressed={pen}
+              onClick={() => { setPen((v) => !v); setConnectFrom(null); setSelected(null); }}>
+              {pen ? "✋ 結束塗鴉" : "✏️ 塗鴉"}
+            </button>
+          )}
           <button type="button" className="btn btn-sm" disabled={aiBusy} onClick={() => void runAi()}>{aiBusy ? "AI 整理中…（約 10–30 秒）" : "✨ AI 整理"}</button>
           {!list && (
             <span className="bd-zoom">
@@ -582,10 +649,28 @@ export default function Board({
             {status === "ok" ? "已同步" : status === "sync" ? "同步中…" : errText || "連線中斷，稍後自動重試"}
           </span>
         </div>
-        {sel && !list && (
+        {pen && !list && (
+          <div className="bd-penbar" role="group" aria-label="畫筆設定">
+            <span className="muted">筆色</span>
+            {INK_COLORS.map((c) => (
+              <button key={c.value} type="button" className={`bd-sw bd-ink-sw${penColor === c.value ? " on" : ""}`}
+                style={{ background: c.hex, borderColor: c.hex }} aria-label={`${c.label}色筆`} aria-pressed={penColor === c.value}
+                onClick={() => setPenColor(c.value)} />
+            ))}
+            <span className="muted">粗細</span>
+            {INK_WIDTHS.map((w) => (
+              <button key={w.value} type="button" className={`bd-penw${penW === w.value ? " on" : ""}`} aria-pressed={penW === w.value}
+                aria-label={`${w.label}筆`} onClick={() => setPenW(w.value)}>
+                <span style={{ width: w.value + 2, height: w.value + 2, background: inkHex(penColor) }} />{w.label}
+              </button>
+            ))}
+            <button type="button" className="btn btn-sm" onClick={undoInk}>↶ 復原上一筆</button>
+          </div>
+        )}
+        {sel && !list && !pen && (
           <div className="bd-selbar">
-            <span className="muted">{sel.kind === "note" ? `便利貼・${nameOf(sel.author_id)}` : sel.kind === "arrow" ? `箭頭・${nameOf(sel.author_id)}` : `分區框「${sel.text}」`}</span>
-            {sel.kind !== "arrow" && (
+            <span className="muted">{sel.kind === "note" ? `便利貼・${nameOf(sel.author_id)}` : sel.kind === "arrow" ? `箭頭・${nameOf(sel.author_id)}` : sel.kind === "ink" ? `塗鴉・${nameOf(sel.author_id)}` : `分區框「${sel.text}」`}</span>
+            {sel.kind !== "arrow" && sel.kind !== "ink" && (
               <button type="button" className="adm-link" aria-pressed={connectFrom === sel.id}
                 onClick={() => { setConnectFrom(connectFrom === sel.id ? null : sel.id); }}>
                 {connectFrom === sel.id ? "取消連線" : "→ 連線"}
@@ -593,7 +678,16 @@ export default function Board({
             )}
             {sel.kind === "arrow" ? (canEdit(sel) ? (
               <ConfirmButton label="刪除箭頭" message="刪除這個箭頭？" confirmLabel="刪除" onConfirm={() => remove(sel)} />
-            ) : <small className="muted">箭頭限畫的人或小幫手老師刪除</small>) : canEdit(sel) ? (
+            ) : <small className="muted">箭頭限畫的人或小幫手老師刪除</small>) : sel.kind === "ink" ? (canEdit(sel) ? (
+              <>
+                {INK_COLORS.map((c) => (
+                  <button key={c.value} type="button" className={`bd-sw bd-ink-sw${sel.color === c.value ? " on" : ""}`}
+                    style={{ background: c.hex, borderColor: c.hex }} aria-label={`改成${c.label}色`}
+                    onClick={() => setItemColor(sel, c.value)} />
+                ))}
+                <ConfirmButton label="刪除" message="刪除這筆塗鴉？" confirmLabel="刪除" onConfirm={() => remove(sel)} />
+              </>
+            ) : <small className="muted">可以拖動；換色、刪除限畫的人或小幫手老師</small>) : canEdit(sel) ? (
               <>
                 {sel.kind === "note" && BOARD_COLORS.map((c) => (
                   <button key={c.value} type="button" className={`bd-sw${sel.color === c.value ? " on" : ""}`}
@@ -621,7 +715,7 @@ export default function Board({
 
       {list ? (
         <ListView
-          items={items} sections={sections} notes={notes} me={me} nameOf={nameOf} canEdit={canEdit}
+          items={items} sections={sections} notes={notes} inkCount={inks.length} me={me} nameOf={nameOf} canEdit={canEdit}
           editing={editing} draft={draft} textArea={textArea} startEdit={startEdit} remove={remove}
           editors={editors}
           addNote={(sec) => {
@@ -699,7 +793,7 @@ export default function Board({
                   style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z + 1, background: c.bg, borderColor: c.line }}
                   onPointerDown={(e) => onItemPointerDown(e, it, "move")}
                   onDoubleClick={(e) => { e.stopPropagation(); startEdit(it); }}>
-                  {editing === it.id ? textArea(it) : <p className="bd-text">{it.text || <span className="muted">（空白）</span>}</p>}
+                  {editing === it.id ? textArea(it) : <p className="bd-text">{it.text ? <Linkify text={it.text} /> : <span className="muted">（空白）</span>}</p>}
                   <span className="bd-author">
                     {editors.has(it.id) ? `✏️ ${nameOf(editors.get(it.id)!)} 編輯中` : nameOf(it.author_id)}
                   </span>
@@ -709,11 +803,35 @@ export default function Board({
                 </div>
               );
             })}
+            {inks.map((it) => {
+              const p = it.points!;
+              const d = inkPath(p.p);
+              return (
+                <svg key={it.id} className={`bd-item bd-ink${selected === it.id ? " sel" : ""}`} aria-hidden
+                  style={{ left: it.x, top: it.y, width: it.w, height: it.h, zIndex: it.z + 1 }}>
+                  {/* 粗一點的透明線當作點選範圍 */}
+                  <path className="bd-ink-hit" d={d} stroke="transparent" strokeWidth={Math.max(16, p.w + 12)} fill="none"
+                    strokeLinecap="round" strokeLinejoin="round" onPointerDown={(e) => { if (!pen) onItemPointerDown(e, it, "move"); }} />
+                  <path d={d} stroke={inkHex(it.color)} strokeWidth={p.w} fill="none" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
+                </svg>
+              );
+            })}
+            {stroke && (
+              <svg className="bd-ink bd-ink-live" aria-hidden style={{ left: 0, top: 0, width: 1, height: 1, zIndex: 100000 }}>
+                <path d={inkPath(stroke)} stroke={inkHex(penColor)} strokeWidth={penW} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </div>
+          {pen && (
+            <div className="bd-ink-layer" onPointerDown={onInkDown} onPointerMove={onInkMove} onPointerUp={onInkUp} onPointerCancel={onInkUp}
+              aria-label="塗鴉區：按住拖曳畫線" />
+          )}
         </div>
       )}
       <p className="hint bd-hint">
-        {list
+        {pen
+          ? "塗鴉中：按住拖曳畫線，畫好的線可以在結束塗鴉後拖動、換色、刪除；滾輪與縮放照常可用，按 Esc 結束。"
+          : list
           ? "條列模式依分區列出便利貼，適合手機。切回白板模式可以拖拉排列。"
           : "點兩下空白處新增便利貼；拖動便利貼排列，拖分區框的標題會連裡面的便利貼一起移動；拖空白處移動畫面，Ctrl＋滾輪或兩指縮放。"}
       </p>
@@ -723,9 +841,9 @@ export default function Board({
 
 // 條列模式：依分區列出（便利貼的中心點在哪個分區框裡就算哪一區）
 function ListView({
-  items, sections, notes, nameOf, canEdit, editing, textArea, startEdit, remove, addNote, editors,
+  items, sections, notes, inkCount, nameOf, canEdit, editing, textArea, startEdit, remove, addNote, editors,
 }: {
-  items: Record<string, BoardItem>; sections: BoardItem[]; notes: BoardItem[]; me: string;
+  items: Record<string, BoardItem>; sections: BoardItem[]; notes: BoardItem[]; inkCount: number; me: string;
   nameOf: (id: string | null) => string; canEdit: (it: BoardItem) => boolean;
   editing: string | null; draft: string; textArea: (it: BoardItem) => React.ReactNode;
   startEdit: (it: BoardItem) => void; remove: (it: BoardItem) => void;
@@ -744,6 +862,7 @@ function ListView({
 
   return (
     <div className="bd-list">
+      {inkCount > 0 && <p className="hint">白板上還有 {inkCount} 筆塗鴉，切到白板模式才看得到。</p>}
       {groups.map((g) => (
         <section key={g.sec?.id ?? "none"} className="bd-group">
           <h3>
@@ -758,7 +877,7 @@ function ListView({
               const c = colorOf(n.color);
               return (
                 <li key={n.id} className="bd-li" style={{ borderLeftColor: c.line, background: c.bg }}>
-                  {editing === n.id ? textArea(n) : <p className="bd-text">{n.text || <span className="muted">（空白）</span>}</p>}
+                  {editing === n.id ? textArea(n) : <p className="bd-text">{n.text ? <Linkify text={n.text} /> : <span className="muted">（空白）</span>}</p>}
                   <div className="bd-li-foot">
                     <small className="muted">{editors.has(n.id) ? `✏️ ${nameOf(editors.get(n.id)!)} 編輯中` : nameOf(n.author_id)}</small>
                     {canEdit(n) && editing !== n.id && (
