@@ -8,6 +8,37 @@ export const BOARD_COLORS = [
   { value: "white", label: "白", bg: "#FFFFFF", line: "#C9C2B2" },
 ] as const;
 export type BoardColor = (typeof BOARD_COLORS)[number]["value"];
+
+// 塗鴉的筆色與粗細（0024）。顏色名稱存進資料庫，畫面用 hex
+export const INK_COLORS = [
+  { value: "black", label: "黑", hex: "#2B2B2B" },
+  { value: "red", label: "紅", hex: "#EA5754" },
+  { value: "blue", label: "藍", hex: "#5098D2" },
+  { value: "green", label: "綠", hex: "#2F9E85" },
+  { value: "yellow", label: "黃", hex: "#F2B705" },
+] as const;
+export type InkColor = (typeof INK_COLORS)[number]["value"];
+export const inkHex = (c: string) => INK_COLORS.find((x) => x.value === c)?.hex ?? INK_COLORS[0].hex;
+export const INK_WIDTHS = [
+  { value: 3, label: "細" },
+  { value: 6, label: "中" },
+  { value: 12, label: "粗" },
+] as const;
+export const INK_MAX_POINTS = 1500; // 一筆最多幾個點（和 board_sync 一致）
+export type InkPoints = { w: number; p: [number, number][] };
+
+// 筆畫的 SVG 路徑：用中點畫二次曲線，看起來比較順
+export function inkPath(p: [number, number][]) {
+  if (!p.length) return "";
+  if (p.length === 1) return `M${p[0][0]},${p[0][1]} l0.01,0`;
+  let d = `M${p[0][0]},${p[0][1]}`;
+  for (let i = 1; i < p.length - 1; i++) {
+    const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2;
+    d += ` Q${p[i][0]},${p[i][1]} ${mx},${my}`;
+  }
+  const last = p[p.length - 1];
+  return `${d} L${last[0]},${last[1]}`;
+}
 export const colorOf = (c: string) => BOARD_COLORS.find((x) => x.value === c) ?? BOARD_COLORS[0];
 
 export const NOTE_W = 180;
@@ -20,12 +51,13 @@ export const SYNC_IDLE_MS = 10000; // 分頁在背景時改成 10 秒
 
 export type BoardItem = {
   id: string;
-  kind: "note" | "section" | "arrow";
+  kind: "note" | "section" | "arrow" | "ink";
   from_id?: string | null; // 箭頭的起點（便利貼或分區框）
   to_id?: string | null; // 箭頭的終點
   x: number; y: number; w: number; h: number; z: number;
-  color: BoardColor;
+  color: BoardColor | "black";
   text: string;
+  points?: InkPoints | null; // 塗鴉的筆畫，座標相對於 x、y
   author_id: string | null;
   updated_by: string | null;
   rev: number;
@@ -35,8 +67,9 @@ export type BoardItem = {
 export type BoardOp =
   | { op: "add"; id: string; kind: "note" | "section"; x: number; y: number; w: number; h: number; z: number; color: BoardColor; text: string }
   | { op: "add"; id: string; kind: "arrow"; from_id: string; to_id: string }
+  | { op: "add"; id: string; kind: "ink"; x: number; y: number; w: number; h: number; z: number; color: InkColor; points: InkPoints }
   | { op: "move"; id: string; x: number; y: number; w?: number; h?: number; z?: number }
-  | { op: "edit"; id: string; text?: string; color?: BoardColor }
+  | { op: "edit"; id: string; text?: string; color?: BoardColor | InkColor }
   | { op: "del"; id: string };
 
 export type Presence = { teacher_id: string; editing: string | null };

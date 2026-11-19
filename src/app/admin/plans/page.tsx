@@ -23,7 +23,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
         `&order=start_date.desc.nullsfirst,created_at.desc`,
     ).catch(() => null),
     sbGet<PlanTask[]>(
-      `plan_tasks?assignee_id=eq.${staff.id}&done_at=is.null&select=*,plan:plans(id,title,kind)&order=due_date.nullslast`,
+      `plan_tasks?assignee_ids=cs.{${staff.id}}&done_at=is.null&select=*,plan:plans(id,title,kind)&order=due_date.nullslast`,
     ).catch(() => [] as PlanTask[]),
     kind === "camp" ? sbGet<{ title: string }[]>("plans?kind=eq.camp&select=title").catch(() => []) : Promise.resolve([]),
   ]);

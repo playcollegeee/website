@@ -1,5 +1,6 @@
 "use client";
 
+import Linkify from "@/components/Linkify";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import ConfirmButton from "@/app/admin/ConfirmButton";
@@ -93,7 +94,7 @@ export default function MeetingAfter({
             </div>
           ) : (
             <>
-              <p className="pln-pre">{m.summary || "（沒有摘要）"}</p>
+              <p className="pln-pre">{m.summary ? <Linkify text={m.summary} /> : "（沒有摘要）"}</p>
               {canEditSum && <button type="button" className="adm-link" onClick={() => setEditSum(true)}>修改摘要</button>}
             </>
           )}

@@ -4,7 +4,9 @@ import Link from "next/link";
 import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useState, useTransition } from "react";
 import { MAJOR_SHORT } from "@/lib/lessons";
-import { SECTIONS, fmtDay, who, type PlanComment, type PlanItem } from "@/lib/plans";
+import { SECTIONS, fmtDay, itemTeachers, namesOf, type PlanComment, type PlanItem } from "@/lib/plans";
+import Linkify from "@/components/Linkify";
+import TeacherPicks from "./TeacherPicks";
 import { deleteItem, saveItem } from "./actions";
 import Discussion from "./Discussion";
 
@@ -32,24 +34,25 @@ export default function ItemCard({
   comments: PlanComment[];
 }) {
   const sec = SECTIONS[section];
-  const blank = { day: day ?? "", title: "", lessonId: "", teacherId: "", notes: "" };
+  const blank = { day: day ?? "", title: "", lessonId: "", teacherIds: [] as string[], notes: "" };
   const fromItem = () => item
-    ? { day: item.day ?? day ?? "", title: item.title ?? "", lessonId: item.lesson_id ?? "", teacherId: item.teacher_id ?? "", notes: item.notes ?? "" }
+    ? { day: item.day ?? day ?? "", title: item.title ?? "", lessonId: item.lesson_id ?? "", teacherIds: itemTeachers(item), notes: item.notes ?? "" }
     : blank;
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState(fromItem);
   const [talk, setTalk] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, start] = useTransition();
-  const canEdit = canEditPlan || (!!item && item.teacher_id === me);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+  const owners = item ? itemTeachers(item) : [];
+  const canEdit = canEditPlan || owners.includes(me);
+  const set = (k: "day" | "title" | "lessonId" | "notes") => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((x) => ({ ...x, [k]: e.target.value }));
 
   const save = () =>
     start(async () => {
       const r = await saveItem({
         planId, id: item?.id, section, seq, day: sec.dated && section !== "camp" ? f.day : day, slot,
-        title: f.title, lessonId: f.lessonId, teacherId: f.teacherId, notes: f.notes,
+        title: f.title, lessonId: f.lessonId, teacherIds: f.teacherIds, notes: f.notes,
       });
       setMsg(r.ok ? null : r.message);
       if (r.ok) { setEditing(false); if (isNew) setF(blank); }
@@ -84,12 +87,9 @@ export default function ItemCard({
           ))}
         </select>
       </label>
-      <label>負責老師
-        <select value={f.teacherId} onChange={set("teacherId")}>
-          <option value="">（未指派）</option>
-          {teachers.map((t) => <option key={t.id} value={t.id}>{t.nickname || t.name}</option>)}
-        </select>
-      </label>
+      <div className="pln-field">負責老師（可複選）
+        <TeacherPicks teachers={teachers} value={f.teacherIds} onChange={(ids) => setF((x) => ({ ...x, teacherIds: ids }))} disabled={busy} />
+      </div>
       <label className="wide">{section === "camp" ? "流程與材料" : "備註（流程、材料、注意事項）"}
         <textarea rows={3} value={f.notes} onChange={set("notes")} maxLength={3000}
           placeholder={section === "camp" ? "例：9:30 暖身遊戲 → 10:00 組裝 → 11:30 分享；材料：SPIKE 每 2 人 1 盒、色紙" : ""} />
@@ -106,7 +106,7 @@ export default function ItemCard({
     </div>
   );
 
-  const empty = !item || (!item.title && !item.lesson_id && !item.notes && !item.teacher_id);
+  const empty = !item || (!item.title && !item.lesson_id && !item.notes && owners.length === 0);
   return (
     <div className={`pln-item${empty ? " empty" : ""}`}>
       <div className="pln-item-head">
@@ -117,10 +117,10 @@ export default function ItemCard({
             <span className="muted">{canEdit ? "尚未安排" : "—"}</span>
           ) : (
             <>
-              {item?.title && <strong>{item.title}</strong>}
+              {item?.title && <strong><Linkify text={item.title} /></strong>}
               {item?.lesson && <Link href={`/admin/lessons/${item.lesson.id}`} className="pln-lesson">📚 {item.lesson.title}</Link>}
-              {item?.teacher_id && <small className="muted">負責：{who(item.teacher ?? null)}</small>}
-              {item?.notes && <p className="pln-notes">{item.notes}</p>}
+              {owners.length > 0 && <small className="muted">負責：{namesOf(owners, teachers, item?.teacher ?? null)}</small>}
+              {item?.notes && <p className="pln-notes"><Linkify text={item.notes} /></p>}
             </>
           )}
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Linkify from "@/components/Linkify";
 import { useState, useTransition } from "react";
 import { who, type AgendaItem } from "@/lib/plans";
 import ConfirmButton from "@/app/admin/ConfirmButton";
@@ -66,7 +67,7 @@ export default function Agenda({
             {editing === a.id ? form(a) : (
               <>
                 <div className="pln-agenda-row">
-                  <strong>{a.title}</strong>
+                  <strong><Linkify text={a.title} /></strong>
                   <small className="muted">{a.owner_id ? `　${who(a.owner ?? null)}` : ""}{a.minutes ? `・${a.minutes} 分` : ""}</small>
                   {can(a) && (
                     <span className="pln-agenda-tools">
@@ -77,9 +78,9 @@ export default function Agenda({
                     </span>
                   )}
                 </div>
-                {a.notes && <p className="pln-notes">{a.notes}</p>}
+                {a.notes && <p className="pln-notes"><Linkify text={a.notes} /></p>}
                 {showResults && (
-                  <p className={`pln-agenda-result${a.result ? "" : " none"}`}>➜ {a.result || "（還沒有結論）"}</p>
+                  <p className={`pln-agenda-result${a.result ? "" : " none"}`}>➜ {a.result ? <Linkify text={a.result} /> : "（還沒有結論）"}</p>
                 )}
               </>
             )}

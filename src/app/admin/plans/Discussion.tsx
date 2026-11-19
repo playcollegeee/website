@@ -1,5 +1,6 @@
 "use client";
 
+import Linkify from "@/components/Linkify";
 import { useState, useTransition } from "react";
 import ConfirmButton from "@/app/admin/ConfirmButton";
 import { who, type PlanComment } from "@/lib/plans";
@@ -58,7 +59,7 @@ export default function Discussion({
           </div>
         </div>
       ) : (
-        <p className="pln-c-body">{c.body}</p>
+        <p className="pln-c-body"><Linkify text={c.body} /></p>
       )}
       <div className="pln-c-tools">
         {!isReply && <button type="button" className="adm-link" onClick={() => { setReplyTo(c.id); setReply(""); }}>回覆</button>}
