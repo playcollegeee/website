@@ -1212,7 +1212,8 @@ fieldset.lsn-ai { background: #fffaf0; border: 1px dashed var(--yellow); }
 @media (max-width: 960px) { .su-layout { grid-template-columns: 1fr; } }
 .su-info h1 { margin-bottom: 12px; }
 .su-cover { border-radius: 16px; overflow: hidden; margin: 0 0 16px; border: 2px solid var(--line); }
-.su-cover img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.su-cover { background: #fff; }
+.su-cover img { display: block; width: 100%; height: auto; } /* 海報照原比例顯示，不裁切 */
 .su-facts { display: grid; gap: 0; margin: 0 0 16px; }
 .su-facts > div { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
 .su-facts > div:first-child { border-top: 0; }
@@ -2071,7 +2072,7 @@ html.intro-on .intro { display: grid; place-items: center; position: fixed; inse
 .bd-penw span { display: inline-block; border-radius: 50%; }
 .bd-penw.on { border-color: var(--blue); font-weight: 700; }
 /* 課程流程圖 */
-.su-flow { display: block; margin: 0 0 18px; max-width: 520px; border-radius: 16px; overflow: hidden; border: 2px solid var(--line); background: #fff; text-decoration: none; position: relative; }
+.su-flow { display: block; margin: 0 0 18px; width: 50%; max-width: 260px; min-width: 160px; border-radius: 16px; overflow: hidden; border: 2px solid var(--line); background: #fff; text-decoration: none; position: relative; }
 .su-flow img { display: block; width: 100%; height: auto; }
 .su-flow-hint { position: absolute; right: 10px; bottom: 10px; background: rgba(255, 255, 255, 0.92); color: var(--ink); font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
 .ev-flow { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 12px; }
