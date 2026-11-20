@@ -4,6 +4,7 @@ import EnrollForm from "@/components/EnrollForm";
 export const metadata: Metadata = {
   title: "新生報名",
   description: "玩學院 Play Collegeee 線上新生報名：填寫孩子與家長資料，老師確認後與您聯絡。",
+  alternates: { canonical: "/enroll" },
 };
 
 export default function EnrollPage() {

@@ -6,10 +6,11 @@ import { site } from "@/lib/content";
 export const metadata: Metadata = {
   title: "隱私權政策",
   description: `${site.name}如何蒐集、使用與保護您在官網留下的個人資料。`,
+  alternates: { canonical: "/privacy" },
 };
 
 // 依《個人資料保護法》第 8 條應告知的六個事項撰寫。內容若有變動，記得更新「最後更新日期」。
-const updated = "2026 年 11 月 4 日";
+const updated = "2026 年 11 月 21 日";
 
 export default function PrivacyPage() {
   return (
@@ -23,7 +24,7 @@ export default function PrivacyPage() {
 
         <h2>一、蒐集者</h2>
         <p>
-          至聖文教事業有限公司（品牌：{site.name} {site.nameEn}，以下稱「我們」）。
+          {site.name} {site.nameEn}（短期補習班立案申請中，以下稱「我們」），台中市北屯區四平路 238 巷 15 號，{site.email}。
         </p>
 
         <h2>二、蒐集的目的</h2>
@@ -36,7 +37,7 @@ export default function PrivacyPage() {
         <h2>三、蒐集的資料類別</h2>
         <ul>
           <li>家長或聯絡人：姓名、電話、Email（選填）。</li>
-          <li>孩子：年級階段與有興趣的主修。我們不會在表單要求孩子的姓名、生日或照片。</li>
+          <li>孩子：年級階段與有興趣的主修。</li>
           <li>您在留言欄自行填寫的內容。</li>
         </ul>
 

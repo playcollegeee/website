@@ -7,6 +7,7 @@ import { fmtTimes, getOpenRuns, runTitle } from "@/lib/events";
 export const metadata: Metadata = {
   title: "活動與工作坊",
   description: "積木故事屋、樂高動滋動、3D 造物體驗工作坊、寒暑假營隊，以及給大人的課程與講座。",
+  alternates: { canonical: "/workshops" },
 };
 
 export const dynamic = "force-dynamic"; // 正在報名的名額要即時

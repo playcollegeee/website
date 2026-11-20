@@ -12,6 +12,8 @@ export async function generateMetadata(): Promise<Metadata> {
     title: s ? s.title : "冬夏令營",
     description: s?.headline || "玩學院寒暑假營隊：LEGO 樂高、3D 列印造物、美術，全天動手做，帶回自己的作品。",
     alternates: { canonical: "/camp" },
+    // 還沒有營隊時頁面只有「準備中」一行，先不讓搜尋引擎收錄
+    ...(s ? {} : { robots: { index: false, follow: true } }),
   };
 }
 

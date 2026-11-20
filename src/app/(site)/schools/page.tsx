@@ -5,6 +5,7 @@ import { schoolServices } from "@/lib/content";
 export const metadata: Metadata = {
   title: "學校與機構合作",
   description: "玩學院提供入校 STEAM 課程、社團營隊、親子館活動與客製化專案合作。",
+  alternates: { canonical: "/schools" },
 };
 
 export default function SchoolsPage() {

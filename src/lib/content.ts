@@ -8,6 +8,8 @@ export const site = {
   tagline: "帶著孩子在玩樂當中，發現屬於自己的超能力，遇見那個閃閃發亮的自己",
   taglineShort: "透過玩，發現超能力，遇見閃閃發亮的自己",
   city: "台中",
+  // 教室地址（2026-11-19 確認是 238 巷）：結構化資料、隱私權政策用
+  address: { region: "台中市", locality: "北屯區", street: "四平路238巷15號", postal: "406" },
   email: "playcollegeee@gmail.com",
   line: "", // TODO: LINE 官方帳號連結
   facebook: "https://www.facebook.com/profile.php?id=61578868228214",

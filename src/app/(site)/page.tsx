@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import AvatarCreator from "@/components/AvatarCreator";
@@ -14,6 +15,31 @@ import PhotoMarquee, { fillTo } from "@/components/PhotoMarquee";
 
 // 教室現場照片在這個數量以內用兩排固定排列，超過就改成兩排跑馬燈
 const GALLERY_STATIC_MAX = 6;
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
+// 給 Google 看的機構資料（結構化資料）：名稱、地址、社群，搜尋結果可能顯示成商家資訊
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": ["EducationalOrganization", "LocalBusiness"],
+  name: `${site.name} ${site.nameEn}`,
+  alternateName: [site.name, site.nameEn],
+  description: `${site.taglineShort}。台中兒童 STEAM 教室：LEGO 樂高機器人、3D 列印造物、美術創作與多元探索課程。`,
+  url: "https://playcollegeee.com",
+  logo: "https://playcollegeee.com/brand/logo-icon.png",
+  image: "https://playcollegeee.com/opengraph-image.jpg",
+  email: site.email,
+  address: {
+    "@type": "PostalAddress",
+    addressCountry: "TW",
+    addressRegion: site.address.region,
+    addressLocality: site.address.locality,
+    streetAddress: site.address.street,
+    postalCode: site.address.postal,
+  },
+  areaServed: ["台中市", "新竹市", "新竹縣", "彰化縣"],
+  sameAs: [site.facebook, site.instagram].filter(Boolean),
+};
 
 export default async function HomePage() {
   const [highlightPhotos, galleryPhotos, flags, activities, heroCount] = await Promise.all([
@@ -36,6 +62,7 @@ export default async function HomePage() {
     }));
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd).replace(/</g, "\\u003c") }} />
       {/* 1. 首屏：飄浮活動小卡（HeroCards） */}
       <HeroCards cards={heroCards} count={heroCount}>
         <p className="eyebrow">台中・兒童 STEAM 探索學院</p>

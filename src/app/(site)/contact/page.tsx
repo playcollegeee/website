@@ -6,6 +6,7 @@ import { getSiteFlags } from "@/lib/siteFlags";
 export const metadata: Metadata = {
   title: "聯絡我們",
   description: "課程諮詢、詢問活動與工作坊，或洽詢學校與機構合作。",
+  alternates: { canonical: "/contact" },
 };
 
 const allowed = ["trial", "workshop", "school", "other"];

@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "工作坊總覽",
   description: "玩學院開過的 3D 造物工作坊與幼兒主題活動。想上哪一堂，湊到 3 人就可以開課。",
+  alternates: { canonical: "/workshops/all" },
 };
 
 // 官網：所有開過的工作坊（分 3D 造物工作坊、幼兒主題活動），主題在後台「活動報名 → 主題」管理
