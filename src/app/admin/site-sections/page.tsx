@@ -5,13 +5,22 @@ import { getPublishedActivities } from "@/lib/activities";
 import { Quests, Ribbon } from "@/components/HomeExtras";
 import FlagSwitch from "./FlagSwitch";
 import HeroCount from "./HeroCount";
+import { NewsEditor, NoticeEditor } from "./NoticeEditor";
+import { getNoticeSettings, getOpenRunSummaries } from "@/lib/siteNotice";
+import { announcement } from "@/lib/content";
 
 export const metadata = { title: "官網區塊開關" };
 
 // 後台：官網區塊開關＋被隱藏區塊的預覽（管理員）
 export default async function SiteSectionsPage() {
   await requireStaff(true);
-  const [flags, heroCards, activities] = await Promise.all([getSiteFlags(), getHeroCardCount(), getPublishedActivities()]);
+  const [flags, heroCards, activities, { notice, news }, runs] = await Promise.all([
+    getSiteFlags(),
+    getHeroCardCount(),
+    getPublishedActivities(),
+    getNoticeSettings(),
+    getOpenRunSummaries(),
+  ]);
   const withPhoto = activities.filter((a) => a.image_url).length;
   return (
     <>
@@ -24,6 +33,16 @@ export default async function SiteSectionsPage() {
       <p className="hint">先拿掉、之後可能再用的區塊都放在這裡。按一下就能在官網顯示或隱藏，下方可以預覽它們的樣子。</p>
 
       <div className="flag-list">
+        <div className="adm-panel">
+          <h2>頂部公告列</h2>
+          <p className="hint">每一頁最上面那條黑色通知。</p>
+          <NoticeEditor initial={notice} runs={runs} fallback={announcement.text} />
+        </div>
+        <div className="adm-panel">
+          <h2>右下角最新消息小卡</h2>
+          <p className="hint">每一頁右下角的小卡，放報名中的活動（照片、日期、立即報名）。家長按 ✕ 關掉後，同一場不會再出現；有新的一場報名時會再出現。</p>
+          <NewsEditor initial={news} runs={runs} />
+        </div>
         <div className="adm-panel flag-row">
           <div>
             <h2>首屏飄浮小卡數量</h2>

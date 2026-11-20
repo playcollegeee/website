@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { OPEN_RUNS_TAG } from "@/lib/siteNotice";
 import { redirect } from "next/navigation";
 import { actorOf, requireStaff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbGet, sbInsert, sbPatch, sbRemoveFile, sbUpload } from "@/lib/supabase";
@@ -29,6 +30,8 @@ const TYPES: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg
 const MAX_BYTES = 4 * 1024 * 1024;
 
 function refreshPublic(slug?: string) {
+  // 頂部公告列與右下角最新消息小卡跟著報名中的活動走
+  updateTag(OPEN_RUNS_TAG);
   revalidatePath("/workshops");
   revalidatePath("/workshops/all");
   if (slug) revalidatePath(`/workshops/${slug}`);
