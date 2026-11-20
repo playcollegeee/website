@@ -8,6 +8,7 @@ import { majors } from "@/lib/content";
 export const metadata: Metadata = {
   title: "課程介紹",
   description: "玩學院五階段分班與三大主修：LEGO 樂高建構與機器人、3D 列印與造物、美術與視覺創作，以及探索選修。",
+  alternates: { canonical: "/courses" },
 };
 
 export default function CoursesPage() {

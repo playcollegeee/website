@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = { title: "找不到頁面", robots: { index: false } };
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 

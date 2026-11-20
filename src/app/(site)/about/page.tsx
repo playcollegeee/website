@@ -6,6 +6,7 @@ import { site } from "@/lib/content";
 export const metadata: Metadata = {
   title: "關於玩學院",
   description: "帶著孩子在玩樂當中，發現屬於自己的超能力，遇見那個閃閃發亮的自己。",
+  alternates: { canonical: "/about" },
 };
 
 const values = [

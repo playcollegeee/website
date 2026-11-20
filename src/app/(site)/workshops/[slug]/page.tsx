@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const d = await getThemeBySlug(slug).catch(() => null);
   if (!d) return { title: "工作坊" };
-  return { title: d.theme.title, description: plainText(d.theme.summary).slice(0, 150) };
+  return { title: d.theme.title, description: plainText(d.theme.summary).slice(0, 150), alternates: { canonical: `/workshops/${slug}` } };
 }
 
 // 官網：一個工作坊主題的介紹頁（照片、特色、正在報名的場次、我想上這堂）

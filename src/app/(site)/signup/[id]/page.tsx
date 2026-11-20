@@ -16,7 +16,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const b = isUuid(id) ? await getRunBundle(id).catch(() => null) : null;
   if (!b || b.run.status === "draft") return { title: "活動報名" };
-  return { title: `報名｜${runTitle(b.run, b.theme)}`, description: plainText(b.run.intro || b.theme.summary).slice(0, 150) };
+  return {
+    title: `報名｜${runTitle(b.run, b.theme)}`,
+    description: plainText(b.run.intro || b.theme.summary).slice(0, 150),
+    alternates: { canonical: `/signup/${id}` },
+  };
 }
 
 // 官網：一次開課的報名頁（左邊課程資訊、右邊報名表；手機上下排列）
@@ -45,7 +49,13 @@ export default async function SignupPage({ params }: Props) {
           )}
           <RichText text={run.intro || theme.summary} className="su-intro" />
           <dl className="su-facts">
-            {theme.audience_text && (<div><dt>適合對象</dt><dd>{theme.audience_text}（{WHO_LABEL[run.who]}）</dd></div>)}
+            {theme.audience_text && (
+              <div>
+                <dt>適合對象</dt>
+                {/* 主題文字已經寫了「大人小孩都可以」之類的就不再重複加 */}
+                <dd>{theme.audience_text.includes(WHO_LABEL[run.who]) ? theme.audience_text : `${theme.audience_text}（${WHO_LABEL[run.who]}）`}</dd>
+              </div>
+            )}
             {theme.duration_text && (<div><dt>時間長度</dt><dd>{theme.duration_text}</dd></div>)}
             {slots.map((s) => (
               <div key={s.id}>
@@ -82,9 +92,17 @@ export default async function SignupPage({ params }: Props) {
               <FlowImage url={theme.flow_url} width={theme.flow_width} height={theme.flow_height} title={theme.title} />
             </>
           )}
-          <p className="hint">
-            最低開課人數：{slots.map((s) => `${s.label} ${s.min_seats} ${run.unit === "group" ? "組" : "人"}`).join("、")}。未達開課人數會在開課前通知並全額退費。
-          </p>
+          {/* 最低人數填 0（或沒填）的場次不寫，全部都是 0 就整行不顯示 */}
+          {slots.some((s) => s.min_seats > 0) && (
+            <p className="hint">
+              最低開課人數：
+              {slots
+                .filter((s) => s.min_seats > 0)
+                .map((s) => `${s.label} ${s.min_seats} ${run.unit === "group" ? "組" : "人"}`)
+                .join("、")}
+              。未達開課人數會在開課前通知並全額退費。
+            </p>
+          )}
           {settings.team && (
             <>
               <h2 className="su-h">團隊介紹</h2>
