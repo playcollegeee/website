@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import ConfirmButton from "@/app/admin/ConfirmButton";
 import { useState, useTransition } from "react";
-import { PLAN_STATUS, monthRange, type Plan } from "@/lib/plans";
+import { PLAN_STATUS, monthRange, planOwners, type Plan } from "@/lib/plans";
+import TeacherPicks from "./TeacherPicks";
 import { deletePlan, setPlanStatus, updatePlan } from "./actions";
 
 type T = { id: string; name: string; nickname: string | null };
@@ -13,11 +14,11 @@ export default function PlanHeader({ plan, canEdit, isAdmin, teachers }: { plan:
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState({
-    title: plan.title, theme: plan.theme ?? "", start: plan.start_date ?? "", end: plan.end_date ?? "", summary: plan.summary ?? "", ownerId: plan.owner_id ?? "",
+    title: plan.title, theme: plan.theme ?? "", start: plan.start_date ?? "", end: plan.end_date ?? "", summary: plan.summary ?? "", ownerIds: planOwners(plan),
   });
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, start] = useTransition();
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+  const set = (k: "title" | "theme" | "start" | "end" | "summary") => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((x) => ({ ...x, [k]: e.target.value }));
 
   return (
@@ -54,11 +55,8 @@ export default function PlanHeader({ plan, canEdit, isAdmin, teachers }: { plan:
                 <div className="field"><label htmlFor="p-end">結束日期</label><input id="p-end" type="date" value={f.end} onChange={set("end")} /></div>
               </>
             )}
-            <div className="field"><label htmlFor="p-owner">負責老師</label>
-              <select id="p-owner" value={f.ownerId} onChange={set("ownerId")}>
-                <option value="">（未指定）</option>
-                {teachers.map((t) => <option key={t.id} value={t.id}>{t.nickname || t.name}</option>)}
-              </select>
+            <div className="field adm-wide"><span className="pln-field-label">負責老師（可複選）</span>
+              <TeacherPicks teachers={teachers} value={f.ownerIds} onChange={(ids) => setF((x) => ({ ...x, ownerIds: ids }))} disabled={busy} />
             </div>
             <div className="field adm-wide"><label htmlFor="p-sum">主題說明、目標</label><textarea id="p-sum" rows={3} value={f.summary} onChange={set("summary")} maxLength={3000} /></div>
           </div>

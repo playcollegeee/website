@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { actorOf, requireStaff, type Staff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbGet, sbInsert, sbPatch } from "@/lib/supabase";
+import { validTeacherIds } from "@/lib/teacherIds";
 import { PLAN_KINDS, PLAN_STATUS, SECTIONS, VOTES_PER_PLAN, autoTitle, campType, canEditPlan, itemTeachers, monthRange, taskAssignees, MAJOR_LESSONS } from "@/lib/plans";
 
 type Result = { ok: boolean; message: string };
@@ -26,8 +27,8 @@ async function meetingOf(meetingId: string | undefined, planId: string) {
 
 async function loadPlan(id: string) {
   if (!isUuid(id)) throw new Error("資料不正確");
-  const rows = await sbGet<{ id: string; kind: string; owner_id: string | null; created_by: string | null }[]>(
-    `plans?id=eq.${id}&select=id,kind,owner_id,created_by`,
+  const rows = await sbGet<{ id: string; kind: string; owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(
+    `plans?id=eq.${id}&select=id,kind,owner_id,owner_ids,created_by`,
   );
   if (!rows[0]) throw new Error("找不到這份規劃，可能已被刪除");
   return rows[0];
@@ -37,15 +38,7 @@ async function mustEdit(id: string, staff: Staff) {
   if (!canEditPlan(p, staff)) throw new Error("只有負責老師、建立者或管理員可以修改規劃");
   return p;
 }
-// 多位老師（0024）：去掉重複、最多 8 位，每位都要是在職老師
-async function teachersOk(ids: unknown): Promise<string[]> {
-  const list = [...new Set((Array.isArray(ids) ? ids : []).filter((x): x is string => typeof x === "string" && x !== ""))].slice(0, 8);
-  if (!list.length) return [];
-  if (!list.every(isUuid)) throw new Error("老師資料不正確");
-  const t = await sbGet<{ id: string }[]>(`teachers?id=in.(${list.join(",")})&active=eq.true&select=id`);
-  if (t.length !== list.length) throw new Error("找不到其中一位老師");
-  return list;
-}
+const teachersOk = validTeacherIds;
 async function teacherOk(id: string | null) {
   if (!id) return null;
   if (!isUuid(id)) throw new Error("老師資料不正確");
@@ -94,7 +87,7 @@ export async function createPlan(input: {
 }
 
 export async function updatePlan(input: {
-  id: string; title: string; theme: string; start: string; end: string; summary: string; ownerId: string;
+  id: string; title: string; theme: string; start: string; end: string; summary: string; ownerIds?: string[]; ownerId?: string;
 }): Promise<Result> {
   try {
     const staff = await requireStaff();
@@ -106,7 +99,8 @@ export async function updatePlan(input: {
     if (start && end && end < start) return { ok: false, message: "結束日期不能早於開始日期" };
     const patch = {
       title, theme: text(input.theme, 80) || null, start_date: start, end_date: end, summary: text(input.summary, 3000) || null,
-      owner_id: await teacherOk(input.ownerId || null), updated_by: staff.id, updated_at: new Date().toISOString(),
+      // 觸發器會把第一位寫回 owner_id
+      owner_ids: await teachersOk(input.ownerIds ?? (input.ownerId ? [input.ownerId] : [])), updated_by: staff.id, updated_at: new Date().toISOString(),
     };
     await sbPatch(`plans?id=eq.${input.id}`, patch);
     await audit(actorOf(staff), "plan.update", `plans:${input.id}`, { title });

@@ -1,5 +1,6 @@
 "use client";
 
+import TeacherPicks from "./TeacherPicks";
 import Linkify from "@/components/Linkify";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -22,13 +23,14 @@ export default function MeetingAfter({
   const onResume = () => rec.pick(m.id);
   const onAttach = () => rec.pick(undefined, m.id);
   const ai = m.ai_result;
-  const findTeacher = (n: string) => {
-    const s = n.trim();
-    if (!s) return "";
-    return teachers.find((t) => t.name === s || t.nickname === s || s.includes(t.name) || (t.nickname && s.includes(t.nickname)))?.id ?? "";
+  // AI 寫的負責人可能有好幾位（例：「阿智、小美」），名字或稱呼有出現的都選起來
+  const findTeachers = (n: string) => {
+    const s = (n ?? "").trim();
+    if (!s) return [] as string[];
+    return teachers.filter((t) => t.name === s || t.nickname === s || s.includes(t.name) || (!!t.nickname && s.includes(t.nickname))).map((t) => t.id);
   };
   const [dec, setDec] = useState(() => (ai?.decisions ?? []).map((text) => ({ text, on: true })));
-  const [tasks, setTasks] = useState(() => (ai?.tasks ?? []).map((t) => ({ title: t.title, assigneeId: findTeacher(t.assignee), due: t.due, on: true })));
+  const [tasks, setTasks] = useState(() => (ai?.tasks ?? []).map((t) => ({ title: t.title, assigneeIds: findTeachers(t.assignee), due: t.due, on: true })));
   const [summary, setSummary] = useState(m.summary ?? "");
   const [editSum, setEditSum] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -115,10 +117,8 @@ export default function MeetingAfter({
                 <div key={i} className="pln-apply-row task">
                   <input type="checkbox" checked={t.on} onChange={(e) => setTasks((a) => a.map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)))} aria-label="加入這項待辦" />
                   <input value={t.title} onChange={(e) => setTasks((a) => a.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} maxLength={300} aria-label="待辦內容" />
-                  <select value={t.assigneeId} onChange={(e) => setTasks((a) => a.map((x, j) => (j === i ? { ...x, assigneeId: e.target.value } : x)))} aria-label="負責老師">
-                    <option value="">未指派</option>
-                    {teachers.map((x) => <option key={x.id} value={x.id}>{x.nickname || x.name}</option>)}
-                  </select>
+                  <TeacherPicks teachers={teachers} value={t.assigneeIds} label="負責老師"
+                    onChange={(ids) => setTasks((a) => a.map((x, j) => (j === i ? { ...x, assigneeIds: ids } : x)))} />
                   <input type="date" value={t.due} onChange={(e) => setTasks((a) => a.map((x, j) => (j === i ? { ...x, due: e.target.value } : x)))} aria-label="期限" />
                 </div>
               ))}
@@ -133,7 +133,7 @@ export default function MeetingAfter({
                   const doApply = () => run(() => applyMeeting({
                     id: m.id,
                     decisions: canEditPlan ? dec.filter((d) => d.on).map((d) => d.text) : [],
-                    tasks: tasks.filter((t) => t.on).map(({ title, assigneeId, due }) => ({ title, assigneeId, due })),
+                    tasks: tasks.filter((t) => t.on).map(({ title, assigneeIds, due }) => ({ title, assigneeIds, due })),
                   }));
                   const off = pending || (!dec.some((d) => d.on) && !tasks.some((t) => t.on));
                   return m.applied_at ? (

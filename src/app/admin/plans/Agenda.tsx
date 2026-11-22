@@ -2,12 +2,14 @@
 
 import Linkify from "@/components/Linkify";
 import { useState, useTransition } from "react";
-import { who, type AgendaItem } from "@/lib/plans";
+import { namesOf, type AgendaItem } from "@/lib/plans";
+import TeacherPicks from "./TeacherPicks";
 import ConfirmButton from "@/app/admin/ConfirmButton";
 import { addAgenda, deleteAgenda, moveAgenda, updateAgenda } from "./meetingActions";
 
 type T = { id: string; name: string; nickname: string | null };
-const blank = { title: "", ownerId: "", minutes: "", notes: "", result: "" };
+const blank = { title: "", ownerIds: [] as string[], minutes: "", notes: "", result: "" };
+const ownersOf = (a: AgendaItem) => (a.owner_ids?.length ? a.owner_ids : a.owner_id ? [a.owner_id] : []);
 
 // 會議議程：議題、負責說明的老師、預計分鐘、會前資料；開完會後 AI 會把每一項的結論填進來（可修改）
 export default function Agenda({
@@ -27,17 +29,16 @@ export default function Agenda({
   const [busy, start] = useTransition();
   const run = (fn: () => Promise<{ ok: boolean; message: string }>, after?: () => void) =>
     start(async () => { const r = await fn(); setMsg(r.ok ? null : r.message); if (r.ok) after?.(); });
-  const can = (a: AgendaItem) => isAdmin || canManage || a.created_by === me || a.owner_id === me;
+  const can = (a: AgendaItem) => isAdmin || canManage || a.created_by === me || ownersOf(a).includes(me);
   const total = items.reduce((n, a) => n + (a.minutes ?? 0), 0);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
+  const set = (k: "title" | "minutes" | "notes" | "result") => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
 
   const form = (a?: AgendaItem) => (
     <div className="pln-agenda-form">
       <input value={f.title} onChange={set("title")} maxLength={200} placeholder="議題，例：這一季主題三選一" aria-label="議題" autoFocus />
-      <select value={f.ownerId} onChange={set("ownerId")} aria-label="負責說明">
-        <option value="">（負責說明的老師）</option>
-        {teachers.map((t) => <option key={t.id} value={t.id}>{t.nickname || t.name}</option>)}
-      </select>
+      <div className="wide pln-agenda-owners"><small className="muted">負責說明（可複選）：</small>
+        <TeacherPicks teachers={teachers} value={f.ownerIds} onChange={(ids) => setF((x) => ({ ...x, ownerIds: ids }))} label="負責說明的老師" disabled={busy} />
+      </div>
       <input type="number" min={1} max={240} value={f.minutes} onChange={set("minutes")} placeholder="分鐘" aria-label="預計分鐘" />
       <textarea rows={2} value={f.notes} onChange={set("notes")} maxLength={2000} className="wide" aria-label="會前資料"
         placeholder="會前資料、要先看的連結、要決定的事（選填）" />
@@ -68,12 +69,12 @@ export default function Agenda({
               <>
                 <div className="pln-agenda-row">
                   <strong><Linkify text={a.title} /></strong>
-                  <small className="muted">{a.owner_id ? `　${who(a.owner ?? null)}` : ""}{a.minutes ? `・${a.minutes} 分` : ""}</small>
+                  <small className="muted">{ownersOf(a).length ? `　${namesOf(ownersOf(a), teachers, a.owner ?? null)}` : ""}{a.minutes ? `・${a.minutes} 分` : ""}</small>
                   {can(a) && (
                     <span className="pln-agenda-tools">
                       <button type="button" className="adm-link" disabled={busy || i === 0} onClick={() => run(() => moveAgenda(a.id, -1))} aria-label="往上">↑</button>
                       <button type="button" className="adm-link" disabled={busy || i === items.length - 1} onClick={() => run(() => moveAgenda(a.id, 1))} aria-label="往下">↓</button>
-                      <button type="button" className="adm-link" onClick={() => { setEditing(a.id); setF({ title: a.title, ownerId: a.owner_id ?? "", minutes: a.minutes ? String(a.minutes) : "", notes: a.notes ?? "", result: a.result ?? "" }); }}>編輯</button>
+                      <button type="button" className="adm-link" onClick={() => { setEditing(a.id); setF({ title: a.title, ownerIds: ownersOf(a), minutes: a.minutes ? String(a.minutes) : "", notes: a.notes ?? "", result: a.result ?? "" }); }}>編輯</button>
                       <ConfirmButton label="刪除" disabled={busy} message="刪除這個議題？" confirmLabel="刪除" onConfirm={() => run(() => deleteAgenda(a.id))} />
                     </span>
                   )}
