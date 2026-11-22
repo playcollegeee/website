@@ -6,6 +6,7 @@ import {
   CAMP_SLOTS, LIST_SECTIONS, MAJOR_SECTIONS, PLAN_KIND_LABEL, PLAN_STATUS_LABEL, SECTIONS, campDays, fmtDay, fmtRange, itemTeachers, namesOf, who,
   type Plan, type PlanItem,
 } from "@/lib/plans";
+import { planOwners } from "@/lib/plans";
 
 // 匯出規劃給外部講師：主題、日期、內容（教案名稱、負責老師、流程與材料）、決議。
 // 內部留言與待辦不匯出。
@@ -42,7 +43,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         { label: "主題", lines: [p.theme ?? "（討論中）"] },
         { label: "日期", lines: [fmtRange(p.start_date, p.end_date)] },
         { label: "狀態", lines: [PLAN_STATUS_LABEL[p.status]] },
-        { label: "負責老師", lines: [p.owner_id ? who(p.owner ?? null) : ""] },
+        { label: "負責老師", lines: [planOwners(p).length ? namesOf(planOwners(p), teachers, p.owner ?? null) : ""] },
         { label: "主題說明", lines: (p.summary ?? "").split("\n") },
       ],
     },

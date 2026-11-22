@@ -1,5 +1,6 @@
 "use server";
 
+import { validTeacherIds } from "@/lib/teacherIds";
 import { revalidatePath } from "next/cache";
 import { actorOf, requireStaff } from "@/lib/staff";
 import { audit, isUuid, sbDelete, sbFetch, sbGet, sbInsert, sbPatch } from "@/lib/supabase";
@@ -139,38 +140,34 @@ export async function attachRecording(input: { meetingId: string; partsTotal: nu
 
 // ---------- 議程 ----------
 // 所有老師都能新增議題；修改、刪除、排序：新增的人、該議題負責人、會議安排人、規劃負責人或管理員
-type AgendaRow = { id: string; meeting_id: string; seq: number; owner_id: string | null; created_by: string | null };
+type AgendaRow = { id: string; meeting_id: string; seq: number; owner_id: string | null; owner_ids?: string[] | null; created_by: string | null };
 async function agendaCtx(id: string) {
   if (!isUuid(id)) throw new Error("資料不正確");
-  const a = (await sbGet<AgendaRow[]>(`meeting_agenda?id=eq.${id}&select=id,meeting_id,seq,owner_id,created_by`))[0];
+  const a = (await sbGet<AgendaRow[]>(`meeting_agenda?id=eq.${id}&select=id,meeting_id,seq,owner_id,owner_ids,created_by`))[0];
   if (!a) throw new Error("找不到這個議題，可能已被刪除");
   const m = await loadMeeting(a.meeting_id);
   return { a, m };
 }
 async function canTouchAgenda(a: AgendaRow, m: M, staff: { id: string; is_admin: boolean }) {
-  if (staff.is_admin || a.created_by === staff.id || a.owner_id === staff.id || m.created_by === staff.id) return true;
+  if (staff.is_admin || a.created_by === staff.id || (a.owner_ids?.length ? a.owner_ids : a.owner_id ? [a.owner_id] : []).includes(staff.id) || m.created_by === staff.id) return true;
   if (!m.plan_id) return false;
-  const plan = (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0];
+  const plan = (await sbGet<{ owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,owner_ids,created_by`))[0];
   return !!plan && canEditPlan(plan, staff);
 }
-const agendaFields = async (input: { title: string; ownerId: string; minutes: string | number; notes: string }) => {
+// 負責說明的老師可以複選（0026），觸發器會把第一位寫回 owner_id
+type AgendaInput = { title: string; ownerIds?: string[]; ownerId?: string; minutes: string | number; notes: string };
+const agendaFields = async (input: AgendaInput) => {
   const title = String(input.title ?? "").trim().slice(0, 200);
   if (!title) throw new Error("請填寫議題");
-  let ownerId: string | null = null;
-  if (input.ownerId) {
-    if (!isUuid(input.ownerId)) throw new Error("老師資料不正確");
-    const t = await sbGet<{ id: string }[]>(`teachers?id=eq.${input.ownerId}&active=eq.true&select=id`);
-    if (!t[0]) throw new Error("找不到這位老師");
-    ownerId = input.ownerId;
-  }
+  const ownerIds = await validTeacherIds(input.ownerIds ?? (input.ownerId ? [input.ownerId] : []));
   const n = Number(input.minutes);
   return {
-    title, owner_id: ownerId, minutes: Number.isInteger(n) && n >= 1 && n <= 240 ? n : null,
+    title, owner_ids: ownerIds, minutes: Number.isInteger(n) && n >= 1 && n <= 240 ? n : null,
     notes: String(input.notes ?? "").trim().slice(0, 2000) || null,
   };
 };
 
-export async function addAgenda(input: { meetingId: string; title: string; ownerId: string; minutes: string | number; notes: string }): Promise<Result> {
+export async function addAgenda(input: AgendaInput & { meetingId: string }): Promise<Result> {
   try {
     const staff = await requireStaff();
     const m = await loadMeeting(input.meetingId);
@@ -185,7 +182,7 @@ export async function addAgenda(input: { meetingId: string; title: string; owner
   }
 }
 
-export async function updateAgenda(input: { id: string; title: string; ownerId: string; minutes: string | number; notes: string; result?: string }): Promise<Result> {
+export async function updateAgenda(input: AgendaInput & { id: string; result?: string }): Promise<Result> {
   try {
     const staff = await requireStaff();
     const { a, m } = await agendaCtx(input.id);
@@ -391,7 +388,7 @@ export async function saveMeetingSummary(id: string, summary: string): Promise<R
   try {
     const staff = await requireStaff();
     const m = await loadMeeting(id);
-    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0] : null;
+    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,owner_ids,created_by`))[0] : null;
     if (!(m.created_by === staff.id || (plan && canEditPlan(plan, staff)))) return { ok: false, message: "只有匯入的老師或規劃負責人可以修改摘要" };
     await sbPatch(`meetings?id=eq.${id}`, { summary: summary.trim().slice(0, 4000), updated_at: new Date().toISOString() });
     await audit(actorOf(staff), "meeting.summary_edit", `meetings:${id}`, {});
@@ -404,13 +401,13 @@ export async function saveMeetingSummary(id: string, summary: string): Promise<R
 
 // 4. 把老師勾選的決議、待辦寫進規劃
 export async function applyMeeting(input: {
-  id: string; decisions: string[]; tasks: { title: string; assigneeId: string; due: string }[];
+  id: string; decisions: string[]; tasks: { title: string; assigneeIds?: string[]; assigneeId?: string; due: string }[];
 }): Promise<Result> {
   try {
     const staff = await requireStaff();
     const m = await loadMeeting(input.id);
     if (!m.plan_id) return { ok: false, message: "這場會議沒有對應的規劃" };
-    const plan = (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0];
+    const plan = (await sbGet<{ owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,owner_ids,created_by`))[0];
     if (!plan) return { ok: false, message: "找不到這份規劃" };
     const decisions = (input.decisions ?? []).map((d) => String(d).trim().slice(0, 2900)).filter(Boolean).slice(0, 30);
     if (decisions.length && !canEditPlan(plan, staff)) return { ok: false, message: "決議只有規劃的負責老師、建立者或管理員可以套用（待辦可以）" };
@@ -428,7 +425,9 @@ export async function applyMeeting(input: {
     }
     const tasks = (input.tasks ?? []).map((t) => ({
       plan_id: m.plan_id, title: String(t.title ?? "").trim().slice(0, 300),
-      assignee_id: teacherIds.has(t.assigneeId) ? t.assigneeId : null, due_date: isDate(t.due) ? t.due : null, created_by: staff.id,
+      // 可以複選；離職或不存在的老師略過
+      assignee_ids: [...new Set(t.assigneeIds ?? (t.assigneeId ? [t.assigneeId] : []))].filter((x) => teacherIds.has(x)).slice(0, 8),
+      due_date: isDate(t.due) ? t.due : null, created_by: staff.id,
       meeting_id: m.id,
     })).filter((t) => t.title).slice(0, 30);
     if (tasks.length) {
@@ -450,7 +449,7 @@ export async function updateMeeting(input: { id: string; title: string; heldOn: 
   try {
     const staff = await requireStaff();
     const m = await loadMeeting(input.id);
-    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0] : null;
+    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,owner_ids,created_by`))[0] : null;
     const helpers = await sbGet<{ teacher_id: string }[]>(`meeting_helpers?meeting_id=eq.${m.id}&select=teacher_id`).catch(() => []);
     if (!(staff.is_admin || m.created_by === staff.id || helpers.some((h) => h.teacher_id === staff.id) || (plan && canEditPlan(plan, staff)))) {
       return { ok: false, message: "只有會議建立者、小幫手老師、規劃負責人或管理員可以修改" };
@@ -471,7 +470,7 @@ export async function deleteMeeting(id: string): Promise<Result> {
   try {
     const staff = await requireStaff();
     const m = await loadMeeting(id);
-    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0] : null;
+    const plan = m.plan_id ? (await sbGet<{ owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,owner_ids,created_by`))[0] : null;
     if (!(staff.is_admin || m.created_by === staff.id || (plan && canEditPlan(plan, staff)))) {
       return { ok: false, message: "只有會議建立者、規劃負責人或管理員可以刪除" };
     }

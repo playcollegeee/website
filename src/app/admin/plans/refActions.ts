@@ -20,8 +20,8 @@ const refresh = (planId: string) => {
 
 async function loadPlan(id: string) {
   if (!isUuid(id)) throw new Error("資料不正確");
-  const p = (await sbGet<{ id: string; owner_id: string | null; created_by: string | null }[]>(
-    `plans?id=eq.${id}&select=id,owner_id,created_by`,
+  const p = (await sbGet<{ id: string; owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(
+    `plans?id=eq.${id}&select=id,owner_id,owner_ids,created_by`,
   ))[0];
   if (!p) throw new Error("找不到這份規劃，可能已被刪除");
   return p;

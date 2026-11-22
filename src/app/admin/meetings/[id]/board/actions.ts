@@ -16,8 +16,8 @@ export async function setHelpers(meetingId: string, teacherIds: string[]): Promi
     if (!isUuid(meetingId) || !Array.isArray(teacherIds) || teacherIds.length > 30 || !teacherIds.every(isUuid)) {
       return { ok: false, message: "資料不正確" };
     }
-    const rows = await sbGet<{ id: string; created_by: string | null; plan: { owner_id: string | null; created_by: string | null } | null }[]>(
-      `meetings?id=eq.${meetingId}&select=id,created_by,plan:plans(owner_id,created_by)`,
+    const rows = await sbGet<{ id: string; created_by: string | null; plan: { owner_id: string | null; owner_ids?: string[] | null; created_by: string | null } | null }[]>(
+      `meetings?id=eq.${meetingId}&select=id,created_by,plan:plans(owner_id,owner_ids,created_by)`,
     );
     const m = rows[0];
     if (!m) return { ok: false, message: "找不到這場會議" };
@@ -176,14 +176,14 @@ ${notes.map((n, i) => `n${i + 1}（${nameOf(n.author_id) || "老師"}）：${n.t
 
 // 把老師勾選的決議與待辦寫進規劃（記成這場會議的）
 export async function applyBoardAi(input: {
-  meetingId: string; decisions: string[]; tasks: { title: string; assigneeId: string; due: string }[];
+  meetingId: string; decisions: string[]; tasks: { title: string; assigneeIds?: string[]; assigneeId?: string; due: string }[];
 }): Promise<Result> {
   try {
     const staff = await requireStaff();
     if (!isUuid(input.meetingId)) return { ok: false, message: "資料不正確" };
     const m = (await sbGet<{ id: string; plan_id: string | null }[]>(`meetings?id=eq.${input.meetingId}&select=id,plan_id`))[0];
     if (!m?.plan_id) return { ok: false, message: "這場會議沒有對應的規劃" };
-    const plan = (await sbGet<{ owner_id: string | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,created_by`))[0];
+    const plan = (await sbGet<{ owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }[]>(`plans?id=eq.${m.plan_id}&select=owner_id,owner_ids,created_by`))[0];
     if (!plan) return { ok: false, message: "找不到這份規劃" };
     const decisions = (input.decisions ?? []).map((d) => String(d).trim().slice(0, 2900)).filter(Boolean).slice(0, 20);
     if (decisions.length && !canEditPlan(plan, staff)) return { ok: false, message: "決議只有規劃的負責老師、建立者或管理員可以套用（待辦可以）" };
@@ -200,7 +200,8 @@ export async function applyBoardAi(input: {
     }
     const tasks = (input.tasks ?? []).map((t) => ({
       plan_id: m.plan_id, meeting_id: m.id, title: String(t.title ?? "").trim().slice(0, 300),
-      assignee_id: teacherIds.has(t.assigneeId) ? t.assigneeId : null, due_date: isDate(t.due) ? t.due : null, created_by: staff.id,
+      assignee_ids: [...new Set(t.assigneeIds ?? (t.assigneeId ? [t.assigneeId] : []))].filter((x) => teacherIds.has(x)).slice(0, 8),
+      due_date: isDate(t.due) ? t.due : null, created_by: staff.id,
     })).filter((t) => t.title).slice(0, 20);
     if (tasks.length) {
       const r = await sbFetch("plan_tasks", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(tasks) });

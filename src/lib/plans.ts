@@ -51,7 +51,7 @@ export const namesOf = (ids: string[], teachers: { id: string; name: string; nic
 
 export type Plan = {
   id: string; kind: PlanKind; title: string; theme: string | null; start_date: string | null; end_date: string | null; status: string;
-  summary: string | null; owner_id: string | null; created_by: string | null; created_at: string; updated_at: string;
+  summary: string | null; owner_id: string | null; owner_ids?: string[] | null; created_by: string | null; created_at: string; updated_at: string;
   owner?: Person;
 };
 export type PlanItem = {
@@ -70,8 +70,11 @@ export type PlanTask = {
 };
 
 // 權限：規劃本身與內容由負責老師、建立者或管理員修改；每一項的負責老師可以改那一項
-export const canEditPlan = (p: { owner_id: string | null; created_by: string | null }, s: { id: string; is_admin: boolean }) =>
-  s.is_admin || p.owner_id === s.id || p.created_by === s.id;
+// 負責老師可以複選（0026）：owner_ids 任何一位都算
+export const planOwners = (p: { owner_id: string | null; owner_ids?: string[] | null }) =>
+  p.owner_ids?.length ? p.owner_ids : p.owner_id ? [p.owner_id] : [];
+export const canEditPlan = (p: { owner_id: string | null; owner_ids?: string[] | null; created_by: string | null }, s: { id: string; is_admin: boolean }) =>
+  s.is_admin || planOwners(p).includes(s.id) || p.created_by === s.id;
 
 // 日期工具：營隊的每一天（週一到週五），依週分組
 export function campDays(start: string | null, end: string | null): { week: number; days: string[] }[] {
@@ -137,6 +140,6 @@ export type PlanIdea = {
   author_id: string | null; created_at: string; author?: Person; votes?: { teacher_id: string }[];
 };
 export type AgendaItem = {
-  id: string; meeting_id: string; seq: number; title: string; owner_id: string | null; minutes: number | null;
+  id: string; meeting_id: string; seq: number; title: string; owner_id: string | null; owner_ids?: string[] | null; minutes: number | null;
   notes: string | null; result: string | null; created_by: string | null; owner?: Person;
 };

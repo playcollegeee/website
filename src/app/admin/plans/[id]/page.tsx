@@ -9,6 +9,7 @@ import {
   PLAN_KINDS, PLAN_STATUS_LABEL, SECTIONS, canEditPlan, fmtDay, fmtRange, who,
   type AgendaItem, type Plan, type PlanComment, type PlanIdea, type PlanItem, type PlanTask,
 } from "@/lib/plans";
+import { namesOf, planOwners } from "@/lib/plans";
 import { type LessonOpt } from "../ItemCard";
 import PlanSchedule from "../PlanSchedule";
 import Tasks from "../Tasks";
@@ -91,7 +92,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         {plan.theme ? <>主題：<strong>{plan.theme}</strong></> : "主題還沒決定（討論完後按「編輯名稱、主題與日期」填寫）"}
       </p>
       <p className="pln-meta">
-        📅 {fmtRange(plan.start_date, plan.end_date)}　👤 負責：{plan.owner_id ? who(plan.owner ?? null) : "未指定"}
+        📅 {fmtRange(plan.start_date, plan.end_date)}　👤 負責：{planOwners(plan).length ? namesOf(planOwners(plan), teachers, plan.owner ?? null) : "未指定"}
       </p>
       {plan.summary && <p className="pln-summary"><Linkify text={plan.summary} /></p>}
       <PlanHeader plan={plan} canEdit={editable} isAdmin={staff.is_admin} teachers={teachers} />
