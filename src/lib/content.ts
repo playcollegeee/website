@@ -82,10 +82,11 @@ export const majors: Major[] = [
       { level: "玩創", text: "進階建模、功能性零件、機構與跨領域整合" },
       { level: "玩家", text: "完整設計流程、自主專題、互動裝置及作品集" },
     ],
-    image: "/images/city-modeling.webp",
+    // 2026-11-29 使用者要求換成沒有老師入鏡的照片（取自 3D 遙控車工作坊，已取得家長同意）
+    image: "/images/print-watch.webp",
     imageW: 1100,
     imageH: 825,
-    imageAlt: "3D 造物主修上課情形：用電腦做 3D 建模",
+    imageAlt: "3D 造物主修：孩子在 3D 印表機旁看自己的作品列印",
     color: "green",
   },
   {
